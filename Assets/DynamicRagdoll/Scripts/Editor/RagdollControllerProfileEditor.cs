@@ -43,7 +43,8 @@ namespace DynamicRagdoll {
             EditorGUI.indentLevel--;
             DrawPropertiesBlock(profile, "<b>Controlled:</b>", s, new string[] { "PForce", "DForce", "maxForce", "maxJointTorque" });
 		    DrawPropertiesBlock(profile, "<b>Falling:</b>", s, new string[] { "fallLerp", "residualForce", "residualJointTorque" });
-		    DrawPropertiesBlock(profile, "<b>Get Up:</b>", s, new string[] { "settledSpeed", "orientateDelay", "checkGroundMask", "blendTime" });
+		    DrawPropertiesBlock(profile, "<b>Get Up:</b>", s, new string[] { "ragdollMinTime", "settledSpeed", "orientateDelay", "checkGroundMask", "blendTime" });
+            
             EditorGUILayout.EndVertical();        
             profile.ApplyModifiedProperties();
             EditorUtility.SetDirty(profile.targetObject);

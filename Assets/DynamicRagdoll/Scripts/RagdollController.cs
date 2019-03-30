@@ -62,6 +62,7 @@ namespace DynamicRagdoll {
 		BoneFollower[] rbFollowers;
 		Follower[] nonRbFollowers, allFollowers;
 		
+		
 		//or set up system to callback when animation is done
 		const float getupTime = 3;
 		public bool isGettingUp { get { return Time.time - ragdollPhaseStartTime < getupTime; } }
@@ -87,6 +88,8 @@ namespace DynamicRagdoll {
 			}
 		}	
 
+		//bool ragdollSkip;
+
 		public void GoRagdoll (){
 			if (!profile) {
 				Debug.LogWarning("No Controller Profile on " + name);
@@ -97,6 +100,8 @@ namespace DynamicRagdoll {
 				return;
 			}
 
+			//store the state change time
+			ragdollPhaseStartTime = Time.time; 
 
 			if (state == RagdollState.Ragdolled)
 				return;
@@ -118,6 +123,11 @@ namespace DynamicRagdoll {
 			
 			//turn on ragdoll renderers, disable master renderers
 			EnableRenderers(false, true);
+
+			//skip a frame so it doesnt immediately try and get up in case force isnt applied yet
+			//ragdollSkip = true;
+
+			
 		}
 
 		//Transition from ragdolled to animated through the Blend state
@@ -358,9 +368,18 @@ namespace DynamicRagdoll {
 					SetFollowValues(Mathf.Lerp(currentMaxForce, 0, speed), Mathf.Lerp(currentMaxJointTorque, 0, speed));
 				}
 
-				//if not dead
-				if (ragdoll.RootRigidbody().velocity.sqrMagnitude < profile.settledSpeed * profile.settledSpeed) {
-					StartGetUp();
+				//skip a frame if we just ragdolled
+				// if (ragdollSkip) {
+				// 	ragdollSkip = false;
+				// }
+				// else {
+				if (Time.time - ragdollPhaseStartTime > profile.ragdollMinTime) {
+
+				
+					//if not dead
+					if (ragdoll.RootRigidbody().velocity.sqrMagnitude < profile.settledSpeed * profile.settledSpeed) {
+						StartGetUp();
+					}
 				}
 				break;
 			}

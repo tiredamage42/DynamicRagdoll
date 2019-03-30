@@ -47,6 +47,10 @@ namespace DynamicRagdoll {
 		[Range(0f, .2f)] public float residualForce = .1f;
 		[Range(0f, 120f)] public float residualJointTorque = 120f;
 		
+
+        [Tooltip("Minimum time to spend ragdolled before trying to get up")]
+		[Range(0f, 5f)] public float ragdollMinTime = 3;				
+		
         [Tooltip("When ragdollRootBoone goes below this speed\nThe falling state is through and the get up starts")]
 		[Range(0f, .4f)] public float settledSpeed = .05f;				
 		[Tooltip("Wait for animation transition into Getup")]
