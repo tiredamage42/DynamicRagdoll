@@ -1,0 +1,180 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2bf3e228b23004151a7f40c04f1a52ee, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  bones:
+  - bone: 0
+    angularXLimit: {x: 0, y: 0}
+    angularYLimit: 0
+    angularZLimit: 0
+    forceOff: 0
+    axis1: {x: 1, y: 0, z: 0}
+    axis2: {x: 0, y: 0, z: 1}
+    mass: 2.5
+    angularDrag: 0.05
+    drag: 0
+    maxAngularVelocity: 1000
+    colliderRadius: 0
+    boxZOffset: 0
+    boxZSize: 0.2
+    headOffset: {x: 0, y: -0.05, z: 0}
+  - bone: 8
+    angularXLimit: {x: -45, y: 15}
+    angularYLimit: 15
+    angularZLimit: 15
+    forceOff: 0
+    axis1: {x: 1, y: 0, z: 0}
+    axis2: {x: 0, y: 0, z: 1}
+    mass: 2.5
+    angularDrag: 0.05
+    drag: 0
+    maxAngularVelocity: 1000
+    colliderRadius: 0
+    boxZOffset: 0
+    boxZSize: 0.2
+    headOffset: {x: 0, y: -0.05, z: 0}
+  - bone: 10
+    angularXLimit: {x: -75, y: 75}
+    angularYLimit: 25
+    angularZLimit: 25
+    forceOff: 0
+    axis1: {x: 1, y: 0, z: 0}
+    axis2: {x: 0, y: 0, z: 1}
+    mass: 1
+    angularDrag: 0.05
+    drag: 0
+    maxAngularVelocity: 1000
+    colliderRadius: 0.15
+    boxZOffset: 0
+    boxZSize: 0.2
+    headOffset: {x: 0, y: -0.075, z: 0}
+  - bone: 4
+    angularXLimit: {x: -90, y: 0}
+    angularYLimit: 10
+    angularZLimit: 10
+    forceOff: 0
+    axis1: {x: 1, y: 0, z: 0}
+    axis2: {x: 0, y: 0, z: 1}
+    mass: 1.5
+    angularDrag: 0.05
+    drag: 0
+    maxAngularVelocity: 1000
+    colliderRadius: 0.075
+    boxZOffset: 0
+    boxZSize: 0.2
+    headOffset: {x: 0, y: -0.05, z: 0}
+  - bone: 3
+    angularXLimit: {x: -90, y: 0}
+    angularYLimit: 10
+    angularZLimit: 10
+    forceOff: 0
+    axis1: {x: 1, y: 0, z: 0}
+    axis2: {x: 0, y: 0, z: 1}
+    mass: 1.5
+    angularDrag: 0.05
+    drag: 0
+    maxAngularVelocity: 1000
+    colliderRadius: 0.075
+    boxZOffset: 0
+    boxZSize: 0.2
+    headOffset: {x: 0, y: -0.05, z: 0}
+  - bone: 2
+    angularXLimit: {x: -75, y: 100}
+    angularYLimit: 25
+    angularZLimit: 0
+    forceOff: 0
+    axis1: {x: 1, y: 0, z: 0}
+    axis2: {x: 0, y: 0, z: 1}
+    mass: 1.5
+    angularDrag: 0.05
+    drag: 0
+    maxAngularVelocity: 1000
+    colliderRadius: 0.075
+    boxZOffset: 0
+    boxZSize: 0.2
+    headOffset: {x: 0, y: -0.05, z: 0}
+  - bone: 1
+    angularXLimit: {x: -75, y: 100}
+    angularYLimit: 25
+    angularZLimit: 0
+    forceOff: 0
+    axis1: {x: 1, y: 0, z: 0}
+    axis2: {x: 0, y: 0, z: 1}
+    mass: 1.5
+    angularDrag: 0.05
+    drag: 0
+    maxAngularVelocity: 1000
+    colliderRadius: 0.075
+    boxZOffset: 0
+    boxZSize: 0.2
+    headOffset: {x: 0, y: -0.05, z: 0}
+  - bone: 16
+    angularXLimit: {x: 0, y: 180}
+    angularYLimit: 15
+    angularZLimit: 15
+    forceOff: 0
+    axis1: {x: 0, y: 1, z: 0}
+    axis2: {x: 0, y: 0, z: 1}
+    mass: 1
+    angularDrag: 0.05
+    drag: 0
+    maxAngularVelocity: 1000
+    colliderRadius: 0.075
+    boxZOffset: 0
+    boxZSize: 0.2
+    headOffset: {x: 0, y: -0.05, z: 0}
+  - bone: 15
+    angularXLimit: {x: -180, y: 0}
+    angularYLimit: 15
+    angularZLimit: 15
+    forceOff: 0
+    axis1: {x: 0, y: 1, z: 0}
+    axis2: {x: 0, y: 0, z: 1}
+    mass: 1
+    angularDrag: 0.05
+    drag: 0
+    maxAngularVelocity: 1000
+    colliderRadius: 0.075
+    boxZOffset: 0
+    boxZSize: 0.2
+    headOffset: {x: 0, y: -0.05, z: 0}
+  - bone: 14
+    angularXLimit: {x: -45, y: 90}
+    angularYLimit: 85
+    angularZLimit: 25
+    forceOff: 0
+    axis1: {x: 0, y: 0, z: 1}
+    axis2: {x: 0, y: 1, z: 0}
+    mass: 1
+    angularDrag: 0.05
+    drag: 0
+    maxAngularVelocity: 1000
+    colliderRadius: 0.075
+    boxZOffset: 0
+    boxZSize: 0.2
+    headOffset: {x: 0, y: -0.05, z: 0}
+  - bone: 13
+    angularXLimit: {x: -90, y: 45}
+    angularYLimit: 85
+    angularZLimit: 25
+    forceOff: 0
+    axis1: {x: 0, y: 0, z: 1}
+    axis2: {x: 0, y: 1, z: 0}
+    mass: 1
+    angularDrag: 0.05
+    drag: 0
+    maxAngularVelocity: 1000
+    colliderRadius: 0.075
+    boxZOffset: 0
+    boxZSize: 0.2
+    headOffset: {x: 0, y: -0.05, z: 0}
