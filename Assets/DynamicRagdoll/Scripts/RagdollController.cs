@@ -64,7 +64,7 @@ namespace DynamicRagdoll {
 		
 		//or set up system to callback when animation is done
 		const float getupTime = 3;
-		public bool isGettingUp { get { return Time.time - ragdollPhaseStartTime >= getupTime; } }
+		public bool isGettingUp { get { return Time.time - ragdollPhaseStartTime < getupTime; } }
 
 		void SetKinematic(bool value) {
 			for (int i = 0; i < rbFollowers.Length; i++)
@@ -155,6 +155,7 @@ namespace DynamicRagdoll {
 			
 			//play get up animation
 			animator.SetTrigger(onBack ? "BackTrigger" : "FrontTrigger");
+			
 		}
 
 		// Here the master gets reorientated to the ragdoll 
@@ -196,9 +197,11 @@ namespace DynamicRagdoll {
 					return false;
 				}
 				OrientateMaster();
+
+				//Debug.Break();
 				orientated = true;
 
-				//return false;
+				return false;
 			}
 			
 			//compute the ragdoll blend amount in the range 0...1

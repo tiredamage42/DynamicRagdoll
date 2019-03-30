@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 2bf3e228b23004151a7f40c04f1a52ee, type: 3}
-  m_Name: 
+  m_Name: RagdollProfile
   m_EditorClassIdentifier: 
   bones:
   - bone: 0
