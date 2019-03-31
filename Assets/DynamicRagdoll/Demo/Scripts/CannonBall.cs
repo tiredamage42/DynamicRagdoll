@@ -1,9 +1,7 @@
 ﻿using UnityEngine;
 
-namespace DynamicRagdoll.Demo
-{
-	public class CannonBall : MonoBehaviour
-	{
+namespace DynamicRagdoll.Demo {
+	public class CannonBall : MonoBehaviour {
 		public float velocity = 20f;
 		public float mass = 40f;
 		public float scale = .4f;

@@ -12,6 +12,10 @@ namespace DynamicRagdoll.Demo
 		public float turnSpeed = 500f;
 		public float slowTime = .3f;
 		public float bulletForce = 8000f;
+
+		public float heightSpeed = 20;
+
+		public LayerMask groundLayerMask;
 		
 		bool slomo;
 		float origFixedDelta;
@@ -19,8 +23,8 @@ namespace DynamicRagdoll.Demo
 		Animator anim;		
 		CannonBall cannonBall;
 		RagdollController ragdollController;
-
 		CameraFollow camFollow;
+
 			
 		void Awake ()
 		{
@@ -39,34 +43,49 @@ namespace DynamicRagdoll.Demo
 
 		}
 		bool ragdolled;
+		float floorY;
 
 		void OnAnimatorMove ()
 		{
-			transform.position += anim.deltaPosition;
+			//transform.position += anim.deltaPosition;
+			
+			Vector3 pos = transform.position;
+			Vector3 d = anim.deltaPosition;
+			transform.position = new Vector3(pos.x + d.x, floorY, pos.z + d.z);
 		}
 
 		void DemoRagdoll () {
-			camFollow.target = ragdollController.ragdoll.RootBone().transform;
 			ragdollController.GoRagdoll();
 			ragdolled = true;
+			
+			//switch camera to follow ragdoll	
+			camFollow.target = ragdollController.ragdoll.RootBone().transform;
 		}
-		
+			
+		void FixedUpdate () {
+			RaycastHit hit;
+			if (Physics.Raycast(transform.position + Vector3.up, Vector3.down, out hit, 10f, groundLayerMask )) {
+				floorY = Mathf.Lerp(floorY, hit.point.y, Time.fixedDeltaTime * heightSpeed);
+			}
+		}
+
 		void Update () 
 		{
+			//switch cameara to follow our characetr
 			if (ragdolled) {
-				if (ragdollController.state == RagdollController.RagdollState.Blending) {
-
+				if (ragdollController.state == RagdollController.RagdollState.BlendToAnimated) {
 					camFollow.target = anim.GetBoneTransform(HumanBodyBones.Hips);
 					ragdolled = false;
 				} 
 			}
-
+			
+			//check for manual ragdoll
 			if (Input.GetKeyDown(KeyCode.R)) {
 				DemoRagdoll();
 			}
 		
-			if (ragdollController.state != RagdollController.RagdollState.Ragdolled && !ragdollController.isGettingUp) {
-				transform.Rotate(0f, Input.GetAxis("Horizontal") * turnSpeed * Time.fixedDeltaTime, 0f);
+			if (!ragdolled && !ragdollController.isGettingUp) {
+				transform.Rotate(0f, Input.GetAxis("Horizontal") * turnSpeed * Time.deltaTime, 0f);
 			}
 			anim.SetFloat("Speed", Input.GetAxis("Vertical") * (Input.GetKey(KeyCode.LeftShift) ? 2 : 1));
 			
@@ -81,17 +100,10 @@ namespace DynamicRagdoll.Demo
 		}
 
 		void UpdateSloMo () {
-			if (Input.GetKeyDown(KeyCode.N) && !slomo)
-			{
-				Time.timeScale = slowTime;
-				Time.fixedDeltaTime = origFixedDelta * slowTime;
-				slomo = true;
-			}
-			else if (slomo && Input.GetKeyDown(KeyCode.N))
-			{
-				Time.timeScale = 1f;
-				Time.fixedDeltaTime = origFixedDelta;
-				slomo = false;
+			if (Input.GetKeyDown(KeyCode.N)) {
+				Time.timeScale = slomo ? 1 : slowTime;
+				Time.fixedDeltaTime = origFixedDelta * Time.timeScale;
+				slomo = !slomo;
 			}
 		}
 
@@ -104,32 +116,47 @@ namespace DynamicRagdoll.Demo
 				RaycastHit hit;
 				if (Physics.Raycast(ray, out hit, 100f))
 				{
-					Rigidbody rbHit = hit.transform.GetComponent<Rigidbody>();
-					if (rbHit) {
+					Rigidbody rb = hit.transform.GetComponent<Rigidbody>();
+					if (rb) {
+
+						System.Action executePhysics = () => StartCoroutine(AddDelayedForce(rb, ray.direction.normalized * bulletForce, hit.point));
+
 						if (hit.transform.IsChildOf(ragdollController.ragdoll.transform)) {
+	
+							//stores the method for delayed execution
+							ragdollController.StorePhysicsHit(executePhysics);
 							DemoRagdoll();
 							
 						}
-						StartCoroutine(AddForceToRigidbody(rbHit, ray.direction.normalized * bulletForce, hit.point));
+						else {
+							executePhysics();
+						}
 					}
 				}
 			}
 		}
-		IEnumerator AddForceToRigidbody (Rigidbody rb, Vector3 force, Vector3 point)
+		IEnumerator AddDelayedForce (Rigidbody rb, Vector3 force, Vector3 point)
 		{
 			yield return new WaitForFixedUpdate();
 			rb.AddForceAtPosition(force, point);
 		}
+
 		void OnGUI ()
 		{
+			DrawCrosshair();
+			DrawTutorialBox();
+		}
+
+		void DrawTutorialBox () {
+			GUI.Box(new Rect(5, 5, 160, 120), "Fire = Left mouse\nB = Launch Ball\nN = Slow motion\nR = Go Ragdoll\nMove With Arrow Keys or WASD");
+		}
+
+		void DrawCrosshair () {
 			float crossHairSize = 40;
 			float halfSize = crossHairSize / 2;
 			Vector2 mousePos = Input.mousePosition;
 			Rect crosshairRect = new Rect(mousePos.x - halfSize, Screen.height - mousePos.y - halfSize, crossHairSize, crossHairSize);
 			GUI.DrawTexture(crosshairRect, crosshairTexture, ScaleMode.ScaleToFit, true);
-		
-			Rect guiBox = new Rect(5, 5, 160, 120);
-			GUI.Box(guiBox, "Fire = Left mouse\nB = Launch ball\nN = Slow motion");
 		}
 	}
 }

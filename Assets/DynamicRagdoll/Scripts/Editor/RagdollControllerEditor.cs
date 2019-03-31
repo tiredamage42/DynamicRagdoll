@@ -3,9 +3,12 @@ using UnityEditor;
 namespace DynamicRagdoll {
     [CustomEditor(typeof(RagdollController))]
     public class RagdollControllerEditor : Editor {
+        RagdollController controller;
+        void OnEnable () {
+            controller = target as RagdollController;
+        }
         public override void OnInspectorGUI() {
             base.OnInspectorGUI();
-            RagdollController controller = target as RagdollController;
             if (!controller.ragdoll) {
                 EditorGUILayout.HelpBox("Controller doesnt have a Ragdoll to control...", MessageType.Error);
             }

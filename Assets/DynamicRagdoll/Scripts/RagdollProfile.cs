@@ -54,14 +54,26 @@ namespace DynamicRagdoll {
         }
         public Vector3 headOffset = defaultHeadOffset;
         public BoneProfile[] bones = defaultBoneProfiles;
+
+        static RagdollProfile _defaultProfile;
+        public static RagdollProfile defaultProfile {
+            get {
+                if (_defaultProfile == null) {
+                    _defaultProfile = ScriptableObject.CreateInstance<RagdollProfile>();
+                    _defaultProfile.headOffset = defaultHeadOffset;
+                    _defaultProfile.bones = defaultBoneProfiles;
+                }
+                return _defaultProfile;
+            }
+        }
         
-        public static Vector3 defaultHeadOffset {
+        static Vector3 defaultHeadOffset {
             get {
                 return new Vector3(0, -.05f, 0);
             }
         }
 
-        public static BoneProfile[] defaultBoneProfiles {
+        static BoneProfile[] defaultBoneProfiles {
             get {
                 return new BoneProfile[] {
                     new BoneProfile(HumanBodyBones.Hips,  new Vector2(0, 0), 0, 0, Vector3.right, Vector3.forward, 2.5f, 0, 0, .2f),

@@ -17,19 +17,18 @@ namespace DynamicRagdoll {
             SerializedProperty preBuiltProp = serializedObject.FindProperty("preBuilt");
             bool isBuilt = preBuiltProp.boolValue;
             if (GUILayout.Button(isBuilt ? "Clear Ragdoll" : "Pre Build Ragdoll")) {
-                if (isBuilt) {
-                    Ragdoll.EraseRagdoll(ragdoll.GetComponent<Animator>());
-                }
-                else {
-                    Ragdoll.BuildRagdoll (ragdoll);
-                }
+                if (isBuilt)
+                    RagdollBuilder.EraseRagdoll(ragdoll.GetComponent<Animator>());
+                else
+                    RagdollBuilder.BuildRagdollFull (ragdoll.GetComponent<Animator>(), ragdoll.ragdollProfile, out _);
+
                 preBuiltProp.boolValue = !isBuilt;
             }
 
             if (isBuilt) {
                 if (ragdoll.ragdollProfile) {
                     if (GUILayout.Button("Update Ragdoll To Profile")) {
-                        Ragdoll.UpdateBonesToProfileValues(ragdoll);
+                        RagdollBuilder.BuildRagdollFromPrebuilt(ragdoll.GetComponent<Animator>(), ragdoll.ragdollProfile, out _);
                     }
                 }
             }

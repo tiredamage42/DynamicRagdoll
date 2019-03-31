@@ -42,6 +42,9 @@ namespace DynamicRagdoll {
 		[Range(0f, 100f)] public float maxForce = 100f;
 		[Range(0f, 10000f)] public float maxJointTorque = 10000f;
 
+        [Range(1,10)] public int calculateVelocityFrames = 1;
+        public bool skipFrames = true, followRigidbodyParents;
+
         [Tooltip("Determines how fast the character loses control after colliding")]
 		[Range(.5f, 4.5f)] public float fallLerp = 1.5f;				
 		[Range(0f, .2f)] public float residualForce = .1f;
