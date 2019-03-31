@@ -59,17 +59,21 @@ namespace DynamicRagdoll {
 		float currentMaxJointTorque = 10000f; // Limits the force
 			
 		JointDrive jointDrive = new JointDrive();
-		BoneFollower[] rbFollowers;
-		Follower[] nonRbFollowers, allFollowers;
+		PhysicalBoneTracker[] rbFollowers;
+		BoneTracker[] nonRbFollowers, allFollowers;
 		
 		
 		//or set up system to callback when animation is done
 		const float getupTime = 3;
 		public bool isGettingUp { get { return Time.time - ragdollPhaseStartTime < getupTime; } }
 
+		bool controllerInvalid { get { return profile == null || ragdoll == null; } }
+
 		void SetKinematic(bool value) {
-			for (int i = 0; i < rbFollowers.Length; i++)
-				rbFollowers[i].boneRB.isKinematic = value;
+			for (int i = 0; i < rbFollowers.Length; i++) {
+				rbFollowers[i].bone.rigidbody.isKinematic = value;
+				rbFollowers[i].bone.rigidbody.detectCollisions = !value;
+			}
 		}
 		void EnableRenderers (bool masterEnabled, bool slaveEnabled) {
 			for (int i = 0; i < masterRenderers.Length; i++)
@@ -88,9 +92,8 @@ namespace DynamicRagdoll {
 			}
 		}	
 
-		//bool ragdollSkip;
-
 		public void GoRagdoll (){
+
 			if (!profile) {
 				Debug.LogWarning("No Controller Profile on " + name);
 				return;
@@ -122,12 +125,7 @@ namespace DynamicRagdoll {
 			}
 			
 			//turn on ragdoll renderers, disable master renderers
-			EnableRenderers(false, true);
-
-			//skip a frame so it doesnt immediately try and get up in case force isnt applied yet
-			//ragdollSkip = true;
-
-			
+			EnableRenderers(false, true);	
 		}
 
 		//Transition from ragdolled to animated through the Blend state
@@ -156,7 +154,15 @@ namespace DynamicRagdoll {
 			//save the ragdoll positions in order to lerp from them to the animated
 			//positions / local rotations
 			for(int i = 0; i < allFollowers.Length; i++) {
-				allFollowers[i].SaveRagdollValues(allFollowers[i].master == masterHips);
+				Transform master = allFollowers[i].master;
+				Transform slave = allFollowers[i].slave;
+				bool doWorldSpace = master == masterHips;
+
+				if (doWorldSpace) {
+					allFollowers[i].savedPosition = slave.position;
+				}
+
+				allFollowers[i].savedRotation = doWorldSpace ? slave.rotation : slave.localRotation;
 			}
 			
 			Vector3 rootBoneForward = ragdoll.RootBone().transform.rotation * rootboneToForward * Vector3.forward;
@@ -207,24 +213,31 @@ namespace DynamicRagdoll {
 					return false;
 				}
 				OrientateMaster();
-
-				//Debug.Break();
 				orientated = true;
 
-				return false;
+				return false; //needs to skip this frame or there's a jitter
 			}
 			
 			//compute the ragdoll blend amount in the range 0...1
-			float blendT = timeSinceRagdoll / profile.blendTime;			
-			blendT = Mathf.Clamp01(blendT);
+			float blendT = Mathf.Clamp01(timeSinceRagdoll / profile.blendTime);
 			
 			//In LateUpdate(), Mecanim has already updated the body pose according to the animations. 
 			//lerp the position of the hips and slerp all the rotations towards the ones stored when ending the ragdolling
-
-			//world position and rotation is interpolated for the hips, local rotation is interpolated for all other body parts
 			
 			for(int i = 0; i < allFollowers.Length; i++) {
-				allFollowers[i].LerpFromSavedPositionToAnimatedPosition(blendT, allFollowers[i].master == masterHips);
+				Transform master = allFollowers[i].master;
+				Transform slave = allFollowers[i].slave;
+				
+				//world position and rotation is interpolated for the hips, 
+				bool doWorldSpace = master == masterHips;
+				if (doWorldSpace) {
+					slave.position = Vector3.Lerp(allFollowers[i].savedPosition, master.position, blendT);
+					slave.rotation = Quaternion.Slerp(allFollowers[i].savedRotation, master.rotation, blendT);
+				}
+				//local rotation is interpolated for all other body parts
+				else {
+					slave.localRotation = Quaternion.Slerp(allFollowers[i].savedRotation, master.localRotation, blendT);
+				}
 			}
 			return blendT == 1;
 		}
@@ -248,13 +261,9 @@ namespace DynamicRagdoll {
 
 		void LateUpdate()
 		{
-			if (!profile) {
-				return;
+			if (controllerInvalid) {
+				return;	
 			}
-			if (!ragdoll) {
-				return;
-			}
-
 			
 			if (state == RagdollState.Blending)
 			{
@@ -275,9 +284,6 @@ namespace DynamicRagdoll {
 				return;
 			}
 
-			
-
-
 			state = RagdollState.Animated;
 			
 			//get all the master renderers to switch off when going ragdoll
@@ -290,19 +296,16 @@ namespace DynamicRagdoll {
 			
 			masterHips = animator.GetBoneTransform(HumanBodyBones.Hips);
 		
-
 			//get all the followers that use physics
-			int l = profile.bones.Length;
+			int l = Ragdoll.ragdollUsedBones.Length;// profile.bones.Length;
 
-			rbFollowers = new BoneFollower[l];
-			
+			rbFollowers = new PhysicalBoneTracker[l];
 			for (int i = 0; i < l; i++) {
-				HumanBodyBones bone = profile.bones[i].bone;
-				rbFollowers[i] = new BoneFollower(bone, ragdoll.GetBone(bone).rigidbody, animator.GetBoneTransform(bone), ref jointDrive);
+				rbFollowers[i] = new PhysicalBoneTracker(ragdoll.GetBone(Ragdoll.ragdollUsedBones[i]), animator.GetBoneTransform(Ragdoll.ragdollUsedBones[i]), ref jointDrive);
 			}
 
 			//get all the followers without rididbodies
-			List<Follower> nonRbFollowersL = new List<Follower>();
+			List<BoneTracker> nonRbFollowersL = new List<BoneTracker>();
 
 			Transform[] allRags = ragdoll.RootBone().transform.GetComponentsInChildren<Transform>();
 			Transform[] allMasters = masterHips.GetComponentsInChildren<Transform>();
@@ -313,13 +316,13 @@ namespace DynamicRagdoll {
 			
 			for (int i = 0; i < allRags.Length; i++) {
 				if (!allRags[i].GetComponent<Rigidbody>())
-					nonRbFollowersL.Add(new Follower(allRags[i], allMasters[i]));
+					nonRbFollowersL.Add(new BoneTracker(allRags[i], allMasters[i]));
 			}
 			nonRbFollowers = nonRbFollowersL.ToArray();
 
 			//get all followers in a single array
 			int nonRBFollowersLength = nonRbFollowers.Length;
-			allFollowers = new Follower[nonRBFollowersLength + rbFollowers.Length];
+			allFollowers = new BoneTracker[nonRBFollowersLength + rbFollowers.Length];
 			for (int i = 0; i < nonRBFollowersLength; i++) {
 				allFollowers[i] = nonRbFollowers[i];	
 			}
@@ -345,13 +348,9 @@ namespace DynamicRagdoll {
 	
 		void FixedUpdate ()		
 		{
-			if (!profile) {
-				return;
+			if (controllerInvalid) {
+				return;	
 			}
-			if (!ragdoll) {
-				return;
-			}
-
 			
 			UpdateLoop(Time.fixedDeltaTime);
 		}
@@ -368,127 +367,27 @@ namespace DynamicRagdoll {
 					SetFollowValues(Mathf.Lerp(currentMaxForce, 0, speed), Mathf.Lerp(currentMaxJointTorque, 0, speed));
 				}
 
-				//skip a frame if we just ragdolled
-				// if (ragdollSkip) {
-				// 	ragdollSkip = false;
-				// }
-				// else {
-				if (Time.time - ragdollPhaseStartTime > profile.ragdollMinTime) {
-
+				//if not dead
 				
-					//if not dead
+				//if we've spent enough time ragdolled
+				if (Time.time - ragdollPhaseStartTime > profile.ragdollMinTime) {
+				
 					if (ragdoll.RootBone().rigidbody.velocity.sqrMagnitude < profile.settledSpeed * profile.settledSpeed) {
 						StartGetUp();
 					}
 				}
+				
 				break;
 			}
 			
-			RagdollFollowMasters(deltaTime);
+			MoveRagdollToMaster(deltaTime);
 		}
 
 		// update rigidbody followers so ragdoll follows animated master
-		void RagdollFollowMasters (float deltaTime) {
+		void MoveRagdollToMaster (float deltaTime) {
 			float reciDeltaTime = 1f / deltaTime;
 			for (int i = 0; i < rbFollowers.Length; i++) {
-				rbFollowers[i].DoFollow(profile.PForce, profile.DForce, currentMaxForce, currentMaxJointTorque, reciDeltaTime, profile.bones[i], jointDrive);
-			}
-		}
-
-		public class Follower {
-			public Transform slave, master;
-			Quaternion savedRotation;
-			Vector3 savedPosition;
-
-			public void SaveRagdollValues (bool doWorldSpace) {
-				if (doWorldSpace) {
-					savedRotation = slave.rotation;
-					savedPosition = slave.position;
-				}
-				else {
-					savedRotation = slave.localRotation;
-				}
-			}
-			public void LerpFromSavedPositionToAnimatedPosition (float t, bool doWorldSpace) {
-				if (doWorldSpace) {
-					slave.position = Vector3.Lerp(savedPosition, master.position, t);
-					slave.rotation = Quaternion.Slerp(savedRotation, master.rotation, t);
-				}
-				else {
-					slave.localRotation = Quaternion.Slerp(savedRotation, master.localRotation, t);
-				}
-			}
-			public Follower(Transform slave, Transform master) {
-				this.slave = slave;
-				this.master = master;
-			}
-		}
-
-		public class BoneFollower : Follower {
-			public float runtimeMultiplier = 1;
-			Vector3 originalRBPosition, forceLastError;
-			Quaternion startLocalRotation, localToJointSpace;
-			ConfigurableJoint joint;
-			public Rigidbody boneRB;
-			float lastJointTorque;
-
-			public BoneFollower(HumanBodyBones bone, Rigidbody boneRB, Transform master, ref JointDrive jointDrive) 
-				: base(boneRB.transform, master)
-			{
-				this.boneRB = boneRB;
-				
-				joint = slave.GetComponent<ConfigurableJoint>();
-				if (joint) {
-					localToJointSpace = Quaternion.LookRotation(Vector3.Cross (joint.axis, joint.secondaryAxis), joint.secondaryAxis);
-					startLocalRotation = slave.localRotation * localToJointSpace;
-					localToJointSpace = Quaternion.Inverse(localToJointSpace);
-					
-					jointDrive = joint.slerpDrive;
-					joint.slerpDrive = jointDrive;
-				}
-				originalRBPosition = Quaternion.Inverse(boneRB.rotation) * (boneRB.worldCenterOfMass - boneRB.position); 		
-			}
-
-	
-			public void DoFollow (float PForce, float DForce, float maxForce, float maxJointTorque, float reciDeltaTime, RagdollControllerProfile.BoneProfile boneProfile, JointDrive jointDrive){
-				
-				Vector3 forceError = Vector3.zero;
-				if (boneProfile.inputForce != 0 && maxForce != 0 && runtimeMultiplier != 0) {
-					// Force error
-					forceError = (master.position + master.rotation * originalRBPosition) - boneRB.worldCenterOfMass;
-					// Calculate and apply world force
-					Vector3 force = PDControl (PForce * boneProfile.inputForce, DForce, forceError, ref forceLastError, maxForce, boneProfile.maxForce * runtimeMultiplier, reciDeltaTime);
-					boneRB.AddForce(force, ForceMode.VelocityChange);
-				}
-				forceLastError = forceError;
-						
-				if (joint) { 
-
-					float jointTorque = maxJointTorque * boneProfile.maxTorque * runtimeMultiplier;
-					if (jointTorque != lastJointTorque) {
-
-						jointDrive.positionSpring = jointTorque;
-						joint.slerpDrive = jointDrive;
-				
-						lastJointTorque = jointTorque;
-					}
-								
-					if (jointTorque != 0) {
-						joint.targetRotation = localToJointSpace * Quaternion.Inverse(master.localRotation) * startLocalRotation;
-					}
-				}
-			}
-			static Vector3 PDControl (float P, float D, Vector3 error, ref Vector3 lastError, float maxForce, float weight, float reciDeltaTime) // A PD controller
-			{
-				// theSignal = P * (theError + D * theDerivative) This is the implemented algorithm.
-				Vector3 signal = P * (error + D * ( error - lastError ) * reciDeltaTime);
-				return Vector3.ClampMagnitude(signal, maxForce * weight);
-			}
-
-			public void EnableJointLimits (ConfigurableJointMotion jointLimits) {
-				if (joint) {
-					joint.angularXMotion = joint.angularYMotion = joint.angularZMotion = jointLimits;
-				}
+				rbFollowers[i].MoveBoneToMaster(profile, currentMaxForce, currentMaxJointTorque, reciDeltaTime, profile.bones[i], jointDrive);
 			}
 		}
 	}
