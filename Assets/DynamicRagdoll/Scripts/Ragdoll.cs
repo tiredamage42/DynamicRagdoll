@@ -21,34 +21,48 @@ namespace DynamicRagdoll {
 	
 	[RequireComponent(typeof(Animator))]
 	public class Ragdoll : MonoBehaviour {
+
 		public static HumanBodyBones[] ragdollUsedBones = new HumanBodyBones[] {
-			HumanBodyBones.Hips, 
-			HumanBodyBones.Chest, 
-			HumanBodyBones.Head, 
-			HumanBodyBones.RightLowerLeg, 
-			HumanBodyBones.LeftLowerLeg, 
-			HumanBodyBones.RightUpperLeg, 
-			HumanBodyBones.LeftUpperLeg, 
-			HumanBodyBones.RightLowerArm, 
-			HumanBodyBones.LeftLowerArm, 
-			HumanBodyBones.RightUpperArm, 
-			HumanBodyBones.LeftUpperArm, 
+			HumanBodyBones.Hips, HumanBodyBones.Chest, HumanBodyBones.Head, 
+			
+			HumanBodyBones.RightLowerLeg, HumanBodyBones.LeftLowerLeg, 
+			HumanBodyBones.RightUpperLeg, HumanBodyBones.LeftUpperLeg, 
+
+			HumanBodyBones.RightLowerArm, HumanBodyBones.LeftLowerArm, 
+			HumanBodyBones.RightUpperArm, HumanBodyBones.LeftUpperArm, 
 		};
 
 		public RagdollProfile ragdollProfile;
 		[HideInInspector] public bool preBuilt;
+
+		public class Bone {
+			public Rigidbody rigidbody;
+			public ConfigurableJoint joint;
+			public Collider collider;
+			public Transform transform;
+			public Bone parent;
+
+			public Bone() {}
+			public Bone (Transform bone) {
+				transform = bone;
+				rigidbody = bone.GetComponent<Rigidbody>();
+				joint = bone.GetComponent<ConfigurableJoint>();
+				collider = bone.GetComponent<Collider>(); 
+			}
+		}
 		
 
 		Renderer[] _allRenderers;
-		Dictionary<HumanBodyBones, Rigidbody> rigidbodies = new Dictionary<HumanBodyBones, Rigidbody>();
-		Dictionary<HumanBodyBones, ConfigurableJoint> joints = new Dictionary<HumanBodyBones, ConfigurableJoint>();
-		Dictionary<HumanBodyBones, Collider> colliders = new Dictionary<HumanBodyBones, Collider>();
+		Dictionary<HumanBodyBones, Bone> myBones = new Dictionary<HumanBodyBones, Bone>();
+		
+		// Dictionary<HumanBodyBones, Rigidbody> rigidbodies = new Dictionary<HumanBodyBones, Rigidbody>();
+		// Dictionary<HumanBodyBones, ConfigurableJoint> joints = new Dictionary<HumanBodyBones, ConfigurableJoint>();
+		// Dictionary<HumanBodyBones, Collider> colliders = new Dictionary<HumanBodyBones, Collider>();
 		
 		bool initializedValues;
 
 		//for sizing bounds of chest to fit head offset
 		float initialHeadOffsetFromChest;
-
 
 		public void EnableRenderers(bool enabled) {
 			if (!initializedValues) {
@@ -59,79 +73,74 @@ namespace DynamicRagdoll {
 			}
 		}
 
-		public Transform GetBone(HumanBodyBones bone) {
-			Rigidbody r = GetRigidbody(bone);
-			if (r != null) {
-				return r.transform;
-			}
-			return null;
-		}
-		public Rigidbody GetRigidbody (HumanBodyBones bone) {
+		// public Transform GetBone(HumanBodyBones bone) {
+		// 	Rigidbody r = GetRigidbody(bone);
+		// 	if (r != null) {
+		// 		return r.transform;
+		// 	}
+		// 	return null;
+		// }
+		public Bone GetBone (HumanBodyBones bone) {
 			if (!initializedValues) {
 				Awake();
 			}
-			Rigidbody r;
-			if (rigidbodies.TryGetValue(bone, out r)) {
+			Bone r;
+			if (myBones.TryGetValue(bone, out r)) {
 				return r;
 			}	
 			Debug.LogWarning("cant find: " + bone + " on ragdoll " + transform.name);
 			return null;
 		}
-		public Transform RootBone () {
+
+		public Bone RootBone () {
 			return GetBone(HumanBodyBones.Hips);
 		}
-		public Rigidbody RootRigidbody () {
-			return GetRigidbody(HumanBodyBones.Hips);
-		}
+		// public Rigidbody RootRigidbody () {
+		// 	return GetRigidbody(HumanBodyBones.Hips);
+		// }
+
+		
 
 		void Awake () {
 
 			if (!initializedValues) {
 
+				//get all renderers
+				_allRenderers = GetComponentsInChildren<Renderer>();
 				
+
 				Animator anim = GetComponent<Animator>();
+
+				bool usingProfile = ragdollProfile != null;
+
 				
 				//build the ragdoll if not built in editor
 				if (!preBuilt) {
-					BuildRagdollBase(anim);
+					BuildRagdollBase(anim, ragdollProfile, out myBones, out initialHeadOffsetFromChest);
+				}
+				else {
+					
+					myBones = BuildBones(anim);
+
+					if (usingProfile) {
+						//initial head position from chest (used for resizing chest collider based on head offset)
+						initialHeadOffsetFromChest = myBones[HumanBodyBones.Chest].transform.InverseTransformPoint(myBones[HumanBodyBones.Head].transform.position).y;
+						//update ragdoll with profile values
+						UpdateBonesToProfileValues();
+					}	
+					
 				}
 
 				//get the ragdoll layer
-				int layer = LayerMask.NameToLayer("Ragdoll");
-
-				//get all renderers
-				_allRenderers = GetComponentsInChildren<Renderer>();
-							
-				//initial head position from chest (used for resizing chest collider based on head offset)
-				initialHeadOffsetFromChest = anim.GetBoneTransform(HumanBodyBones.Chest).InverseTransformPoint(anim.GetBoneTransform(HumanBodyBones.Head).position).y;
-				
-				for (int i = 0; i < ragdollUsedBones.Length; i++) {
-					HumanBodyBones bone = ragdollUsedBones[i];
-
-					Transform ragBone = anim.GetBoneTransform(bone);
-					
-					if (ragBone == null) {
-						Debug.LogError("cant find: " + bone + " on ragdoll " + transform.name);
-						continue;
-					}
-
-					//set to ragdoll layer
-					ragBone.gameObject.layer = layer;
-					
-					rigidbodies.Add(bone, ragBone.GetComponent<Rigidbody>());
-					joints.Add(bone, ragBone.GetComponent<ConfigurableJoint>());
-					colliders.Add(bone, ragBone.GetComponent<Collider>());
+				int ragdollLayer = LayerMask.NameToLayer("Ragdoll");
+				foreach (var k in myBones.Keys) {
+					myBones[k].transform.gameObject.layer = ragdollLayer;
 				}
 
-
-				if (!ragdollProfile) {
+				if (!usingProfile) {
 					Debug.LogWarning("No Ragdoll Profile on " + name);
 				}
-				else {
-					//update ragdoll with profile values
-					UpdateRagdollProfileValues();
-				}
-			
+				
 				initializedValues = true;
 			}
 		}
@@ -140,119 +149,129 @@ namespace DynamicRagdoll {
 		//update values during runtime (if not in build)
 		//for easier adjustments
 		void Update () {
-			UpdateRagdollProfileValues();
+			UpdateBonesToProfileValues();
 		}
 		#endif
-
-		void UpdateRagdollProfileValues () {
+		void UpdateBonesToProfileValues () {
 			if (!ragdollProfile) {
 				return;
 			}
+			UpdateBonesToProfileValues(myBones, ragdollProfile.bones, ragdollProfile.headOffset, initialHeadOffsetFromChest);
+		}
+
+
+		static void UpdateBonesToProfileValues (Dictionary<HumanBodyBones, Bone> bones, RagdollProfile.BoneProfile[] boneProfiles, Vector3 headOffset, float initialHeadOffsetFromChest) {
 			
-			for (int i = 0; i < ragdollUsedBones.Length; i++) {
-				HumanBodyBones bone = ragdollUsedBones[i];
-				RagdollProfile.BoneProfile boneProfile = ragdollProfile.bones[i];
-
-				Vector3 headOffset = boneProfile.headOffset;
-				//values too high or too low become unstable for some reason
-				headOffset.y = Mathf.Clamp(headOffset.y, -initialHeadOffsetFromChest + .1f, 2);
-
+			for (int i = 0; i < boneProfiles.Length; i++) {
+				RagdollProfile.BoneProfile boneProfile = boneProfiles[i];
+				//HumanBodyBones bone = boneProfile.bone;
+				Bone bone = bones[boneProfile.bone];
 
 				//set rigidbody values for bone
-				Rigidbody rb = rigidbodies[bone];
-				rb.useGravity = true;
-				rb.maxAngularVelocity = boneProfile.maxAngularVelocity;
-				rb.angularDrag = boneProfile.angularDrag;
-				rb.angularDrag = boneProfile.drag;
-				rb.mass = boneProfile.mass;
+				UpdateRigidbodyToProfile(bone.rigidbody, boneProfile);
 				
-				
+				//Vector3 headOffset = boneProfile.headOffset;
+				//clamp head offset (values too high or too low become unstable for some reason)
+				headOffset.y = Mathf.Clamp(headOffset.y, -initialHeadOffsetFromChest + .1f, 2);
 
 				//adjust collider values for bone
-				Collider col = colliders[bone];
-				if (bone == HumanBodyBones.Head) {
+				bone.collider.sharedMaterial = boneProfile.colliderMaterial;
+
+				if (boneProfile.bone == HumanBodyBones.Head) {
 
 					//adjust the head collider based on headRadius and head Offset
 					float headRadius = boneProfile.colliderRadius;
-					SphereCollider sphere = col as SphereCollider;
+					SphereCollider sphere = bone.collider as SphereCollider;
 					if (sphere) {
 						sphere.radius = headRadius;
 						sphere.center = new Vector3(headOffset.x, headRadius + headOffset.y, headOffset.z);
 					}
 
-					//adjust the chest collider, so it's top reaches the head collider joint
-					BoxCollider box = colliders[HumanBodyBones.Chest] as BoxCollider;
-					
-					Bounds bounds = new Bounds(box.center, box.size);
-					Vector3 max = bounds.max;
-					max.y = Mathf.Max(.1f, initialHeadOffsetFromChest + headOffset.y);
-					bounds.max = max;
-				
-					box.center = bounds.center;
-					box.size = bounds.size;
-					
 				}
-
-				else if (bone == HumanBodyBones.Chest || bone == HumanBodyBones.Hips) {
+					
+				else if (boneProfile.bone == HumanBodyBones.Chest || boneProfile.bone == HumanBodyBones.Hips) {
+					
+					BoxCollider box = bone.collider as BoxCollider;
+					
+					Vector3 center = box.center;
+					Vector3 size = box.size;
+					
+					if (boneProfile.bone == HumanBodyBones.Chest) {
+						//adjust the chest collider, so it's top reaches the head collider joint
+						
+						Bounds chestBounds = new Bounds(center, size);
+						Vector3 max = chestBounds.max;
+						max.y = initialHeadOffsetFromChest + headOffset.y;
+						chestBounds.max = max;
+					
+						center = chestBounds.center;
+						size = chestBounds.size;
+					}
 					
 					//adjust chest and hips Z thickness and offset
 					//maybe some models are 'fatter' than others
-					BoxCollider box = col as BoxCollider;
-					if (box) {
-						Vector3 center = box.center;
-						center.z = boneProfile.boxZOffset;
-						box.center = center;
-						
-						Vector3 size = box.size;
-						size.z = boneProfile.boxZSize;
-						box.size = size;
-					}
+					center.z = boneProfile.boxZOffset;
+					size.z = boneProfile.boxZSize;
+					
+					box.center = center;
+					box.size = size;
 				}
 				else {
+				
 					//adjust the radius of the arms and leg capsules
-					CapsuleCollider capsule = col as CapsuleCollider;
-					if (capsule) {
-						capsule.radius = boneProfile.colliderRadius;
-					}
+					CapsuleCollider capsule = bone.collider as CapsuleCollider;
+					capsule.radius = boneProfile.colliderRadius;
+					
 				}
 
 				//set joint values
-				ConfigurableJoint joint = joints[bone];
-				if (joint) {
+				//ConfigurableJoint joint = joints[bone];
+				if (bone.joint) {
 
 					//adjust anchor for head offset
-					if (bone == HumanBodyBones.Head) {
-						if (joint.anchor != headOffset) {
-							joint.anchor = headOffset;
-						}
+					if (boneProfile.bone == HumanBodyBones.Head) {
+						if (bone.joint.anchor != headOffset)
+							bone.joint.anchor = headOffset;
 					}
 					
 					//adjust axes
-					if (joint.axis != boneProfile.axis1) {
-						joint.axis = boneProfile.axis1;
-					}
-					if (joint.secondaryAxis != boneProfile.axis2) {
-						joint.secondaryAxis = boneProfile.axis2;
-					}
+					if (bone.joint.axis != boneProfile.axis1)
+						bone.joint.axis = boneProfile.axis1;
+					if (bone.joint.secondaryAxis != boneProfile.axis2)
+						bone.joint.secondaryAxis = boneProfile.axis2;
+					
 					
 					//adjust limits (0 if forceOff is enabled)
-					var l = joint.lowAngularXLimit;
+					var l = bone.joint.lowAngularXLimit;
 					l.limit = boneProfile.forceOff ? 0 : boneProfile.angularXLimit.x;
-					joint.lowAngularXLimit = l;
+					bone.joint.lowAngularXLimit = l;
 					
-					l = joint.highAngularXLimit;
+					l = bone.joint.highAngularXLimit;
 					l.limit = boneProfile.forceOff ? 0 : boneProfile.angularXLimit.y;
-					joint.highAngularXLimit = l;
+					bone.joint.highAngularXLimit = l;
 					
-					l = joint.angularYLimit;
+					l = bone.joint.angularYLimit;
 					l.limit = boneProfile.forceOff ? 0 : boneProfile.angularYLimit;
-					joint.angularYLimit = l;
+					bone.joint.angularYLimit = l;
 					
-					l = joint.angularZLimit;
+					l = bone.joint.angularZLimit;
 					l.limit = boneProfile.forceOff ? 0 : boneProfile.angularZLimit;
-					joint.angularZLimit = l;
+					bone.joint.angularZLimit = l;
 				}
 			}
+		}
+		static void UpdateRigidbodyToProfile (Rigidbody rigidbody, RagdollProfile.BoneProfile boneProfile) {
+			//set rigidbody values for bone
+			rigidbody.useGravity = true;
+			rigidbody.maxAngularVelocity = boneProfile.maxAngularVelocity;
+			rigidbody.angularDrag = boneProfile.angularDrag;
+			rigidbody.angularDrag = boneProfile.drag;
+			rigidbody.mass = boneProfile.mass;
+
+			rigidbody.maxDepenetrationVelocity = boneProfile.maxDepenetrationVelocity;
+			
+			rigidbody.interpolation = boneProfile.interpolation;
+			rigidbody.collisionDetectionMode = boneProfile.collisionDetection;
 		}
 
 
@@ -266,21 +285,35 @@ namespace DynamicRagdoll {
 		*/
 		#region RAGDOLL BASE BUILDER
 		
-        class BoneInfo
-        {
-            public HumanBodyBones boneType;
-            public Transform anchor;
-            public BoneInfo parent;
-        }
+        // class BoneInfo
+        // {
+        //     public Transform anchor;
+        //     public BoneInfo parent;
+        // }
 
-        static void PrepareBones(out Dictionary<HumanBodyBones, BoneInfo> bones, Animator animator)
-        {
-            bones = new Dictionary<HumanBodyBones, BoneInfo>();
+		static Dictionary<HumanBodyBones, Bone> BuildBones (Animator animator) {
+			Dictionary<HumanBodyBones, Bone> ret = new Dictionary<HumanBodyBones, Bone>();
+			for (int i = 0; i < ragdollUsedBones.Length; i++) {
+				HumanBodyBones bone = ragdollUsedBones[i];
+				Transform boneT = animator.GetBoneTransform(bone);
+				if (boneT == null) {
+					Debug.LogError("cant find: " + bone + " on ragdoll " + animator.name);
+					continue;
+				}
+				ret.Add(bone, new Bone(boneT));	
+			}
+			return ret;
+		}
 
-            BoneInfo rootBone = new BoneInfo();
-            rootBone.anchor = animator.GetBoneTransform(HumanBodyBones.Hips);
+        static void PrepareBones(out Dictionary<HumanBodyBones, Bone> bones, Animator animator)
+        {
+            bones = new Dictionary<HumanBodyBones, Bone>();
+
+            Bone rootBone = new Bone();
+            rootBone.transform = animator.GetBoneTransform(HumanBodyBones.Hips);
             rootBone.parent = null;
             bones.Add(HumanBodyBones.Hips, rootBone);
+			
 
             AddJoint(animator, HumanBodyBones.LeftUpperLeg, bones, HumanBodyBones.Hips);//, Vector3.right, Vector3.forward);
             AddJoint(animator, HumanBodyBones.RightUpperLeg, bones, HumanBodyBones.Hips);//, Vector3.right, Vector3.forward);
@@ -311,37 +344,52 @@ namespace DynamicRagdoll {
         
         public static void EraseRagdoll (Animator anim) {
             GameObject c = anim.GetBoneTransform(HumanBodyBones.Hips).gameObject;
-            DestroyComponents<CharacterJoint>(c);
             DestroyComponents<ConfigurableJoint>(c);
             DestroyComponents<Rigidbody>(c);
             DestroyComponents<Collider>(c);
 		}	
 
-        public static void BuildRagdollBase(Animator anim) {
-            if (anim == null) {
+        public static void BuildRagdollBase(Animator anim, RagdollProfile profile, out Dictionary<HumanBodyBones, Bone> bones, out float initialHeadOffsetFromChest) {
+            bones = null;
+			initialHeadOffsetFromChest = -1;
+			if (anim == null) {
                 Debug.Log("No animator found...");
                 return;
             }
             EraseRagdoll(anim);
-            Dictionary<HumanBodyBones, BoneInfo> bones;
             PrepareBones(out bones, anim);
             BuildCapsules(bones);
-            AddBreastColliders(anim);
-            AddHeadCollider(anim);
+            AddBreastColliders(bones);
+            AddHeadCollider(bones);
             BuildBodies(bones);
             BuildJoints(bones);
-        }
 
-        static void AddJoint(Animator animator, HumanBodyBones boneType, Dictionary<HumanBodyBones, BoneInfo> bones, HumanBodyBones parentBone)//, Vector3 worldTwistAxis, Vector3 worldSwingAxis)
+			initialHeadOffsetFromChest = bones[HumanBodyBones.Chest].transform.InverseTransformPoint(bones[HumanBodyBones.Head].transform.position).y;
+			UpdateBonesToProfileValues(bones, profile != null ? profile.bones : RagdollProfile.defaultBoneProfiles, profile != null ? profile.headOffset : RagdollProfile.defaultHeadOffset, initialHeadOffsetFromChest);
+		}
+
+
+		public static void UpdateBonesToProfileValues(Ragdoll ragdoll) {
+			UpdateBonesToProfileValues(ragdoll.GetComponent<Animator>(), ragdoll.ragdollProfile);
+		}
+		public static void UpdateBonesToProfileValues(Animator characterAnimator, RagdollProfile profile) {
+			UpdateBonesToProfileValues(BuildBones(characterAnimator), profile);
+		}
+		public static void UpdateBonesToProfileValues(Dictionary<HumanBodyBones, Bone> bones, RagdollProfile profile) {
+			float initialHeadOffsetFromChest = bones[HumanBodyBones.Chest].transform.InverseTransformPoint(bones[HumanBodyBones.Head].transform.position).y;
+			UpdateBonesToProfileValues(bones, profile != null ? profile.bones : RagdollProfile.defaultBoneProfiles, profile != null ? profile.headOffset : RagdollProfile.defaultHeadOffset, initialHeadOffsetFromChest);
+		}
+        
+
+        static void AddJoint(Animator animator, HumanBodyBones boneType, Dictionary<HumanBodyBones, Bone> bones, HumanBodyBones parentBone)//, Vector3 worldTwistAxis, Vector3 worldSwingAxis)
         {
-            BoneInfo bone = new BoneInfo();
-            bone.anchor = animator.GetBoneTransform(boneType);
-            bone.boneType = boneType;
+            Bone bone = new Bone();
+            bone.transform = animator.GetBoneTransform(boneType);
             bone.parent = bones[parentBone];
             bones.Add( boneType, bone );
         }
 
-        static void BuildCapsules(Dictionary<HumanBodyBones, BoneInfo> bones)
+        static void BuildCapsules(Dictionary<HumanBodyBones, Bone> bones)
         {
             HashSet<HumanBodyBones> capsuleBones = new HashSet<HumanBodyBones> () {
                 HumanBodyBones.LeftUpperArm, HumanBodyBones.RightUpperArm,
@@ -349,41 +397,47 @@ namespace DynamicRagdoll {
                 HumanBodyBones.LeftLowerArm, HumanBodyBones.RightLowerArm,
                 HumanBodyBones.LeftLowerLeg, HumanBodyBones.RightLowerLeg,
             };
-
-            foreach (var k in bones.Keys)
+			HashSet<HumanBodyBones> upperBones = new HashSet<HumanBodyBones> () {
+                HumanBodyBones.LeftUpperArm, HumanBodyBones.RightUpperArm,
+                HumanBodyBones.LeftUpperLeg, HumanBodyBones.RightUpperLeg,
+            };
+			
+			
+            foreach (var k in capsuleBones)
             {
-                BoneInfo bone = bones[k];
-                if (!capsuleBones.Contains(bone.boneType))
-                    continue;
+				Bone bone = bones[k];
                 
-                int direction;
+				bool isArm = k.ToString().Contains("Arm");
+                int direction = isArm ? 0 : 1;
                 float distance;
 
-                if (bone.boneType == HumanBodyBones.LeftUpperArm || bone.boneType == HumanBodyBones.RightUpperArm || bone.boneType == HumanBodyBones.LeftUpperLeg || bone.boneType == HumanBodyBones.RightUpperLeg) {
-                    HumanBodyBones childBoneType;
-                    if (bone.boneType == HumanBodyBones.LeftUpperArm)
+                if (upperBones.Contains(k)) {
+
+					HumanBodyBones childBoneType;
+                    if (k == HumanBodyBones.LeftUpperArm)
                         childBoneType = HumanBodyBones.LeftLowerArm;
-                    else if (bone.boneType == HumanBodyBones.RightUpperArm)
+                    else if (k == HumanBodyBones.RightUpperArm)
                         childBoneType = HumanBodyBones.RightLowerArm;
-                    else if (bone.boneType == HumanBodyBones.LeftUpperLeg)
+                    else if (k == HumanBodyBones.LeftUpperLeg)
                         childBoneType = HumanBodyBones.LeftLowerLeg;
-                    else //if (bone.boneType == HumanBodyBones.RightUpperLeg)
+                    else //if (k == HumanBodyBones.RightUpperLeg)
                         childBoneType = HumanBodyBones.RightLowerLeg;
 
-                    Vector3 endPoint = bones[childBoneType].anchor.position;
-                    CalculateDirection(bone.anchor.InverseTransformPoint(endPoint), out direction, out distance);
+                    Vector3 endPoint = bones[childBoneType].transform.position;
+
+					distance = bone.transform.InverseTransformPoint(endPoint)[direction];
                 }
                 else
                 {
-                    Vector3 endPoint = (bone.anchor.position - bone.parent.anchor.position) + bone.anchor.position;
+                    Vector3 endPoint = (bone.transform.position - bone.parent.transform.position) + bone.transform.position;
                     
-                    CalculateDirection(bone.anchor.InverseTransformPoint(endPoint), out direction, out distance);
-
-                    if (bone.anchor.GetComponentsInChildren(typeof(Transform)).Length > 1)
+					distance = bone.transform.InverseTransformPoint(endPoint)[direction];
+                    
+                    if (bone.transform.GetComponentsInChildren(typeof(Transform)).Length > 1)
                     {
                         Bounds bounds = new Bounds();
-                        foreach (Transform child in bone.anchor.GetComponentsInChildren(typeof(Transform)))
-                            bounds.Encapsulate(bone.anchor.InverseTransformPoint(child.position));
+                        foreach (Transform child in bone.transform.GetComponentsInChildren(typeof(Transform)))
+                            bounds.Encapsulate(bone.transform.InverseTransformPoint(child.position));
                         
                         if (distance > 0)
                             distance = bounds.max[direction];
@@ -392,43 +446,46 @@ namespace DynamicRagdoll {
                     }
                 }
 
-                CapsuleCollider collider = (CapsuleCollider)bone.anchor.gameObject.AddComponent<CapsuleCollider>();
+                CapsuleCollider collider = bone.transform.gameObject.AddComponent<CapsuleCollider>();
                 collider.direction = direction;
 
                 Vector3 center = Vector3.zero;
                 center[direction] = distance * 0.5F;
                 collider.center = center;
+
                 collider.height = Mathf.Abs(distance);
-                collider.radius = .1f;
                 
+				collider.radius = defaultCapsulRadius;
+
+				bone.collider = collider;
             }
         }
 
-        static void BuildBodies(Dictionary<HumanBodyBones, BoneInfo> bones)
+        static void BuildBodies(Dictionary<HumanBodyBones, Bone> bones)
         {
             foreach (var k in bones.Keys)
-                bones[k].anchor.gameObject.AddComponent<Rigidbody>();
+                bones[k].rigidbody = bones[k].transform.gameObject.AddComponent<Rigidbody>();
         }
 
-        static void BuildJoints(Dictionary<HumanBodyBones, BoneInfo> bones)
+        static void BuildJoints(Dictionary<HumanBodyBones, Bone> bones)
         {
             foreach (var k in bones.Keys)
             {
-                BoneInfo bone = bones[k];
-                if (bone.parent == null)
-                    continue;
-
-                ConfigurableJoint joint = bone.anchor.gameObject.AddComponent<ConfigurableJoint>();
+				if (k == HumanBodyBones.Hips) 
+					continue;
+                
+				Bone bone = bones[k];
+                
+                ConfigurableJoint joint = bone.transform.gameObject.AddComponent<ConfigurableJoint>();
+				bone.joint = joint;
                 
                 // Setup connection and axis
                 //joint.autoConfigureConnectedAnchor = false;
-                
-                joint.anchor = Vector3.zero;
-                
-                joint.connectedBody = bone.parent.anchor.GetComponent<Rigidbody>();
-                
                 joint.enablePreprocessing = false; // turn off to handle degenerated scenarios, like spawning inside geometry.
                 
+                joint.anchor = Vector3.zero;
+                joint.connectedBody = bone.parent.rigidbody;
+				
                 // Setup limits
                 SoftJointLimit limit = new SoftJointLimit();
                 limit.contactDistance = 0; // default to zero, which automatically sets contact distance.
@@ -443,16 +500,6 @@ namespace DynamicRagdoll {
             }
         }
         
-        static void CalculateDirection(Vector3 point, out int direction, out float distance)
-        {
-            // Calculate longest axis
-            direction = 0;
-            if (Mathf.Abs(point[1]) > Mathf.Abs(point[0]))
-                direction = 1;
-            if (Mathf.Abs(point[2]) > Mathf.Abs(point[direction]))
-                direction = 2;
-            distance = point[direction];
-        }
 
         static Bounds GetBreastBounds(Transform relativeTo, Vector3[] encapsulatePositions)
         {
@@ -461,55 +508,56 @@ namespace DynamicRagdoll {
             return bounds;
         }
 
-        static void AddBreastColliders(Animator anim)
+        static void AddBreastColliders(Dictionary<HumanBodyBones, Bone> bones)
         {
             // Middle spine and pelvis
             
             Vector3[] encapsulatePositions = new Vector3[] {
-                anim.GetBoneTransform(HumanBodyBones.LeftUpperArm).position,
-                anim.GetBoneTransform(HumanBodyBones.RightUpperArm).position,
-                anim.GetBoneTransform(HumanBodyBones.LeftUpperLeg).position,
-                anim.GetBoneTransform(HumanBodyBones.RightUpperLeg).position,
+                bones[HumanBodyBones.LeftUpperArm].transform.position,
+                bones[HumanBodyBones.RightUpperArm].transform.position,
+                bones[HumanBodyBones.LeftUpperLeg].transform.position,
+                bones[HumanBodyBones.RightUpperLeg].transform.position,
             };
 
-            Transform hips = anim.GetBoneTransform(HumanBodyBones.Hips);
-            Transform chest = anim.GetBoneTransform(HumanBodyBones.Chest);
+            Transform hips = bones[HumanBodyBones.Hips].transform;
+            Transform chest = bones[HumanBodyBones.Chest].transform;
+			Transform head = bones[HumanBodyBones.Head].transform;
             
             Bounds bounds = GetBreastBounds(hips, encapsulatePositions);
-            
 			bounds.max = AdjustBoxMaxBounds(bounds, hips, chest);
-
-
-            AddBoxCollider(hips.gameObject, bounds);
-        
+            bones[HumanBodyBones.Hips].collider = AddBoxCollider(hips.gameObject, bounds);
+			
             //chest
             bounds = GetBreastBounds(chest, encapsulatePositions);
-
             Vector3 min = bounds.min;
             min.y = 0;
             bounds.min = min;
-
-			bounds.max = AdjustBoxMaxBounds(bounds, chest, anim.GetBoneTransform(HumanBodyBones.Head));
-
-            AddBoxCollider(chest.gameObject, bounds);
+			bounds.max = AdjustBoxMaxBounds(bounds, chest, head);
+            bones[HumanBodyBones.Chest].collider = AddBoxCollider(chest.gameObject, bounds);
         }
+		const float defaultChestDepth = .1f;
+		const float defualtHeadRadius = .125f;
+		const float defaultCapsulRadius = .1f;
+
+        
 		static Vector3 AdjustBoxMaxBounds (Bounds bounds, Transform relativeTo, Transform cutoff) {
 			Vector3 max = bounds.max;
             max.y = relativeTo.InverseTransformPoint(cutoff.position).y;
-			max.z = .1f;
+			max.z = defaultChestDepth;
             return max;
 		}
-
-        static void AddBoxCollider(GameObject g, Bounds bounds) {
+		static Collider AddBoxCollider(GameObject g, Bounds bounds) {
             BoxCollider box = g.AddComponent<BoxCollider>();
             box.center = bounds.center;
             box.size = bounds.size;
+			return box;
         }
-        static void AddHeadCollider(Animator anim) {
-            SphereCollider sphere = anim.GetBoneTransform(HumanBodyBones.Head).gameObject.AddComponent<SphereCollider>();
-            float defualtRadius = .125f;
-            sphere.radius = defualtRadius;
-            sphere.center = new Vector3(0, defualtRadius, 0);
+        static void AddHeadCollider(Dictionary<HumanBodyBones, Bone> bones) {
+            SphereCollider sphere = bones[HumanBodyBones.Head].transform.gameObject.AddComponent<SphereCollider>();
+            sphere.radius = defualtHeadRadius;
+            sphere.center = new Vector3(0, defualtHeadRadius, 0);
+
+			bones[HumanBodyBones.Head].collider = sphere;
         }
 
 		#endregion

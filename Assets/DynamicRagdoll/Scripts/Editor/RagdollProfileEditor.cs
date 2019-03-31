@@ -17,8 +17,12 @@ namespace DynamicRagdoll {
             s.richText=true;
             GUIStyle fs = new GUIStyle(EditorStyles.foldout);
             fs.richText=true;
+            
             EditorGUILayout.LabelField("<b>Profile Values:</b>", s);
             EditorGUILayout.BeginVertical(GUI.skin.window, GUILayout.MinHeight(10));
+            
+            EditorGUILayout.PropertyField(profile.FindProperty("headOffset"));
+                        
             EditorGUI.indentLevel++;
             SerializedProperty boneProfiles = profile.FindProperty("bones");
             for (int i = 0; i < boneProfiles.arraySize; i++) {
@@ -31,18 +35,21 @@ namespace DynamicRagdoll {
                 if (showBones[i]) {
                     EditorGUI.indentLevel++;
                     HumanBodyBones b = (HumanBodyBones)bone.enumValueIndex;
-                    if (b == HumanBodyBones.Head) {
-                        EditorGUILayout.PropertyField(boneProfile.FindPropertyRelative("headOffset"));
-                    }
-                    EditorGUILayout.Space();
+                    
+                    //joints
                     if (b != HumanBodyBones.Hips) {
                         DrawPropertiesBlock(boneProfile, "Joints:", s, new string[] { "angularXLimit", "angularYLimit", "angularZLimit", "forceOff", "axis1", "axis2" });   
                     }
-                    DrawPropertiesBlock(boneProfile, "Rigidbody:", s, new string[] { "mass", "angularDrag", "drag", "maxAngularVelocity" });
-                    DrawPropertiesBlock(boneProfile, "Collider:", s, b == HumanBodyBones.Hips || b == HumanBodyBones.Chest ? new string[] { "boxZOffset", "boxZSize" } : new string[] { "colliderRadius" });
+                    
+                    //rigidbody
+                    DrawPropertiesBlock(boneProfile, "Rigidbody:", s, new string[] { "mass", "angularDrag", "drag", "maxAngularVelocity", "interpolation", "collisionDetection", "maxDepenetrationVelocity" });
+                    
+                    //collider
+                    DrawPropertiesBlock(boneProfile, "Collider:", s, b == HumanBodyBones.Hips || b == HumanBodyBones.Chest ? new string[] { "boxZOffset", "boxZSize", "colliderMaterial" } : new string[] { "colliderRadius", "colliderMaterial" });
                     EditorGUI.indentLevel--;                
                 }
             }
+
             EditorGUI.indentLevel--;
             EditorGUILayout.EndVertical();        
             profile.ApplyModifiedProperties();

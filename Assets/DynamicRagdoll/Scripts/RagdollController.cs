@@ -159,7 +159,7 @@ namespace DynamicRagdoll {
 				allFollowers[i].SaveRagdollValues(allFollowers[i].master == masterHips);
 			}
 			
-			Vector3 rootBoneForward = ragdoll.RootBone().rotation * rootboneToForward * Vector3.forward;
+			Vector3 rootBoneForward = ragdoll.RootBone().transform.rotation * rootboneToForward * Vector3.forward;
 			// Check if ragdoll is lying on its back or front, then transition to getup animation		
 			bool onBack = Vector3.Dot(rootBoneForward, Vector3.down) < 0f; 
 			
@@ -171,7 +171,7 @@ namespace DynamicRagdoll {
 		// Here the master gets reorientated to the ragdoll 
 		//which could have ended its fall in any direction and position
 		void OrientateMaster () {		
-			Transform ragHips = ragdoll.RootBone();
+			Transform ragHips = ragdoll.RootBone().transform;
 
 			//calculate the rotation for the master root object
 			Quaternion masterRotation = ragHips.rotation * Quaternion.Inverse(masterHips.rotation) * transform.rotation;
@@ -297,14 +297,14 @@ namespace DynamicRagdoll {
 			rbFollowers = new BoneFollower[l];
 			
 			for (int i = 0; i < l; i++) {
-				HumanBodyBones bone = ragdoll.ragdollProfile.bones[i].bone;
-				rbFollowers[i] = new BoneFollower(bone, ragdoll.GetRigidbody(bone), animator.GetBoneTransform(bone), ref jointDrive);
+				HumanBodyBones bone = profile.bones[i].bone;
+				rbFollowers[i] = new BoneFollower(bone, ragdoll.GetBone(bone).rigidbody, animator.GetBoneTransform(bone), ref jointDrive);
 			}
 
 			//get all the followers without rididbodies
 			List<Follower> nonRbFollowersL = new List<Follower>();
 
-			Transform[] allRags = ragdoll.RootBone().GetComponentsInChildren<Transform>();
+			Transform[] allRags = ragdoll.RootBone().transform.GetComponentsInChildren<Transform>();
 			Transform[] allMasters = masterHips.GetComponentsInChildren<Transform>();
 			
 			if (allMasters.Length != allRags.Length) {
@@ -377,7 +377,7 @@ namespace DynamicRagdoll {
 
 				
 					//if not dead
-					if (ragdoll.RootRigidbody().velocity.sqrMagnitude < profile.settledSpeed * profile.settledSpeed) {
+					if (ragdoll.RootBone().rigidbody.velocity.sqrMagnitude < profile.settledSpeed * profile.settledSpeed) {
 						StartGetUp();
 					}
 				}

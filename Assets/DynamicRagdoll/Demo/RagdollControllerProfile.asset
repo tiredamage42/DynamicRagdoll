@@ -64,9 +64,10 @@ MonoBehaviour:
   fallLerp: 1.5
   residualForce: 0.1
   residualJointTorque: 120
-  settledSpeed: 0.025
-  orientateDelay: 0.1
+  ragdollMinTime: 3
+  settledSpeed: 0.01
+  orientateDelay: 0.25
   checkGroundMask:
     serializedVersion: 2
     m_Bits: 1
-  blendTime: 0.5
+  blendTime: 1

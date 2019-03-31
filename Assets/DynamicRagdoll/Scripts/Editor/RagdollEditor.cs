@@ -3,43 +3,53 @@ using UnityEditor;
 namespace DynamicRagdoll {
     [CustomEditor(typeof(Ragdoll))]
     public class RagdollEditor : Editor {
+        Ragdoll ragdoll;
+                    
+        void OnEnable () {
+            ragdoll = target as Ragdoll;
+        }
+                    
         void DrawBuildOptions () {
             EditorGUILayout.Space();
-            EditorGUILayout.Space();
+            //EditorGUILayout.Space();
             
             EditorGUILayout.BeginHorizontal();
             
             SerializedProperty preBuiltProp = serializedObject.FindProperty("preBuilt");
-            if (!preBuiltProp.boolValue) {
-                if (GUILayout.Button("Pre Build Ragdoll")) {
-                    Ragdoll.BuildRagdollBase ((target as Component).GetComponent<Animator>());
-                    preBuiltProp.boolValue = true;
-                    serializedObject.ApplyModifiedProperties();
-                    EditorUtility.SetDirty(serializedObject.targetObject);
+            bool isBuilt = preBuiltProp.boolValue;
+            if (GUILayout.Button(isBuilt ? "Clear Ragdoll" : "Pre Build Ragdoll")) {
+                if (isBuilt) {
+                    Ragdoll.EraseRagdoll(ragdoll.GetComponent<Animator>());
                 }
-            }
-            else {
-                if (GUILayout.Button("Clear Ragdoll")) {
-                    Ragdoll.EraseRagdoll((target as Component).GetComponent<Animator>());
-                    preBuiltProp.boolValue = false;
-                    serializedObject.ApplyModifiedProperties();
-                    EditorUtility.SetDirty(serializedObject.targetObject);
+                else {
+                    Ragdoll.BuildRagdollBase (ragdoll.GetComponent<Animator>(), ragdoll.ragdollProfile, out _, out _);
                 }
+                preBuiltProp.boolValue = !isBuilt;
             }
 
+            if (isBuilt) {
+                if (ragdoll.ragdollProfile) {
+                    if (GUILayout.Button("Update Ragdoll To Profile")) {
+                        Ragdoll.UpdateBonesToProfileValues(ragdoll);
+                    }
+                }
+            }
             EditorGUILayout.EndHorizontal();
         }
 
         public override void OnInspectorGUI() {
-            DrawBuildOptions();
             base.OnInspectorGUI();   
-            RagdollProfile profile = (target as Ragdoll).ragdollProfile;
-            if (profile) {
-                RagdollProfileEditor.DrawProfile(new SerializedObject( profile ));
+            
+            DrawBuildOptions();
+            if (ragdoll.ragdollProfile) {
+                RagdollProfileEditor.DrawProfile(new SerializedObject( ragdoll.ragdollProfile ));
             }
             else {
-                EditorGUILayout.HelpBox("Add a Ragdoll Profile to start using this ragdoll", MessageType.Warning);
+                EditorGUILayout.HelpBox("Add a Ragdoll Profile to adjust ragdoll properties.\n\nOtherwise defualts will be used", MessageType.Info);
             }
+
+            serializedObject.ApplyModifiedProperties();
+            EditorUtility.SetDirty(serializedObject.targetObject);
         }
     }
 }
