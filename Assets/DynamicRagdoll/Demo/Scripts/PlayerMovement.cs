@@ -19,6 +19,8 @@ namespace DynamicRagdoll.Demo
 		Animator anim;		
 		CannonBall cannonBall;
 		RagdollController ragdollController;
+
+		CameraFollow camFollow;
 			
 		void Awake ()
 		{
@@ -27,17 +29,42 @@ namespace DynamicRagdoll.Demo
 			
 			cam = Camera.main;
 			cannonBall = GameObject.FindObjectOfType<CannonBall>();
+
+			camFollow = GameObject.FindObjectOfType<CameraFollow>();
+
 			Cursor.visible = false;
 			origFixedDelta = Time.fixedDeltaTime;
+
+			camFollow.target = anim.GetBoneTransform(HumanBodyBones.Hips);
+
 		}
+		bool ragdolled;
 
 		void OnAnimatorMove ()
 		{
 			transform.position += anim.deltaPosition;
 		}
+
+		void DemoRagdoll () {
+			camFollow.target = ragdollController.ragdoll.RootBone().transform;
+			ragdollController.GoRagdoll();
+			ragdolled = true;
+		}
 		
 		void Update () 
 		{
+			if (ragdolled) {
+				if (ragdollController.state == RagdollController.RagdollState.Blending) {
+
+					camFollow.target = anim.GetBoneTransform(HumanBodyBones.Hips);
+					ragdolled = false;
+				} 
+			}
+
+			if (Input.GetKeyDown(KeyCode.R)) {
+				DemoRagdoll();
+			}
+		
 			if (ragdollController.state != RagdollController.RagdollState.Ragdolled && !ragdollController.isGettingUp) {
 				transform.Rotate(0f, Input.GetAxis("Horizontal") * turnSpeed * Time.fixedDeltaTime, 0f);
 			}
@@ -80,7 +107,8 @@ namespace DynamicRagdoll.Demo
 					Rigidbody rbHit = hit.transform.GetComponent<Rigidbody>();
 					if (rbHit) {
 						if (hit.transform.IsChildOf(ragdollController.ragdoll.transform)) {
-							ragdollController.GoRagdoll();
+							DemoRagdoll();
+							
 						}
 						StartCoroutine(AddForceToRigidbody(rbHit, ray.direction.normalized * bulletForce, hit.point));
 					}

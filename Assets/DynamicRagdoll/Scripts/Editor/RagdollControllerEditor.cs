@@ -5,12 +5,17 @@ namespace DynamicRagdoll {
     public class RagdollControllerEditor : Editor {
         public override void OnInspectorGUI() {
             base.OnInspectorGUI();
-            RagdollControllerProfile profile = (target as RagdollController).profile;
-            if (profile) {
-                RagdollControllerProfileEditor.DrawProfile(new SerializedObject( profile ) );
+            RagdollController controller = target as RagdollController;
+            if (!controller.ragdoll) {
+                EditorGUILayout.HelpBox("Controller doesnt have a Ragdoll to control...", MessageType.Error);
             }
             else {
-                EditorGUILayout.HelpBox("Add a Ragdoll Controller Profile", MessageType.Warning);
+                if (controller.profile) {
+                    RagdollControllerProfileEditor.DrawProfile(new SerializedObject( controller.profile ) );
+                }
+                else {
+                    EditorGUILayout.HelpBox("Controller doesnt have a Ragdoll Controller Profile assigned...", MessageType.Error);
+                }
             }
         }
     }

@@ -28,7 +28,6 @@ using System.Collections.Generic;
 		  and enable the original master character model 
 		  (which should still be playing the get up animation)
 
-	
 	TODO: try implementing a system where ragdoll trigger is delayed, so the physics
 			following doesnst have to run every frame
 	
@@ -39,6 +38,7 @@ namespace DynamicRagdoll {
 	
 	public class RagdollController : MonoBehaviour
 	{
+		public Ragdoll ragdoll;
 		public RagdollControllerProfile profile;	
 		public enum RagdollState { Ragdolled=0, Blending=1, Animated=2,}
 		[HideInInspector] public RagdollState state = RagdollState.Animated;
@@ -52,7 +52,6 @@ namespace DynamicRagdoll {
 		byte i;
 		Renderer[] masterRenderers;
 		float ragdollPhaseStartTime=-100;
-		public Ragdoll ragdoll;
 		AnimatorCullingMode originalAnimatorCullingMode;
 
 		float currentMaxForce = 100f; // Limits the force
@@ -70,9 +69,8 @@ namespace DynamicRagdoll {
 		bool controllerInvalid { get { return profile == null || ragdoll == null; } }
 
 		void SetKinematic(bool value) {
-			for (int i = 0; i < rbFollowers.Length; i++) {
+			for (int i = 0; i < rbFollowers.Length; i++) {	
 				rbFollowers[i].bone.rigidbody.isKinematic = value;
-				rbFollowers[i].bone.rigidbody.detectCollisions = !value;
 			}
 		}
 		void EnableRenderers (bool masterEnabled, bool slaveEnabled) {
@@ -86,10 +84,10 @@ namespace DynamicRagdoll {
 			currentMaxJointTorque = jointTorque;
 		}
 		void EnableJointLimits (bool enabled) {
-			ConfigurableJointMotion j = enabled ? ConfigurableJointMotion.Limited : ConfigurableJointMotion.Free;
-			for (int i = 0; i < rbFollowers.Length; i++) {
-				rbFollowers[i].EnableJointLimits(j);
-			}
+			// ConfigurableJointMotion j = enabled ? ConfigurableJointMotion.Limited : ConfigurableJointMotion.Free;
+			// for (int i = 0; i < rbFollowers.Length; i++) {
+			// 	rbFollowers[i].EnableJointLimits(j);
+			// }
 		}	
 
 		public void GoRagdoll (){
@@ -108,6 +106,8 @@ namespace DynamicRagdoll {
 
 			if (state == RagdollState.Ragdolled)
 				return;
+
+			skipFrame = false;
 
 			state = RagdollState.Ragdolled;
 
@@ -143,8 +143,8 @@ namespace DynamicRagdoll {
 			animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
 
 			//disable follow
-			SetFollowValues(0, 0);
-
+			//SetFollowValues(0, 0);
+			
 			//disable joint limits
 			EnableJointLimits(false);
 			
@@ -187,10 +187,14 @@ namespace DynamicRagdoll {
 
 			//calculate the position for the master root object				
 			Vector3 masterPosition = transform.position + (ragHips.position - masterHips.position);
+			
 			//Now cast a ray from the computed position downwards and find the highest hit that does not belong to the character 
 			RaycastHit hit;
 			if (Physics.Raycast(new Ray(masterPosition + Vector3.up, Vector3.down), out hit, 20, profile.checkGroundMask)) {
 				masterPosition.y = hit.point.y;
+			}
+			else {
+				masterPosition.y = 0;
 			}
 							
 			//set the position and rotation
@@ -297,8 +301,8 @@ namespace DynamicRagdoll {
 			masterHips = animator.GetBoneTransform(HumanBodyBones.Hips);
 		
 			//get all the followers that use physics
-			int l = Ragdoll.ragdollUsedBones.Length;// profile.bones.Length;
-
+			int l = Ragdoll.ragdollUsedBones.Length;
+			
 			rbFollowers = new PhysicalBoneTracker[l];
 			for (int i = 0; i < l; i++) {
 				rbFollowers[i] = new PhysicalBoneTracker(ragdoll.GetBone(Ragdoll.ragdollUsedBones[i]), animator.GetBoneTransform(Ragdoll.ragdollUsedBones[i]), ref jointDrive);
@@ -332,6 +336,7 @@ namespace DynamicRagdoll {
 			
 			EnableJointLimits(false);
 			SetFollowValues(profile.maxForce, profile.maxJointTorque);
+			EnableRenderers(true, false);
 		}
 
 		void CheckForForwardCalculation () {
@@ -378,17 +383,35 @@ namespace DynamicRagdoll {
 				}
 				
 				break;
+			case RagdollState.Animated:
+				SetFollowValues(profile.maxForce, profile.maxJointTorque);
+				break;
+			}
+
+			if (state != RagdollState.Blending) {
+				MoveRagdollToMaster(deltaTime);
 			}
 			
-			MoveRagdollToMaster(deltaTime);
 		}
 
+
 		// update rigidbody followers so ragdoll follows animated master
+		bool skipFrame;
 		void MoveRagdollToMaster (float deltaTime) {
+			
+			//skip frame to avoid force error for follow being 0
+			if (skipFrame) {
+				skipFrame = false;
+				return;
+			}
+			
 			float reciDeltaTime = 1f / deltaTime;
 			for (int i = 0; i < rbFollowers.Length; i++) {
 				rbFollowers[i].MoveBoneToMaster(profile, currentMaxForce, currentMaxJointTorque, reciDeltaTime, profile.bones[i], jointDrive);
 			}
+
+			//only skip frames when following animation
+			skipFrame = state != RagdollState.Ragdolled;
 		}
 	}
 }

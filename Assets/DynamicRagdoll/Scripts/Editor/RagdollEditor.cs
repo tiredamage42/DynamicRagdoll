@@ -11,8 +11,7 @@ namespace DynamicRagdoll {
                     
         void DrawBuildOptions () {
             EditorGUILayout.Space();
-            //EditorGUILayout.Space();
-            
+
             EditorGUILayout.BeginHorizontal();
             
             SerializedProperty preBuiltProp = serializedObject.FindProperty("preBuilt");
@@ -22,7 +21,7 @@ namespace DynamicRagdoll {
                     Ragdoll.EraseRagdoll(ragdoll.GetComponent<Animator>());
                 }
                 else {
-                    Ragdoll.BuildRagdollBase (ragdoll.GetComponent<Animator>(), ragdoll.ragdollProfile, out _, out _);
+                    Ragdoll.BuildRagdoll (ragdoll);
                 }
                 preBuiltProp.boolValue = !isBuilt;
             }
@@ -45,7 +44,7 @@ namespace DynamicRagdoll {
                 RagdollProfileEditor.DrawProfile(new SerializedObject( ragdoll.ragdollProfile ));
             }
             else {
-                EditorGUILayout.HelpBox("Add a Ragdoll Profile to adjust ragdoll properties.\n\nOtherwise defualts will be used", MessageType.Info);
+                EditorGUILayout.HelpBox("\nAdd a Ragdoll Profile to adjust ragdoll properties.\n\nOtherwise defualts will be used\n", MessageType.Info);
             }
 
             serializedObject.ApplyModifiedProperties();
