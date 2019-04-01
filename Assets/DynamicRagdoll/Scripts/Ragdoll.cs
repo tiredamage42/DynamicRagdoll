@@ -22,8 +22,10 @@ namespace DynamicRagdoll {
 	[RequireComponent(typeof(Animator))]
 	public class Ragdoll : MonoBehaviour {
 
-		public static HumanBodyBones[] usedBones = new HumanBodyBones[] {
-			HumanBodyBones.Hips, HumanBodyBones.Chest, HumanBodyBones.Head, 
+		public static HumanBodyBones[] phsysicsHumanBones = new HumanBodyBones[] {
+			HumanBodyBones.Hips, //HIPS NEEDS TO BE FIRST
+			
+			HumanBodyBones.Chest, HumanBodyBones.Head, 
 			
 			HumanBodyBones.RightLowerLeg, HumanBodyBones.LeftLowerLeg, 
 			HumanBodyBones.RightUpperLeg, HumanBodyBones.LeftUpperLeg, 
@@ -31,17 +33,96 @@ namespace DynamicRagdoll {
 			HumanBodyBones.RightLowerArm, HumanBodyBones.LeftLowerArm, 
 			HumanBodyBones.RightUpperArm, HumanBodyBones.LeftUpperArm, 
 		};
-		public readonly static int bonesCount = usedBones.Length;
+		public readonly static int physicsBonesCount = phsysicsHumanBones.Length;
 
 
 		public RagdollProfile ragdollProfile;
 		[HideInInspector] public bool preBuilt;
+
+
+		//static JointDrive jointDrive = new JointDrive();
+
+
+		public void SaveSnapshot() {
+			if (CheckForErroredRagdoll("SaveSnapshot"))
+				return;
+			
+			for (int i = 0; i < allBones.Length; i++) {	
+				allBones[i].SaveSnapshot();
+			}
+
+		}
+
+		public void LoadSnapshot (float snapshotBlend, bool useFollowTarget) {
+			if (CheckForErroredRagdoll("LoadSnapshot"))
+				return;
+			
+			for (int i = 0; i < allBones.Length; i++) {	
+				allBones[i].LoadSnapshot(snapshotBlend, useFollowTarget);
+			}
+		}
+
 
 		public class Bone {
 			public Rigidbody rigidbody;
 			public ConfigurableJoint joint;
 			public Collider collider;
 			public Transform transform;
+			public bool isPhysicsParent, isRoot, isPhysicsBone;
+
+			public Bone followTarget;
+
+			public Vector3 snapshotPosition;
+			public Quaternion snapshotRotation;
+
+			public void SaveSnapshot () {
+				if (isRoot) {
+					snapshotPosition = position;
+				}
+				snapshotRotation = GetRotation();
+			}
+			public void LoadSnapShot () {
+				if (isRoot) {
+					transform.position = snapshotPosition;
+				}
+				SetRotation(snapshotRotation);
+			}
+
+			public void TeleportToTarget () {
+				if (followTarget == null) {
+					return;
+				}
+				if (isRoot) {
+					transform.position = followTarget.position;
+				}
+				SetRotation(followTarget.GetRotation());
+			}
+
+			public void LoadSnapshot (float snapshotBlend, bool useFollowTarget) {
+				Bone boneToUse = useFollowTarget && followTarget != null ? followTarget : this;
+				if (isRoot) {
+					transform.position = Vector3.Lerp(boneToUse.position, snapshotPosition, snapshotBlend);
+				}
+				SetRotation(Quaternion.Slerp(boneToUse.GetRotation(), snapshotRotation, snapshotBlend));
+			}
+
+			Quaternion GetRotation () {
+				return isRoot ? transform.rotation : transform.localRotation;
+			}
+			void SetRotation(Quaternion rotation) {
+				if (isRoot) {
+					transform.rotation = rotation;
+				}
+				else {
+					transform.localRotation = rotation;
+				}
+			}
+
+
+
+
+
+
 
 
 			public Vector3 position { get { return transform.position; } }
@@ -53,17 +134,46 @@ namespace DynamicRagdoll {
 				return gameObject.AddComponent<T>();
 			}
 
-			public Bone (Transform bone) {
-				transform = bone;
-				rigidbody = bone.GetComponent<Rigidbody>();
-				joint = bone.GetComponent<ConfigurableJoint>();
-				collider = bone.GetComponent<Collider>(); 
+			public Bone (Transform transform, bool checkForComponents, bool isPhysicsParent, bool isPhysicsBone, bool isRoot) {
+				this.transform = transform;
+				this.isPhysicsParent = isPhysicsParent;
+				this.isRoot = isRoot;
+				this.isPhysicsBone = isPhysicsBone;
+
+				if (checkForComponents) {
+					rigidbody = transform.GetComponent<Rigidbody>();
+					collider = transform.GetComponent<Collider>();  
+					if (!isRoot) {
+						joint = transform.GetComponent<ConfigurableJoint>();
+					}
+				}
 			}
+
+			public void SetFollowTarget(Bone followTarget) {
+				this.followTarget = followTarget;
+
+
+
+				
+
+
+
+
+			}
+
+
+
+
+			
 		}
 		
 
 		Renderer[] allRenderers;
-		Dictionary<HumanBodyBones, Bone> myBones;
+		Dictionary<HumanBodyBones, Bone> physicsBones;
+		//HashSet<int> usedPhysicsTransforms;
+		Bone[] allBones;
+
+
 		
 		bool initializedValues;
 		
@@ -76,8 +186,7 @@ namespace DynamicRagdoll {
 			}
 		}
 		public void EnableRenderers(bool enabled) {
-			InitializeIfNeeded();
-			if (CheckForErroredRagdoll())
+			if (CheckForErroredRagdoll("EnableRenderers"))
 				return;
 			
 			for (int i = 0; i < allRenderers.Length; i++) {
@@ -85,49 +194,47 @@ namespace DynamicRagdoll {
 			}
 		}
 		public void SetKinematic(bool value) {
-			InitializeIfNeeded();
-			if (CheckForErroredRagdoll())
+			if (CheckForErroredRagdoll("SetKinematic"))
 				return;
 			
-			for (int i = 0; i < usedBones.Length; i++) {	
-				myBones[usedBones[i]].rigidbody.isKinematic = value;
+			for (int i = 0; i < physicsBonesCount; i++) {	
+				allBones[i].rigidbody.isKinematic = value;
 			}
 		}
 		public void UseGravity(bool value) {
-			InitializeIfNeeded();
-			if (CheckForErroredRagdoll())
+			if (CheckForErroredRagdoll("UseGravity"))
 				return;
 			
-			for (int i = 0; i < usedBones.Length; i++) {	
-				myBones[usedBones[i]].rigidbody.useGravity = value;
+			for (int i = 0; i < physicsBonesCount; i++) {	
+				allBones[i].rigidbody.useGravity = value;
 			}
 		}
 		public void SetLayer (int layer) {
-			InitializeIfNeeded();
-			if (CheckForErroredRagdoll())
+			if (CheckForErroredRagdoll("SetLayer"))
 				return;
 			
-			
-			for (int i = 0; i < usedBones.Length; i++) {	
-				myBones[usedBones[i]].gameObject.layer = layer;
+			for (int i = 0; i < physicsBonesCount; i++) {	
+				allBones[i].gameObject.layer = layer;
 			}
 		}
 
-		bool CheckForErroredRagdoll() {
-			if (myBones == null) {
-				Debug.LogError("Ragdoll is in error state, maybe it's not humanoid?", transform);
+		bool CheckForErroredRagdoll(string msg) {
+			
+			InitializeIfNeeded();
+			
+			if (physicsBones == null) {
+				Debug.LogError("Ragdoll is in error state, maybe it's not humanoid? (" + msg + ")", transform);
 				return true;
 			}
 			return false;
 		}
 
-		public Bone GetBone (HumanBodyBones bone) {
-			InitializeIfNeeded();
-			if (CheckForErroredRagdoll())
+		public Bone GetPhysicsBone (HumanBodyBones bone) {
+			if (CheckForErroredRagdoll("GetPhysicsBone"))
 				return null;
 			
 			Bone r;
-			if (myBones.TryGetValue(bone, out r)) {
+			if (physicsBones.TryGetValue(bone, out r)) {
 				return r;
 			}	
 			Debug.LogWarning("Cant find: " + bone + " on ragdoll:", transform);
@@ -135,8 +242,71 @@ namespace DynamicRagdoll {
 		}
 
 		public Bone RootBone () {
-			return GetBone(HumanBodyBones.Hips);
+			return allBones[0];// GetPhysicsBone(HumanBodyBones.Hips);
 		}
+
+		// public bool TransformIsPhysics (Transform transform) {
+		// 	return usedPhysicsTransforms.Contains(transform.GetInstanceID());
+		// }
+
+		public enum TeleportType { All, PhysicsBones, PhysicsParents, PhysicsBonesAndParents, SecondaryNonPhysicsBones };
+		public void TeleportToTarget (TeleportType teleportType) {
+
+			int startIndex = teleportType == TeleportType.SecondaryNonPhysicsBones || teleportType == TeleportType.PhysicsParents ? physicsBonesCount : 0;
+			int endIndex = teleportType == TeleportType.PhysicsBones ? physicsBonesCount : allBones.Length;
+			for (int i = startIndex; i < endIndex; i++) {
+
+				bool teleportBone = false;
+				switch (teleportType) {
+					case TeleportType.All:
+						teleportBone = true;
+						break;
+					case TeleportType.PhysicsBones:
+						teleportBone = allBones[i].isPhysicsBone;
+						break;
+					case TeleportType.PhysicsParents:
+						teleportBone = allBones[i].isPhysicsParent;
+						break;
+					case TeleportType.PhysicsBonesAndParents:
+						teleportBone = allBones[i].isPhysicsBone || allBones[i].isPhysicsParent;
+						break;
+					case TeleportType.SecondaryNonPhysicsBones:
+						teleportBone = !allBones[i].isPhysicsBone && !allBones[i].isPhysicsParent;
+						break;
+				}
+				if (teleportBone) {
+					allBones[i].TeleportToTarget();
+				}
+			}
+		}
+
+		public void SetFollowTarget (Animator followAnimator) {
+			if (CheckForErroredRagdoll("SetFollowTarget"))
+				return;
+
+
+			//generate Ragdoll bones for the follow target
+			//Dictionary<HumanBodyBones, Bone> followPhysicsBones;
+			Bone[] allFollowBones;
+			//HashSet<int> followUsedPhysicsTransforms;
+
+			//null profile so it doesnt try adjust values before we add collider/joint/rb components
+            RagdollBuilder.BuildRagdollFromPrebuilt(followAnimator, null, out _, out allFollowBones, out _, false);
+            if (allFollowBones == null) {
+                return;
+            }
+			int l = allFollowBones.Length;
+			if (l != allBones.Length) {
+				Debug.LogError("children list different sizes for ragdoll: "+name+", and follow target: " + followAnimator.name);
+				return;
+			}
+			for (int i = 0; i < l; i++) {
+				allBones[i].SetFollowTarget(allFollowBones[i]);
+			}
+		
+		}
+
+
 
 
 		/*
@@ -151,15 +321,15 @@ namespace DynamicRagdoll {
 				
 				if (!preBuilt) {
 					//build the ragdoll if not built in editor
-					myBones = RagdollBuilder.BuildRagdollFull(GetComponent<Animator>(), ragdollProfile, out initialHeadOffsetFromChest);
+					RagdollBuilder.BuildRagdollFull(GetComponent<Animator>(), ragdollProfile, out initialHeadOffsetFromChest, out allBones, out physicsBones);
 				}
 				else { 
 					//just build bones dictionary
-					myBones = RagdollBuilder.BuildRagdollFromPrebuilt(GetComponent<Animator>(), ragdollProfile, out initialHeadOffsetFromChest);
+					RagdollBuilder.BuildRagdollFromPrebuilt(GetComponent<Animator>(), ragdollProfile, out initialHeadOffsetFromChest, out allBones, out physicsBones);
 				}
 
 				//if there werent any errros
-				if (myBones != null) {
+				if (physicsBones != null) {
 
 					//set the bones to the ragdoll layer
 					SetLayer(LayerMask.NameToLayer("Ragdoll"));
@@ -168,7 +338,7 @@ namespace DynamicRagdoll {
 					allRenderers = GetComponentsInChildren<Renderer>();
 				}
 
-				CheckForErroredRagdoll();
+				CheckForErroredRagdoll("Awake");
 				
 			}
 		}
@@ -180,22 +350,15 @@ namespace DynamicRagdoll {
 		void Update () {
 			if (setValuesUpdate) {
 				if (ragdollProfile) {
-					if (myBones!= null) {
-						UpdateBonesToProfileValues(myBones, ragdollProfile, initialHeadOffsetFromChest);
+					if (physicsBones!= null) {
+						UpdateBonesToProfileValues(physicsBones, ragdollProfile, initialHeadOffsetFromChest);
 					}
 				}
 			}
 		}
 		#endif
 		
-		public static float CalculateHeadOffsetFromChest (Dictionary<HumanBodyBones, Bone> bones) {
-			if (bones == null) {
-				Debug.LogError("Ragdoll is in error state, maybe it's not humanoid? (CalculateHeadOffsetFromChest)");
-				return -1;
-			}
-			return bones[HumanBodyBones.Chest].transform.InverseTransformPoint(bones[HumanBodyBones.Head].transform.position).y;
-		}
-
+		
 		public static void UpdateBonesToProfileValues (Dictionary<HumanBodyBones, Bone> bones, RagdollProfile profile, float initialHeadOffsetFromChest) {
 			if (bones == null) {
 				return;
@@ -317,9 +480,6 @@ namespace DynamicRagdoll {
 			rigidbody.interpolation = boneProfile.interpolation;
 			rigidbody.collisionDetectionMode = boneProfile.collisionDetection;
 		}
-
-
-		
     }
 }
 

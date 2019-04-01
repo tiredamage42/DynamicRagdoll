@@ -5,7 +5,7 @@ namespace DynamicRagdoll {
 
     [CustomEditor(typeof(RagdollControllerProfile))]
     public class RagdollControllerProfileEditor : Editor {
-        static bool[] showBones = new bool[Ragdoll.usedBones.Length];
+        static bool[] showBones = new bool[Ragdoll.physicsBonesCount];
         static void DrawPropertiesBlock(SerializedProperty baseProp, string[] names) {
             EditorGUI.indentLevel++;
             for (int i = 0; i < names.Length; i++) {
@@ -43,14 +43,19 @@ namespace DynamicRagdoll {
                 SerializedProperty bone = boneProfile.FindPropertyRelative("bone");
                 showBones[i] = EditorGUILayout.Foldout(showBones[i], bone.enumDisplayNames[bone.enumValueIndex] + ":", fs);
                 if (showBones[i]) {
-                    DrawPropertiesBlock(boneProfile, i == 0 ? new string[] { "inputForce", "maxForce" } : new string[] { "inputForce", "maxForce", "maxTorque" });
+                    DrawPropertiesBlock(boneProfile, i == 0 ? new string[] { "inputForce", "maxForce", "fallDecaySteepness" } : new string[] { "inputForce", "maxForce", "maxTorque", "fallDecaySteepness" });
                 }
             }
             EditorGUI.indentLevel--;
 
             EditorGUILayout.Space();
             DrawPropertiesBlock(profile, "Controlled", s, new string[] { "PForce", "DForce", "maxForce", "maxJointTorque" });
-            DrawPropertiesBlock(profile, "Falling", s, new string[] { "calculateVelocityFrames", "followRigidbodyParents", "skipFrames", "fallLerp", "residualForce", "residualJointTorque" });
+            DrawPropertiesBlock(profile, "Falling", s, new string[] { 
+                "calculateVelocityFrames", "followRigidbodyParents", "skipFrames", 
+                "method1FallSpeed", "method1Residual",
+                
+		
+                "fallLerp", "residualForce", "residualJointTorque" });
 		    DrawPropertiesBlock(profile, "Get Up", s, new string[] { "ragdollMinTime", "settledSpeed", "orientateDelay", "checkGroundMask", "blendTime" });
             
             EditorGUILayout.EndVertical();        

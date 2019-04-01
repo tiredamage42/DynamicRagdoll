@@ -3,7 +3,7 @@ using UnityEditor;
 namespace DynamicRagdoll {
     [CustomEditor(typeof(RagdollProfile))]
     public class RagdollProfileEditor : Editor {
-        static bool[] showBones = new bool[Ragdoll.usedBones.Length];
+        static bool[] showBones = new bool[Ragdoll.physicsBonesCount];
         static bool showRBOptions, showColliderOptions, showJointOptions;
 
 

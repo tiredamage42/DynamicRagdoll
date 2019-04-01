@@ -9,12 +9,14 @@ namespace DynamicRagdoll {
             [Range(0,2)] public float inputForce = 1;
             [Range(0,2)] public float maxForce = 1; //check initial values above
             [Range(0,2)] public float maxTorque = 1;
+            [Range(0f,10f)] public float fallDecaySteepness = 1;
 
             public BoneProfile(HumanBodyBones bone, float maxForce) {
                 this.bone = bone;
                 this.maxForce = maxForce;
                 inputForce = 1;
                 maxTorque = 1;
+                fallDecaySteepness = 1;
             }
         }
 
@@ -39,15 +41,21 @@ namespace DynamicRagdoll {
         [Range(0f, 160f)] public float PForce = 30f;		
 		[Range(0f, .064f)] public float DForce = .01f;
 			
+
 		[Range(0f, 100f)] public float maxForce = 100f;
 		[Range(0f, 10000f)] public float maxJointTorque = 10000f;
 
         [Range(1,10)] public int calculateVelocityFrames = 1;
         public bool skipFrames = true, followRigidbodyParents;
 
+        
+        
+        [Range(1f, 100f)] public float method1FallSpeed = 10f;				
+		[Range(0f, 1f)] public float method1Residual = 1f;
+		
         [Tooltip("Determines how fast the character loses control after colliding")]
-		[Range(.5f, 4.5f)] public float fallLerp = 1.5f;				
-		[Range(0f, .2f)] public float residualForce = .1f;
+        [Range(.5f, 4.5f)] public float fallLerp = 1.5f;				
+		[Range(0f, 25f)] public float residualForce = .1f;
 		[Range(0f, 120f)] public float residualJointTorque = 120f;
 		
 

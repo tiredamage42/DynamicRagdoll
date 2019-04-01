@@ -46,12 +46,28 @@ using System.Collections.Generic;
 		- when the blend lerp reaches 1, disable the ragdoll renderers
 		  and enable the original master character model 
 		  (which should still be playing the get up animation)
+
+
+Method 1 (experimental):
+
+	during velocity calculation:
+		calculate velocities and angular velocities of animations in late update
+
+		in fixed update set those velocities based on useLerp (blended with original velocity);
+
+
 */
 namespace DynamicRagdoll {
 
 	[RequireComponent(typeof(Animator))]
 	public class RagdollController : MonoBehaviour
 	{
+
+
+		public bool METHOD_1;
+
+
+
 		public enum RagdollState { 
 			Ragdolled=0, TeleportMasterToRagdoll=1, BlendToAnimated=2, Animated=3, CalculateAnimationVelocity=4,
 		}
@@ -76,9 +92,9 @@ namespace DynamicRagdoll {
 
 		float currentMaxForce, currentMaxJointTorque, ragdollPhaseStartTime;
 			
-		JointDrive jointDrive = new JointDrive();
-		PhysicalBoneTracker[] rbFollowers;
-		BoneTracker[] nonRbFollowers, allFollowers;
+		//JointDrive jointDrive = new JointDrive();
+		// PhysicalBoneTracker[] rbFollowers;
+		// BoneTracker[] nonRbFollowers, allFollowers;
 		bool skipFrame, calculatedRootboneToForward;
 		bool controllerInvalid { get { return profile == null || ragdoll == null; } }
 		
@@ -105,30 +121,49 @@ namespace DynamicRagdoll {
 		//corresponding local rotations on the master 
 		//(for fingers and other stuff that's only important when the ragdoll model is actually showing)
 		void TeleportSecondaryRagdollTransforms () {
-			for (int i = 0; i < nonRbFollowers.Length; i++) {
-				if (!nonRbFollowers[i].isPhysicsParent) {
-					nonRbFollowers[i].Teleport();
-				}
-			}
+			ragdoll.TeleportToTarget(Ragdoll.TeleportType.SecondaryNonPhysicsBones);
+			// for (int i = 0; i < nonRbFollowers.Length; i++) {
+			// 	if (!nonRbFollowers[i].isPhysicsParent) {
+			// 		nonRbFollowers[i].Teleport();
+			// 	}
+			// }
 		}
 
 		void FinishGoRagdoll () {
 			
 			// The initial strength immediately after the impact
 			SetFollowValues(profile.residualForce, profile.residualJointTorque);
+			useAnimationVelocityLerp = profile.method1Residual;
 			
+
 			//enable gravity
 			ragdoll.UseGravity(true);
+
+
+			if (METHOD_1) {
+				//these werent being updated for method_1
+				ragdoll.TeleportToTarget(Ragdoll.TeleportType.PhysicsParents);
+			}
+					
 
 			TeleportSecondaryRagdollTransforms();
 
 			//do delayed physics hits
 			OnPhysicsHits();
-			
+
+
 			//turn on ragdoll renderers, disable master renderers
 			EnableRenderers(false, true);	
 
+			// master renderers are disabled, but animation needs to play regardless
+			// so dont cull
+			animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
+
+
+
 			ChangeRagdollState(RagdollState.Ragdolled);
+
+			
 		}
 
 		void ChangeRagdollState (RagdollState newState) {
@@ -167,6 +202,9 @@ namespace DynamicRagdoll {
 			if (state == RagdollState.Ragdolled || state == RagdollState.CalculateAnimationVelocity)
 				return;
 
+
+
+			useAnimationVelocityLerp = 1;
 			//set the physics follow values
 			SetFollowValues(profile.maxForce, profile.maxJointTorque);
 			
@@ -182,31 +220,41 @@ namespace DynamicRagdoll {
 			
 			// reset the ragdoll rigidbody followers errors to 0 so we dont have
 			// any leftover forces from a previous ragdolling
-			for (int i = 0; i < Ragdoll.bonesCount; i++) {
-				rbFollowers[i].ResetError();	
-			}
+			
+			// for (int i = 0; i < Ragdoll.bonesCount; i++) {
+			// 	rbFollowers[i].ResetError();	
+			// }
+			ResetForceErrors();
+
 
 			//wait a few fixed frames in order for the bone trackers to calculate the velocity of the current animations
 			//then actually go ragdoll
 			calculatedAnimationVelocityFrames = 0;
 
 			ChangeRagdollState(RagdollState.CalculateAnimationVelocity);
+
+			// if (METHOD_1) {
+			// 	FinishGoRagdoll();
+			// }
 		}
 
 		//Transition from ragdolled to animated through the Blend state
 		void StartGetUp () {
+			//just for now
+			//ragdoll.UseGravity(false);
+
+			ClearBoneDecays();
+
+			useAnimationVelocityLerp = 0;
 
 			//disable physics affecting ragdoll
 			ragdoll.SetKinematic(true); 
 			
-			// master renderers are disabled, but animation needs to play regardless
-			// so dont cull
-			animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
-
 			//save the ragdoll positions
-			for(int i = 0; i < allFollowers.Length; i++) {
-				allFollowers[i].SaveSlaveValues();
-			}
+			ragdoll.SaveSnapshot();
+			// for(int i = 0; i < allFollowers.Length; i++) {
+			// 	allFollowers[i].SaveSlaveValues();
+			// }
 			
 			Vector3 rootBoneForward = ragdoll.RootBone().rotation * rootboneToForward * Vector3.forward;
 			// Check if ragdoll is lying on its back or front, then transition to getup animation		
@@ -216,8 +264,8 @@ namespace DynamicRagdoll {
 			animator.SetTrigger(onBack ? "BackTrigger" : "FrontTrigger");
 
 			ChangeRagdollState(RagdollState.TeleportMasterToRagdoll);
-
 		}
+
 
 		// Here the master gets reorientated to the ragdoll 
 		// which could have ended its fall in any direction and position
@@ -260,18 +308,28 @@ namespace DynamicRagdoll {
 			
 			//In LateUpdate(), Mecanim has already updated the body pose according to the animations. 
 			//lerp the position of the hips and slerp all the rotations towards the ones stored when ending the ragdolling
-		
-			for (int i = 0; i < allFollowers.Length; i++) {
-				allFollowers[i].LerpFromSavedTowardsMaster(blendT);
-			}
+
+			
+			// for (int i = 0; i < allFollowers.Length; i++) {
+			// 	allFollowers[i].LerpFromSavedTowardsMaster(blendT);
+			// }
+			ragdoll.LoadSnapshot(1-blendT, true);
+
+
+
 
 			return blendT == 1;
 		}
 
 		
 		void OnEndBlendToAnimation () {
+			//useAnimationVelocityLerp = 1;
+			//SetFollowValues(profile.maxForce, profile.maxJointTorque);
 
-			ragdoll.UseGravity(false);
+			//ragdoll.SetKinematic(true); 
+			
+
+			//ragdoll.UseGravity(false);
 
 			//reset culling mode
 			animator.cullingMode = originalAnimatorCullingMode;
@@ -307,35 +365,47 @@ namespace DynamicRagdoll {
 					OnEndBlendToAnimation();
 				}
 				break;
+			case RagdollState.Animated:
+
+				// teleport all ragdoll (and ragdoll parents) in order to match animation
+				// no need for secondary transforms since the ragdoll isnt being shown
+				
+				ragdoll.TeleportToTarget(Ragdoll.TeleportType.PhysicsBonesAndParents);
+			 	break;
+			}
+			
+			if (METHOD_1) {
+
+				UpdateLoop(Time.deltaTime);
 			}
 		}
 
 
-		PhysicalBoneTracker[] InitializePhysicsTrackers () {
-			PhysicalBoneTracker[] trackers = new PhysicalBoneTracker[Ragdoll.bonesCount];
-			for (int i = 0; i < Ragdoll.bonesCount; i++) {
-				trackers[i] = new PhysicalBoneTracker(ragdoll.GetBone(Ragdoll.usedBones[i]), animator.GetBoneTransform(Ragdoll.usedBones[i]), ref jointDrive);
-			}
-			return trackers;
-		}
+		// PhysicalBoneTracker[] InitializePhysicsTrackers () {
+		// 	PhysicalBoneTracker[] trackers = new PhysicalBoneTracker[Ragdoll.bonesCount];
+		// 	for (int i = 0; i < Ragdoll.bonesCount; i++) {
+		// 		trackers[i] = new PhysicalBoneTracker(ragdoll.GetBone(Ragdoll.usedBones[i]), animator.GetBoneTransform(Ragdoll.usedBones[i]), ref jointDrive);
+		// 	}
+		// 	return trackers;
+		// }
 
-		BoneTracker[] InitializeTransformTrackers () {
+		// BoneTracker[] InitializeTransformTrackers () {
 			
-			Transform[] allRags = ragdoll.RootBone().transform.GetComponentsInChildren<Transform>();
-			Transform[] allMasters = masterHips.GetComponentsInChildren<Transform>();
+		// 	Transform[] allRags = ragdoll.RootBone().transform.GetComponentsInChildren<Transform>();
+		// 	Transform[] allMasters = masterHips.GetComponentsInChildren<Transform>();
 			
-			if (allMasters.Length != allRags.Length) {
-				Debug.LogError("children list different sizes for ragdoll and master");
-				return null;
-			}
+		// 	if (allMasters.Length != allRags.Length) {
+		// 		Debug.LogError("children list different sizes for ragdoll and master");
+		// 		return null;
+		// 	}
 			
-			List<BoneTracker> nonRbFollowersL = new List<BoneTracker>();
-			for (int i = 0; i < allRags.Length; i++) {
-				if (!allRags[i].GetComponent<Rigidbody>())
-					nonRbFollowersL.Add(new BoneTracker(allRags[i], allMasters[i], false, allRags[i].GetComponentInChildren<Rigidbody>() != null));
-			}
-			return nonRbFollowersL.ToArray();
-		}
+		// 	List<BoneTracker> nonRbFollowersL = new List<BoneTracker>();
+		// 	for (int i = 0; i < allRags.Length; i++) {
+		// 		if (!allRags[i].GetComponent<Rigidbody>())
+		// 			nonRbFollowersL.Add(new BoneTracker(allRags[i], allMasters[i], false, allRags[i].GetComponentInChildren<Rigidbody>() != null));
+		// 	}
+		// 	return nonRbFollowersL.ToArray();
+		// }
 
 		void Awake () // Initialize
 		{
@@ -359,26 +429,41 @@ namespace DynamicRagdoll {
 			
 			masterHips = animator.GetBoneTransform(HumanBodyBones.Hips);
 		
-			//get all the followers that use physics
-			rbFollowers = InitializePhysicsTrackers();
+			// //get all the followers that use physics
+			// rbFollowers = InitializePhysicsTrackers();
 
-			//get all the followers without rididbodies
-			nonRbFollowers = InitializeTransformTrackers();
+			// //get all the followers without rididbodies
+			// nonRbFollowers = InitializeTransformTrackers();
 			
 			//get all followers in a single array
-			int nonRBFollowersLength = nonRbFollowers.Length;
-			allFollowers = new BoneTracker[nonRBFollowersLength + Ragdoll.bonesCount];
-			for (int i = 0; i < nonRBFollowersLength; i++)
-				allFollowers[i] = nonRbFollowers[i];	
-			for (int i = 0; i < Ragdoll.bonesCount; i++)
-				allFollowers[nonRBFollowersLength + i] = rbFollowers[i];	
+			// int nonRBFollowersLength = nonRbFollowers.Length;
+			// allFollowers = new BoneTracker[nonRBFollowersLength + Ragdoll.bonesCount];
+			// for (int i = 0; i < nonRBFollowersLength; i++)
+			// 	allFollowers[i] = nonRbFollowers[i];	
+			// for (int i = 0; i < Ragdoll.bonesCount; i++)
+			// 	allFollowers[nonRBFollowersLength + i] = rbFollowers[i];	
+
+			ragdoll.SetFollowTarget(animator);
 			
+			InitializePhysicsFollowing();
+
 			ResetToAnimated();
+
+
+			//just for now
+			//useAnimationVelocityLerp = 1;
+			//SetFollowValues(profile.maxForce, profile.maxJointTorque);
+
+InitializeDecays();
+
 		}
 
 		void ResetToAnimated () {
-			state = RagdollState.Animated;
+
+			ChangeRagdollState(RagdollState.Animated);
+			
 			EnableRenderers(true, false);
+			
 			ragdoll.SetKinematic(true);
 		}
 
@@ -400,8 +485,20 @@ namespace DynamicRagdoll {
 			if (controllerInvalid) {
 				return;	
 			}
-			UpdateLoop(Time.fixedDeltaTime);
+
+			if (METHOD_1) {
+
+				UpdateVelocities(Time.fixedDeltaTime);
+			}
+			else {
+
+				UpdateLoop(Time.fixedDeltaTime);
+			}
+			
 		}
+
+		public float useAnimationVelocityLerp;
+		float v;
 
 		void UpdateLoop(float deltaTime)
 		{
@@ -414,6 +511,10 @@ namespace DynamicRagdoll {
 				// Lerp follow force to zero from residual values
 				if (currentMaxForce != 0 || currentMaxJointTorque != 0) {
 					float speed = profile.fallLerp * deltaTime;
+					
+					//useAnimationVelocityLerp = Mathf.SmoothDamp(useAnimationVelocityLerp, 0, ref v, profile.fallLerp);
+					useAnimationVelocityLerp = Mathf.Lerp(useAnimationVelocityLerp, 0, profile.method1FallSpeed * deltaTime);
+
 					SetFollowValues(Mathf.Lerp(currentMaxForce, 0, speed), Mathf.Lerp(currentMaxJointTorque, 0, speed));
 				}
 
@@ -428,21 +529,20 @@ namespace DynamicRagdoll {
 					}
 				}
 				break;
-
-			case RagdollState.Animated:
-
-				// teleport all ragdoll (and ragdoll parents) in order to match animation
-				// no need for secondary transforms since the ragdoll isnt being shown
-				for (int i = 0; i < allFollowers.Length; i++) {
-					if (allFollowers[i].isPhysicsParent) {
-						allFollowers[i].Teleport();
-					}
-				}	
-			 	break;
 			}
 
 			if (state == RagdollState.CalculateAnimationVelocity || state == RagdollState.Ragdolled) {
-				HandlePhysicsFollow(deltaTime);
+				if (METHOD_1) {
+
+					CalculateAnimationVelocities(deltaTime);
+
+				}
+				else {
+
+					HandlePhysicsFollow(deltaTime);
+				
+				}
+				
 
 
 				if (state == RagdollState.CalculateAnimationVelocity) {
@@ -457,8 +557,10 @@ namespace DynamicRagdoll {
 					}
 				}
 			}
-			
 		}
+
+
+			
 
 		void HandlePhysicsFollow (float deltaTime) {
 			
@@ -476,23 +578,263 @@ namespace DynamicRagdoll {
 					this eliminates large errors between bone and master positions that lead to huge jumps
 				*/
 				if (profile.followRigidbodyParents) {
-					for (int i = 0; i < nonRbFollowers.Length; i++) {
-						if (nonRbFollowers[i].isPhysicsParent) {
-							nonRbFollowers[i].Teleport();
-						}
-					}	
+
+					ragdoll.TeleportToTarget(Ragdoll.TeleportType.PhysicsParents);
+					// for (int i = 0; i < nonRbFollowers.Length; i++) {
+					// 	if (nonRbFollowers[i].isPhysicsParent) {
+					// 		nonRbFollowers[i].Teleport();
+					// 	}
+					// }	
 				}
 			}
 			
 			// Use physics to move the bones to where the corresponding master bone is
 			float reciprocalDeltaTime = 1f / deltaTime;
+			MovePhysicsBonesToMaster(reciprocalDeltaTime, deltaTime);
 			
-			for (int i = 0; i < Ragdoll.bonesCount; i++) {
-				rbFollowers[i].MoveBoneToMaster(profile, currentMaxForce, currentMaxJointTorque, reciprocalDeltaTime, profile.bones[i], jointDrive);
-			}
+			// for (int i = 0; i < Ragdoll.bonesCount; i++) {
+			// 	rbFollowers[i].MoveBoneToMaster(profile, currentMaxForce, currentMaxJointTorque, reciprocalDeltaTime, profile.bones[i], jointDrive);
+			// }
 
 			//only skip frames when following animation
 			skipFrame = profile.skipFrames && state != RagdollState.Ragdolled;
+		}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+		/*
+			Physics following
+		*/
+		static JointDrive jointDrive = new JointDrive();
+
+		//after set follower
+		void InitializePhysicsFollowing () {
+			velocitiesSet = new Vector3[Ragdoll.physicsBonesCount];
+			massCenterOffsets = new Vector3[Ragdoll.physicsBonesCount];
+			lastPositions = new Vector3[Ragdoll.physicsBonesCount];
+		
+
+
+			originalRBPositions = new Vector3[Ragdoll.physicsBonesCount];
+			forceLastErrors = new Vector3[Ragdoll.physicsBonesCount];
+			startLocalRotations = new Quaternion[Ragdoll.physicsBonesCount];
+			localToJointSpaces = new Quaternion[Ragdoll.physicsBonesCount];
+			lastJointTorques = new float[Ragdoll.physicsBonesCount];
+
+			
+
+			for (int i = 0; i < Ragdoll.physicsBonesCount; i++) {
+				Ragdoll.Bone bone = ragdoll.GetPhysicsBone(Ragdoll.phsysicsHumanBones[i]);
+
+
+				massCenterOffsets[i] = bone.transform.InverseTransformPoint(bone.rigidbody.worldCenterOfMass);
+				
+
+				lastJointTorques[i] = -1;
+				originalRBPositions[i] = Quaternion.Inverse(bone.rigidbody.rotation) * (bone.rigidbody.worldCenterOfMass - bone.rigidbody.position); 		
+				
+				if (!bone.isRoot) {
+					//save rotation values for setting joint rotation
+					localToJointSpaces[i] = Quaternion.LookRotation(Vector3.Cross (bone.joint.axis, bone.joint.secondaryAxis), bone.joint.secondaryAxis);
+					startLocalRotations[i] = bone.followTarget.transform.localRotation * localToJointSpaces[i];
+					localToJointSpaces[i] = Quaternion.Inverse(localToJointSpaces[i]);
+					
+					jointDrive = bone.joint.slerpDrive;
+					bone.joint.slerpDrive = jointDrive;
+				}
+			}
+		}
+		Vector3[] originalRBPositions, forceLastErrors;
+		Vector3[] velocitiesSet, massCenterOffsets, lastPositions;
+		
+		Quaternion[] startLocalRotations, localToJointSpaces;
+		float[] lastJointTorques;// = -1;
+
+		public void ResetForceErrors () {
+			for (int i = 0; i < Ragdoll.physicsBonesCount; i++) {
+				forceLastErrors[i] = Vector3.zero;
+				
+				Ragdoll.Bone bone = ragdoll.GetPhysicsBone(Ragdoll.phsysicsHumanBones[i]);
+				lastPositions[i] = bone.followTarget.position + (bone.followTarget.rotation * massCenterOffsets[i]);
+			}
+		}
+
+
+		Dictionary<HumanBodyBones, float> boneDecays = new Dictionary<HumanBodyBones, float>();
+		void ClearBoneDecays () {
+			for (int i = 0; i < Ragdoll.physicsBonesCount; i++) {
+				boneDecays[Ragdoll.phsysicsHumanBones[i]] = 0;
+			}
+		}
+		void InitializeDecays () {
+			for (int i = 0; i < Ragdoll.physicsBonesCount; i++) {
+				boneDecays[Ragdoll.phsysicsHumanBones[i]] = 0;
+			}
+		}
+
+		HumanBodyBones GetBoneForTransform (Transform transform) {
+			for (int i = 0; i < Ragdoll.physicsBonesCount; i++) {
+				if (ragdoll.GetPhysicsBone(Ragdoll.phsysicsHumanBones[i]).transform == transform) {
+					return Ragdoll.phsysicsHumanBones[i];
+				}
+			}
+			return HumanBodyBones.Hips;
+		}
+		public void SetBoneDecay (HumanBodyBones bones, float decayValue, float neighborDecay) {
+			boneDecays[bones] = decayValue;
+
+			if (neighborDecay >= 0) {
+
+				HashSet<HumanBodyBones> neighbors = RagdollBuilder.GetNeighbors(bones);
+
+				if (neighbors == null) {
+					Debug.LogError("no neightbors for " + bones);
+				}
+				else {
+
+					foreach (var n in neighbors) {
+						SetBoneDecay(n, neighborDecay, -1);
+					}
+				}
+			}
+		}
+		public void SetBoneDecay (Transform bone, float decayValue, float neighborDecay) {
+			SetBoneDecay(GetBoneForTransform(bone), decayValue, neighborDecay);
+		}
+			
+
+
+		void UpdateVelocities (float deltaTime) {
+			
+			if (useAnimationVelocityLerp != 0) {
+				for (int i = 0; i < Ragdoll.physicsBonesCount; i++) {
+					Ragdoll.Bone bone = ragdoll.GetPhysicsBone(Ragdoll.phsysicsHumanBones[i]);
+
+					//try and stay upright
+					velocitiesSet[i] -= Physics.gravity * deltaTime;
+					
+					
+					float t = useAnimationVelocityLerp;
+					if (state == RagdollState.Ragdolled) {
+
+						//when shot go towards orinal bone velocity
+						t -= boneDecays[Ragdoll.phsysicsHumanBones[i]];
+						t = Mathf.Pow(Mathf.Clamp01(t), profile.bones[i].fallDecaySteepness);
+						// float mag1 = bone.rigidbody.velocity.sqrMagnitude;
+						// float mag2 = velocitiesSet[i].sqrMagnitude;
+						
+						Vector3 targetVelocity = Vector3.Lerp(bone.rigidbody.velocity, velocitiesSet[i], Mathf.Clamp01(t));
+						bone.rigidbody.velocity = targetVelocity;// mag1 > mag2 ? bone.rigidbody.velocity : targetVelocity;//Vector3.Lerp(bone.rigidbody.velocity, velocitiesSet[i], Mathf.Clamp01(t));
+						
+						// if (boneDecays[Ragdoll.phsysicsHumanBones[i]] == 0) {
+
+						// }
+						// else {
+
+						// }
+					}
+					else {
+						bone.rigidbody.velocity = velocitiesSet[i];
+					}
+
+				}
+			}
+		}
+		void CalculateAnimationVelocities (float deltaTime) {
+			if (useAnimationVelocityLerp != 0) {
+				
+				//ragdoll.TeleportToTarget(Ragdoll.TeleportType.PhysicsParents);
+					
+				for (int i = 0; i < Ragdoll.physicsBonesCount; i++) {
+					Ragdoll.Bone followTarget = ragdoll.GetPhysicsBone(Ragdoll.phsysicsHumanBones[i]).followTarget;
+					Vector3 newTargetpos = followTarget.position + (followTarget.rotation * massCenterOffsets[i]);
+					velocitiesSet[i] = ((newTargetpos - lastPositions[i]) / deltaTime);// - Physics.gravity * deltaTime;
+					// if (i == 0) {
+					// 	velocitiesSet[i] -= Physics.gravity * deltaTime;
+					// }
+					lastPositions[i] = newTargetpos;		
+					
+				}
+			}
+		}
+
+
+
+
+
+		public void MovePhysicsBonesToMaster (float reciprocalDeltaTime, float deltaTime){
+			
+			for (int i = 0; i < Ragdoll.physicsBonesCount; i++) {
+				Ragdoll.Bone bone = ragdoll.GetPhysicsBone(Ragdoll.phsysicsHumanBones[i]);
+
+				float inputForceMultiplier = profile.bones[i].inputForce;
+				float maxForceMultiplier = profile.bones[i].maxForce;
+				float maxTorqueMultiplier = profile.bones[i].maxTorque;
+
+				
+				Vector3 forceError = Vector3.zero;
+
+				if (inputForceMultiplier != 0 && currentMaxForce != 0 && maxForceMultiplier != 0){
+					
+					// Force error
+					forceError = (bone.followTarget.position + bone.followTarget.rotation * originalRBPositions[i]) - bone.rigidbody.worldCenterOfMass;
+					// Calculate and apply world force
+					Vector3 force = PDControl(profile.PForce * inputForceMultiplier, profile.DForce, forceError, ref forceLastErrors[i], currentMaxForce, maxForceMultiplier, reciprocalDeltaTime);
+					force -= Physics.gravity * deltaTime * useAnimationVelocityLerp;
+					bone.rigidbody.AddForce(force, ForceMode.VelocityChange);					
+				}
+				forceLastErrors[i] = forceError;
+
+
+				if (bone.joint) { 
+					
+					float jointTorque = currentMaxJointTorque * maxTorqueMultiplier;
+
+					//setting joint torque every frame was slow, so check here if its changed
+					if (jointTorque != lastJointTorques[i]) {
+
+						jointDrive.positionSpring = jointTorque;
+						bone.joint.slerpDrive = jointDrive;
+				
+						lastJointTorques[i] = jointTorque;
+					}
+
+					//set joints target rotation		
+					if (jointTorque != 0) {
+						bone.joint.targetRotation = localToJointSpaces[i] * Quaternion.Inverse(bone.followTarget.transform.localRotation) * startLocalRotations[i];
+					}	
+				}
+			}
+		}
+		static Vector3 PDControl (float P, float D, Vector3 error, ref Vector3 lastError, float maxForce, float weight, float reciprocalDeltaTime) 
+		{
+			// theSignal = P * (theError + D * theDerivative) This is the implemented algorithm.
+			Vector3 signal = P * (error + D * ( error - lastError ) * reciprocalDeltaTime);
+			
+			float max = maxForce * weight;
+			float sqrMag = signal.sqrMagnitude;
+			if (sqrMag > max * max) {
+				return signal * (max / Mathf.Sqrt(sqrMag));
+				//return Vector3.ClampMagnitude(signal, max);
+			}
+			return signal;
 		}
 	}
 }

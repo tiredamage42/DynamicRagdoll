@@ -18,7 +18,7 @@ namespace DynamicRagdoll {
             public float angularDrag = 0.05f;
             public float drag = 0.0f;
             public float maxAngularVelocity = 1000f; 
-            public float maxDepenetrationVelocity = 999999; // or 1e+32;
+            public float maxDepenetrationVelocity = 10; // or 1e+32;
             
             public RigidbodyInterpolation interpolation = RigidbodyInterpolation.None;
             public CollisionDetectionMode collisionDetection = CollisionDetectionMode.Discrete;
@@ -41,7 +41,7 @@ namespace DynamicRagdoll {
                 angularDrag = 0.05f;
                 this.mass = mass;
                 maxAngularVelocity = 1000f;
-                maxDepenetrationVelocity = 999999;
+                maxDepenetrationVelocity = 10;
                 
                 interpolation = RigidbodyInterpolation.None;
                 collisionDetection = CollisionDetectionMode.Discrete;

@@ -17,55 +17,71 @@ MonoBehaviour:
     inputForce: 1
     maxForce: 1
     maxTorque: 1
+    fallDecaySteepness: 1
   - bone: 8
     inputForce: 1
     maxForce: 1
     maxTorque: 1
+    fallDecaySteepness: 1
   - bone: 10
     inputForce: 1
     maxForce: 1
     maxTorque: 1
+    fallDecaySteepness: 1
   - bone: 4
     inputForce: 1
-    maxForce: 0.2
+    maxForce: 1
     maxTorque: 1
+    fallDecaySteepness: 0.75
   - bone: 3
     inputForce: 1
-    maxForce: 0.2
+    maxForce: 1
     maxTorque: 1
+    fallDecaySteepness: 0.75
   - bone: 2
     inputForce: 1
-    maxForce: 0.2
+    maxForce: 1
     maxTorque: 1
+    fallDecaySteepness: 0.75
   - bone: 1
     inputForce: 1
-    maxForce: 0.2
+    maxForce: 1
     maxTorque: 1
+    fallDecaySteepness: 0.75
   - bone: 16
     inputForce: 1
-    maxForce: 0.2
+    maxForce: 1
     maxTorque: 1
+    fallDecaySteepness: 1
   - bone: 15
     inputForce: 1
-    maxForce: 0.2
+    maxForce: 1
     maxTorque: 1
+    fallDecaySteepness: 1
   - bone: 14
     inputForce: 1
-    maxForce: 0.2
+    maxForce: 1
     maxTorque: 1
+    fallDecaySteepness: 1
   - bone: 13
     inputForce: 1
-    maxForce: 0.2
+    maxForce: 1
     maxTorque: 1
+    fallDecaySteepness: 1
   PForce: 30
   DForce: 0.01
-  maxForce: 100
+  maxForce: 25
   maxJointTorque: 10000
-  fallLerp: 1.5
+  calculateVelocityFrames: 1
+  skipFrames: 1
+  followRigidbodyParents: 1
+  method1FallSpeed: 7.5
+  method1Residual: 1
+  fallLerp: 2
   residualForce: 0.1
   residualJointTorque: 120
   ragdollMinTime: 3
-  settledSpeed: 0.01
+  settledSpeed: 0.05
   orientateDelay: 0.25
   checkGroundMask:
     serializedVersion: 2

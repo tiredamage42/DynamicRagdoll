@@ -11,7 +11,7 @@ namespace DynamicRagdoll.Demo
 		public Texture crosshairTexture;
 		public float turnSpeed = 500f;
 		public float slowTime = .3f;
-		public float bulletForce = 8000f;
+		public float bulletForce = 3000f;
 
 		public float heightSpeed = 20;
 
@@ -119,10 +119,11 @@ namespace DynamicRagdoll.Demo
 					Rigidbody rb = hit.transform.GetComponent<Rigidbody>();
 					if (rb) {
 
-						System.Action executePhysics = () => StartCoroutine(AddDelayedForce(rb, ray.direction.normalized * bulletForce, hit.point));
+						System.Action executePhysics = () => AddDelayedForce(rb, ray.direction.normalized * (bulletForce/ Time.timeScale), hit.point);
 
 						if (hit.transform.IsChildOf(ragdollController.ragdoll.transform)) {
-	
+							
+							ragdollController.SetBoneDecay(hit.transform, 1, .75f);
 							//stores the method for delayed execution
 							ragdollController.StorePhysicsHit(executePhysics);
 							DemoRagdoll();
@@ -135,10 +136,9 @@ namespace DynamicRagdoll.Demo
 				}
 			}
 		}
-		IEnumerator AddDelayedForce (Rigidbody rb, Vector3 force, Vector3 point)
+		void AddDelayedForce (Rigidbody rb, Vector3 force, Vector3 point)
 		{
-			yield return new WaitForFixedUpdate();
-			rb.AddForceAtPosition(force, point);
+			rb.AddForceAtPosition(force, point, ForceMode.VelocityChange);
 		}
 
 		void OnGUI ()

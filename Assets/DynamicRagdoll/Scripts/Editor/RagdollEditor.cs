@@ -20,7 +20,7 @@ namespace DynamicRagdoll {
                 if (isBuilt)
                     RagdollBuilder.EraseRagdoll(ragdoll.GetComponent<Animator>());
                 else
-                    RagdollBuilder.BuildRagdollFull (ragdoll.GetComponent<Animator>(), ragdoll.ragdollProfile, out _);
+                    RagdollBuilder.BuildRagdollFull (ragdoll.GetComponent<Animator>(), ragdoll.ragdollProfile, out _, out _, out _);
 
                 preBuiltProp.boolValue = !isBuilt;
             }
@@ -28,7 +28,7 @@ namespace DynamicRagdoll {
             if (isBuilt) {
                 if (ragdoll.ragdollProfile) {
                     if (GUILayout.Button("Update Ragdoll To Profile")) {
-                        RagdollBuilder.BuildRagdollFromPrebuilt(ragdoll.GetComponent<Animator>(), ragdoll.ragdollProfile, out _);
+                        RagdollBuilder.BuildRagdollFromPrebuilt(ragdoll.GetComponent<Animator>(), ragdoll.ragdollProfile, out _, out _, out _);
                     }
                 }
             }
