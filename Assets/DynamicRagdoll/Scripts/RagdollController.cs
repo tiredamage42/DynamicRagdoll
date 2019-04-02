@@ -708,55 +708,130 @@ InitializeDecays();
 					Debug.LogError("no neightbors for " + bones);
 				}
 				else {
-
 					foreach (var n in neighbors) {
 						SetBoneDecay(n, neighborDecay, -1);
 					}
 				}
 			}
 		}
+
 		public void SetBoneDecay (Transform bone, float decayValue, float neighborDecay) {
 			SetBoneDecay(GetBoneForTransform(bone), decayValue, neighborDecay);
 		}
-			
 
+		float MaxAbs(float a, float b) {
+			return Mathf.Abs(a) > Mathf.Abs(b) ? a : b;
+		}
+
+		Vector3 MaxAbs (Vector3 a, Vector3 b) {
+			return new Vector3(MaxAbs(a.x, b.x), MaxAbs(a.y, b.y), MaxAbs(a.z, b.z));
+		}
 
 		void UpdateVelocities (float deltaTime) {
 			
 			if (useAnimationVelocityLerp != 0) {
+				
+				//ragdoll.TeleportToTarget(Ragdoll.TeleportType.PhysicsParents);
+				
 				for (int i = 0; i < Ragdoll.physicsBonesCount; i++) {
 					Ragdoll.Bone bone = ragdoll.GetPhysicsBone(Ragdoll.phsysicsHumanBones[i]);
 
 					//try and stay upright
-					velocitiesSet[i] -= Physics.gravity * deltaTime;
+					//velocitiesSet[i] -= Physics.gravity * deltaTime;
 					
-					
-					float t = useAnimationVelocityLerp;
 					if (state == RagdollState.Ragdolled) {
 
-						//when shot go towards orinal bone velocity
-						t -= boneDecays[Ragdoll.phsysicsHumanBones[i]];
-						t = Mathf.Pow(Mathf.Clamp01(t), profile.bones[i].fallDecaySteepness);
-						// float mag1 = bone.rigidbody.velocity.sqrMagnitude;
-						// float mag2 = velocitiesSet[i].sqrMagnitude;
-						
-						Vector3 targetVelocity = Vector3.Lerp(bone.rigidbody.velocity, velocitiesSet[i], Mathf.Clamp01(t));
-						bone.rigidbody.velocity = targetVelocity;// mag1 > mag2 ? bone.rigidbody.velocity : targetVelocity;//Vector3.Lerp(bone.rigidbody.velocity, velocitiesSet[i], Mathf.Clamp01(t));
-						
-						// if (boneDecays[Ragdoll.phsysicsHumanBones[i]] == 0) {
+						float boneDecay = boneDecays[Ragdoll.phsysicsHumanBones[i]];
 
+						//when shot go towards orinal bone velocity / torque
+						
+						float forceT = Mathf.Clamp01(Mathf.Clamp01(profile.bones[i].fallForceDecay.Evaluate (1-useAnimationVelocityLerp)) -boneDecay);
+						float torqueT = Mathf.Clamp01(Mathf.Clamp01(profile.bones[i].fallTorqueDecay.Evaluate (1-useAnimationVelocityLerp)) - boneDecay);
+						
+						//override with gravity
+						//if (bone.rigidbody.velocity.y < 0) {
+							//velocitiesSet[i].y -= bone.rigidbody.velocity.y;
+							// velocitiesSet[i].y = bone.rigidbody.velocity.y;
 						// }
-						// else {
 
-						// }
+						if (boneDecay != 0) {
+							velocitiesSet[i] = MaxAbs(bone.rigidbody.velocity, velocitiesSet[i]);
+						}
+						
+						bone.rigidbody.velocity = Vector3.Lerp(bone.rigidbody.velocity, velocitiesSet[i], forceT);
+						
+						
+						
+						if (i == 0) {
+
+
+
+							//MoveRotationTorque(bone.rigidbody, bone.followTarget.rotation, 1, deltaTime);
+							//RigidbodyLookAt(bone.rigidbody, bone.followTarget.rotation, 1);
+							//bo e.rigidbody.MoveRotation (bone.followTarget.rotation);
+							
+							//bone.rigidbody.rotation = (Quaternion.Slerp(bone.rigidbody.rotation, bone.followTarget.rotation, torqueT));
+						}
+						else {
+							HandleJointTorques(bone, i, profile.maxJointTorque * torqueT);
+						}
+
 					}
 					else {
-						bone.rigidbody.velocity = velocitiesSet[i];
-					}
 
+						bone.TeleportToTarget();
+
+						// bone.rigidbody.velocity = velocitiesSet[i];
+						// if (i == 0) {
+
+						// 	bone.rigidbody.rotation = (bone.followTarget.rotation);
+						// }
+						// else {
+						// 	HandleJointTorques(bone, i, profile.maxJointTorque);		
+						// }
+					}
 				}
 			}
 		}
+
+		void RigidbodyLookAt (Rigidbody rb, Quaternion rotation, float amount) {
+
+			//Vector3 targetDelta = target.position - transform.position;
+			Vector3 targetDelta = rotation * Vector3.forward;
+
+			Vector3 fwd = rb.transform.forward;
+
+			//get the angle between transform.forward and target delta
+			float angleDiff = Vector3.Angle(fwd, targetDelta);
+		
+			// get its cross product, which is the axis of rotation to
+			// get from one vector to the other
+			Vector3 cross = Vector3.Cross(fwd, targetDelta);
+	
+			// apply torque along that axis according to the magnitude of the angle.
+			rb.AddTorque(cross * angleDiff * amount);
+		}
+
+		 public static void MoveRotationTorque( Rigidbody rigidbody, Quaternion targetRotation, float amount, float deltaTime)
+     {
+         //rigidbody.maxAngularVelocity = 1000;
+ 
+         Quaternion rotation = targetRotation * Quaternion.Inverse(rigidbody.rotation);
+		 Vector3 torque = new Vector3(rotation.x / deltaTime, rotation.y / deltaTime, rotation.z / deltaTime);
+
+			Debug.Log("torque:" + torque);
+         rigidbody.AddTorque(torque * amount, ForceMode.VelocityChange);
+         
+		 //rigidbody.angularVelocity = Vector3.zero;
+     }
+
+		/*
+		
+quat10=targ*Quaternion.Inverse(rbRot);
+rigidbody.AddTorque(quat10.x,quat10.y,quat10.z,ForceMode.Force);
+ 
+		
+		 */
 		void CalculateAnimationVelocities (float deltaTime) {
 			if (useAnimationVelocityLerp != 0) {
 				
@@ -766,9 +841,6 @@ InitializeDecays();
 					Ragdoll.Bone followTarget = ragdoll.GetPhysicsBone(Ragdoll.phsysicsHumanBones[i]).followTarget;
 					Vector3 newTargetpos = followTarget.position + (followTarget.rotation * massCenterOffsets[i]);
 					velocitiesSet[i] = ((newTargetpos - lastPositions[i]) / deltaTime);// - Physics.gravity * deltaTime;
-					// if (i == 0) {
-					// 	velocitiesSet[i] -= Physics.gravity * deltaTime;
-					// }
 					lastPositions[i] = newTargetpos;		
 					
 				}
@@ -802,26 +874,33 @@ InitializeDecays();
 				}
 				forceLastErrors[i] = forceError;
 
-
-				if (bone.joint) { 
 					
 					float jointTorque = currentMaxJointTorque * maxTorqueMultiplier;
 
-					//setting joint torque every frame was slow, so check here if its changed
-					if (jointTorque != lastJointTorques[i]) {
 
-						jointDrive.positionSpring = jointTorque;
-						bone.joint.slerpDrive = jointDrive;
-				
-						lastJointTorques[i] = jointTorque;
-					}
+				HandleJointTorques(bone, i, jointTorque);
 
-					//set joints target rotation		
-					if (jointTorque != 0) {
-						bone.joint.targetRotation = localToJointSpaces[i] * Quaternion.Inverse(bone.followTarget.transform.localRotation) * startLocalRotations[i];
-					}	
-				}
 			}
+		}
+
+		void HandleJointTorques (Ragdoll.Bone bone, int i, float jointTorque) {
+			if (bone.joint) { 
+					
+				//setting joint torque every frame was slow, so check here if its changed
+				if (jointTorque != lastJointTorques[i]) {
+
+					jointDrive.positionSpring = jointTorque;
+					bone.joint.slerpDrive = jointDrive;
+			
+					lastJointTorques[i] = jointTorque;
+				}
+
+				//set joints target rotation		
+				if (jointTorque != 0) {
+					bone.joint.targetRotation = localToJointSpaces[i] * Quaternion.Inverse(bone.followTarget.transform.localRotation) * startLocalRotations[i];
+				}	
+			}
+
 		}
 		static Vector3 PDControl (float P, float D, Vector3 error, ref Vector3 lastError, float maxForce, float weight, float reciprocalDeltaTime) 
 		{

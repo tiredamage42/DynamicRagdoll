@@ -151,27 +151,110 @@ namespace DynamicRagdoll {
         public static HashSet<HumanBodyBones> GetNeighbors (HumanBodyBones bone) {
             switch (bone) {
                 case HumanBodyBones.Hips:          
-                    return new HashSet<HumanBodyBones>() { HumanBodyBones.Chest, HumanBodyBones.LeftUpperLeg, HumanBodyBones.RightUpperLeg };
+                    return new HashSet<HumanBodyBones>() { 
+                        HumanBodyBones.Chest, 
+                        HumanBodyBones.LeftUpperLeg, 
+                        HumanBodyBones.RightUpperLeg,
+                        
+                        //do all upper or it looks like its hanging in the air
+                        HumanBodyBones.Head,
+
+                        HumanBodyBones.LeftUpperArm,
+                        HumanBodyBones.RightUpperArm,
+
+                        HumanBodyBones.LeftLowerArm,
+                        HumanBodyBones.RightLowerArm,
+
+
+                    };
+
                 case HumanBodyBones.Chest:          
-                    return new HashSet<HumanBodyBones>() { HumanBodyBones.Hips, HumanBodyBones.Head, HumanBodyBones.LeftUpperArm, HumanBodyBones.RightUpperArm };
+                    return new HashSet<HumanBodyBones>() { 
+                        //HumanBodyBones.Hips, 
+                        HumanBodyBones.Head, 
+                        HumanBodyBones.LeftUpperArm, 
+                        HumanBodyBones.RightUpperArm
+                    };
                 case HumanBodyBones.Head:           
-                    return new HashSet<HumanBodyBones>() { HumanBodyBones.Chest, HumanBodyBones.LeftUpperArm, HumanBodyBones.RightUpperArm };
+                    return new HashSet<HumanBodyBones>() { 
+                        HumanBodyBones.Chest, 
+                        HumanBodyBones.LeftUpperArm, 
+                        HumanBodyBones.RightUpperArm 
+                    };
+
+
+
                 case HumanBodyBones.RightLowerLeg:  
-                    return new HashSet<HumanBodyBones>() { HumanBodyBones.RightUpperLeg, HumanBodyBones.Hips };
+                    return new HashSet<HumanBodyBones>() { 
+                        HumanBodyBones.RightUpperLeg, HumanBodyBones.Hips ,
+
+                        //do all upper or it looks like its hanging in the air
+                        // HumanBodyBones.Chest, 
+                        // HumanBodyBones.LeftUpperArm, 
+                        // HumanBodyBones.RightUpperArm 
+                        
+                    };
                 case HumanBodyBones.LeftLowerLeg:   
-                    return new HashSet<HumanBodyBones>() { HumanBodyBones.LeftUpperLeg, HumanBodyBones.Hips };
+                    return new HashSet<HumanBodyBones>() { 
+                        HumanBodyBones.LeftUpperLeg, HumanBodyBones.Hips 
+
+
+                        //do all upper or it looks like its hanging in the air
+                        // HumanBodyBones.Chest, 
+                        // HumanBodyBones.LeftUpperArm, 
+                        // HumanBodyBones.RightUpperArm 
+                       
+                        
+                    };
                 case HumanBodyBones.RightUpperLeg:  
-                    return new HashSet<HumanBodyBones>() { HumanBodyBones.Hips, HumanBodyBones.RightLowerLeg };
+                    return new HashSet<HumanBodyBones>() { 
+                        HumanBodyBones.Hips, HumanBodyBones.RightLowerLeg ,
+
+                        //do all upper or it looks like its hanging in the air
+                        HumanBodyBones.Chest, 
+                        //HumanBodyBones.LeftUpperArm, 
+                        HumanBodyBones.RightUpperArm 
+                        
+                    };
                 case HumanBodyBones.LeftUpperLeg:   
-                    return new HashSet<HumanBodyBones>() { HumanBodyBones.Hips, HumanBodyBones.LeftLowerLeg };
+                    return new HashSet<HumanBodyBones>() { 
+                        HumanBodyBones.Hips, HumanBodyBones.LeftLowerLeg ,
+
+
+                        //do all upper or it looks like its hanging in the air
+                        HumanBodyBones.Chest, 
+                        HumanBodyBones.LeftUpperArm, 
+                        //HumanBodyBones.RightUpperArm 
+
+                    };
                 case HumanBodyBones.RightLowerArm:  
-                    return new HashSet<HumanBodyBones>() { HumanBodyBones.RightUpperArm, HumanBodyBones.Chest };
+                    return new HashSet<HumanBodyBones>() { 
+                        HumanBodyBones.RightUpperArm, HumanBodyBones.Chest 
+                    };
                 case HumanBodyBones.LeftLowerArm:   
-                    return new HashSet<HumanBodyBones>() { HumanBodyBones.LeftUpperArm, HumanBodyBones.Chest };
+                    return new HashSet<HumanBodyBones>() { 
+                        HumanBodyBones.LeftUpperArm, HumanBodyBones.Chest 
+                    };
+
                 case HumanBodyBones.RightUpperArm:  
-                    return new HashSet<HumanBodyBones>() { HumanBodyBones.Chest, HumanBodyBones.RightLowerArm };
+                    return new HashSet<HumanBodyBones>() { 
+                        HumanBodyBones.Chest, HumanBodyBones.RightLowerArm,
+
+                        HumanBodyBones.LeftUpperArm, 
+
+                        //HumanBodyBones.Head,
+                        
+                    };
                 case HumanBodyBones.LeftUpperArm:   
-                    return new HashSet<HumanBodyBones>() { HumanBodyBones.Chest, HumanBodyBones.LeftLowerArm };
+                    return new HashSet<HumanBodyBones>() { 
+                        HumanBodyBones.Chest, HumanBodyBones.LeftLowerArm ,
+
+                        HumanBodyBones.RightUpperArm, 
+
+                        //HumanBodyBones.Head,
+                        
+
+                    };
             }
             return null;
         }
@@ -337,6 +420,8 @@ namespace DynamicRagdoll {
                 bone.joint.angularXMotion = bone.joint.angularYMotion = bone.joint.angularZMotion= ConfigurableJointMotion.Limited;
                 
                 bone.joint.rotationDriveMode = RotationDriveMode.Slerp;
+
+                bone.joint.projectionMode = JointProjectionMode.PositionAndRotation;
             }
         }
     }

@@ -39,11 +39,14 @@ namespace DynamicRagdoll {
                 if (i == 3 || i == 7) {
                     EditorGUILayout.Space();
                 }
+
+
+                 
                 SerializedProperty boneProfile = boneProfiles.GetArrayElementAtIndex(i);
                 SerializedProperty bone = boneProfile.FindPropertyRelative("bone");
                 showBones[i] = EditorGUILayout.Foldout(showBones[i], bone.enumDisplayNames[bone.enumValueIndex] + ":", fs);
                 if (showBones[i]) {
-                    DrawPropertiesBlock(boneProfile, i == 0 ? new string[] { "inputForce", "maxForce", "fallDecaySteepness" } : new string[] { "inputForce", "maxForce", "maxTorque", "fallDecaySteepness" });
+                    DrawPropertiesBlock(boneProfile, i == 0 ? new string[] { "inputForce", "maxForce", "fallDecaySteepness", "fallForceDecay", "fallTorqueDecay" } : new string[] { "inputForce", "maxForce", "maxTorque", "fallDecaySteepness", "fallForceDecay", "fallTorqueDecay" });
                 }
             }
             EditorGUI.indentLevel--;

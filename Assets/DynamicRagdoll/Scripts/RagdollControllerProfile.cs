@@ -11,12 +11,20 @@ namespace DynamicRagdoll {
             [Range(0,2)] public float maxTorque = 1;
             [Range(0f,10f)] public float fallDecaySteepness = 1;
 
+            public AnimationCurve fallForceDecay = new AnimationCurve(new Keyframe[] { new Keyframe(0, 1), new Keyframe(1, 0) });
+            public AnimationCurve fallTorqueDecay = new AnimationCurve(new Keyframe[] { new Keyframe(0, 1), new Keyframe(1, 0) });
+
+            
             public BoneProfile(HumanBodyBones bone, float maxForce) {
                 this.bone = bone;
                 this.maxForce = maxForce;
                 inputForce = 1;
                 maxTorque = 1;
                 fallDecaySteepness = 1;
+
+                fallForceDecay = new AnimationCurve(new Keyframe[] { new Keyframe(0, 1), new Keyframe(1, 0) });
+                fallTorqueDecay = new AnimationCurve(new Keyframe[] { new Keyframe(0, 1), new Keyframe(1, 0) });
+
             }
         }
 

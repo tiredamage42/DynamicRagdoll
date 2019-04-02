@@ -13,6 +13,8 @@ namespace DynamicRagdoll.Demo
 		public float slowTime = .3f;
 		public float bulletForce = 3000f;
 
+		[Range(0,1)] public float gravity = 1;
+
 		public float heightSpeed = 20;
 
 		public LayerMask groundLayerMask;
@@ -55,18 +57,23 @@ namespace DynamicRagdoll.Demo
 		}
 
 		void DemoRagdoll () {
-			ragdollController.GoRagdoll();
 			ragdolled = true;
 			
+			ragdollController.GoRagdoll();
+
 			//switch camera to follow ragdoll	
 			camFollow.target = ragdollController.ragdoll.RootBone().transform;
 		}
 			
 		void FixedUpdate () {
 			RaycastHit hit;
-			if (Physics.Raycast(transform.position + Vector3.up, Vector3.down, out hit, 10f, groundLayerMask )) {
+			if (Physics.Raycast(transform.position + Vector3.up, Vector3.down, out hit, 1.1f, groundLayerMask )) {
 				floorY = Mathf.Lerp(floorY, hit.point.y, Time.fixedDeltaTime * heightSpeed);
 			}
+			else {
+				floorY += Physics.gravity.y * Time.fixedDeltaTime * gravity;
+			}
+			
 		}
 
 		void Update () 
@@ -76,6 +83,8 @@ namespace DynamicRagdoll.Demo
 				if (ragdollController.state == RagdollController.RagdollState.BlendToAnimated) {
 					camFollow.target = anim.GetBoneTransform(HumanBodyBones.Hips);
 					ragdolled = false;
+					anim.SetFloat("Speed", 0);
+					
 				} 
 			}
 			
@@ -86,8 +95,8 @@ namespace DynamicRagdoll.Demo
 		
 			if (!ragdolled && !ragdollController.isGettingUp) {
 				transform.Rotate(0f, Input.GetAxis("Horizontal") * turnSpeed * Time.deltaTime, 0f);
+				anim.SetFloat("Speed", Input.GetAxis("Vertical") * (Input.GetKey(KeyCode.LeftShift) ? 2 : 1));
 			}
-			anim.SetFloat("Speed", Input.GetAxis("Vertical") * (Input.GetKey(KeyCode.LeftShift) ? 2 : 1));
 			
 			UpdateSloMo();
 

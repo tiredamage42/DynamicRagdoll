@@ -17,10 +17,10 @@ namespace FootIK
 
 
 
-		Vector3 up = Vector3.up;
-		public void SetUpDirection(Vector3 up) {
-			this.up = up;
-		}
+		//Vector3 up = Vector3.up;
+		// public void SetUpDirection(Vector3 up) {
+		// 	this.up = up;
+		// }
 
 		void Awake()
 		{
@@ -60,7 +60,7 @@ namespace FootIK
 
 		void ShootIKRays (float lastY, Transform foot, Transform toe, out RaycastHit hit) {
 			Vector3 footPosition = new Vector3(foot.position.x, lastY, foot.position.z);
-			
+			Vector3 up = transform.up;
 			// Shoot ray to determine where the feet should be placed.
 			Ray ray = new Ray(footPosition + up * maxStepHeight, -up);
 			//Debug.DrawRay(ray.origin, ray.direction * raycastLength, Color.green);
@@ -108,9 +108,9 @@ namespace FootIK
 			Vector3 footPos = foot.position;
 
 
-			float leftFootElevationInAnim = Vector3.Dot(footPos - transform.position, up) - footHeight;
+			float leftFootElevationInAnim = Vector3.Dot(footPos - transform.position, transform.up) - footHeight;
 			
-			Vector3 footTargetNormal = Vector3.Lerp(up, hit.normal, footIKWeight);
+			Vector3 footTargetNormal = Vector3.Lerp(transform.up, hit.normal, footIKWeight);
 			footTargetNormal = Vector3.Lerp(lastFootTargetNormal, footTargetNormal, ikTargetSpeed * deltaTime);
 			lastFootTargetNormal = footTargetNormal;
 			
@@ -118,7 +118,7 @@ namespace FootIK
 			footTargetPos = Vector3.Lerp(lastFootTargetPos, footTargetPos, ikTargetSpeed * deltaTime);
 			lastFootTargetPos = footTargetPos;
 			
-			footTargetPos = Vector3.Lerp(footPos, footTargetPos + footTargetNormal * footHeight + leftFootElevationInAnim * up, footIKWeight);
+			footTargetPos = Vector3.Lerp(footPos, footTargetPos + footTargetNormal * footHeight + leftFootElevationInAnim * transform.up, footIKWeight);
 			
 			float legTargLength = Mathf.Clamp((footTargetPos - upperLegPos).magnitude, .2f, maxLegTargetLength);
 			float kneeAngle = Mathf.Acos(((legTargLength * legTargLength) - (calfLength * calfLength) - (thighLength * thighLength)) * reciDenominator) * Mathf.Rad2Deg;
@@ -138,7 +138,7 @@ namespace FootIK
 
 			upperLeg.rotation = Quaternion.FromToRotation(footPos - upperLegPos, footTargetPos - upperLegPos) * upperLeg.rotation;
 			
-			foot.rotation = Quaternion.FromToRotation(up, footTargetNormal) * footRotation;
+			foot.rotation = Quaternion.FromToRotation(transform.up, footTargetNormal) * footRotation;
 
 			lastY = foot.position.y; 
 		}
