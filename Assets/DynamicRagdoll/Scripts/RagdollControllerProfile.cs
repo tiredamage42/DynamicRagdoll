@@ -16,6 +16,11 @@ namespace DynamicRagdoll {
             */
             public AnimationCurve fallForceDecay = new AnimationCurve(new Keyframe[] { new Keyframe(0, 1), new Keyframe(1, 0) });
             public AnimationCurve fallTorqueDecay = new AnimationCurve(new Keyframe[] { new Keyframe(0, 1), new Keyframe(1, 0) });
+            
+            /*
+			    Define which bones count as neighbors for other bones (for the bone decay system)
+		    */
+            public HumanBodyBones[] neighbors;
 
             /*
                 PD Control
@@ -25,7 +30,7 @@ namespace DynamicRagdoll {
             [Range(0,2)] public float maxTorque = 1;
 
 
-            public BoneProfile(HumanBodyBones bone, float maxForce) {
+            public BoneProfile(HumanBodyBones bone, float maxForce, HumanBodyBones[] neighbors) {
                 this.bone = bone;
                 this.maxForce = maxForce;
                 inputForce = 1;
@@ -33,26 +38,73 @@ namespace DynamicRagdoll {
 
                 fallForceDecay = new AnimationCurve(new Keyframe[] { new Keyframe(0, 1), new Keyframe(1, 0) });
                 fallTorqueDecay = new AnimationCurve(new Keyframe[] { new Keyframe(0, 1), new Keyframe(1, 0) });
+            
+                this.neighbors = neighbors;
             }
         }
 
         public BoneProfile[] bones = new BoneProfile[] {
-            new BoneProfile(HumanBodyBones.Hips, 1),
-            new BoneProfile(HumanBodyBones.Chest, 1), 
-            new BoneProfile(HumanBodyBones.Head, 1), 
+            new BoneProfile(HumanBodyBones.Hips, 1, 
+                new HumanBodyBones[] { 
+                    HumanBodyBones.Chest, 
+                    HumanBodyBones.LeftUpperLeg, 
+                    HumanBodyBones.RightUpperLeg,
+                }),
+            new BoneProfile(HumanBodyBones.Chest, 1, 
+                new HumanBodyBones[] { 
+                    HumanBodyBones.Head, 
+                    HumanBodyBones.LeftUpperArm, 
+                    HumanBodyBones.RightUpperArm
+                }), 
+            new BoneProfile(HumanBodyBones.Head, 1, 
+                new HumanBodyBones[] { 
+                    HumanBodyBones.Chest, 
+                    HumanBodyBones.LeftUpperArm, 
+                    HumanBodyBones.RightUpperArm 
+                }), 
             
-            new BoneProfile(HumanBodyBones.RightLowerLeg, .2f), 
-            new BoneProfile(HumanBodyBones.LeftLowerLeg, .2f), 
+            new BoneProfile(HumanBodyBones.RightLowerLeg, .2f, 
+                new HumanBodyBones[] { 
+                    HumanBodyBones.RightUpperLeg, HumanBodyBones.Hips ,
+                }), 
+            new BoneProfile(HumanBodyBones.LeftLowerLeg, .2f, 
+                new HumanBodyBones[] { 
+                    HumanBodyBones.LeftUpperLeg, HumanBodyBones.Hips 
+                }), 
             
-            new BoneProfile(HumanBodyBones.RightUpperLeg, .2f), 
-            new BoneProfile(HumanBodyBones.LeftUpperLeg, .2f), 
+            new BoneProfile(HumanBodyBones.RightUpperLeg, .2f, 
+                new HumanBodyBones[] { 
+                    HumanBodyBones.Hips, HumanBodyBones.RightLowerLeg ,
+                }), 
+            new BoneProfile(HumanBodyBones.LeftUpperLeg, .2f, 
+                new HumanBodyBones[] { 
+                    HumanBodyBones.Hips, HumanBodyBones.LeftLowerLeg ,
+                }), 
             
-            new BoneProfile(HumanBodyBones.RightLowerArm, .2f), 
-            new BoneProfile(HumanBodyBones.LeftLowerArm, .2f), 
+            new BoneProfile(HumanBodyBones.RightLowerArm, .2f, 
+                new HumanBodyBones[] { 
+                    HumanBodyBones.RightUpperArm, HumanBodyBones.Chest 
+                }), 
+            new BoneProfile(HumanBodyBones.LeftLowerArm, .2f,
+                new HumanBodyBones[] { 
+                    HumanBodyBones.LeftUpperArm, HumanBodyBones.Chest 
+                }), 
 
-            new BoneProfile(HumanBodyBones.RightUpperArm, .2f), 
-            new BoneProfile(HumanBodyBones.LeftUpperArm, .2f), 
+            new BoneProfile(HumanBodyBones.RightUpperArm, .2f, 
+                new HumanBodyBones[] { 
+                    HumanBodyBones.Chest, HumanBodyBones.RightLowerArm,
+                    HumanBodyBones.LeftUpperArm, 
+                    HumanBodyBones.Head,
+                }), 
+            new BoneProfile(HumanBodyBones.LeftUpperArm, .2f, 
+                new HumanBodyBones[] { 
+                    HumanBodyBones.Chest, HumanBodyBones.LeftLowerArm ,
+                    HumanBodyBones.RightUpperArm, 
+                    HumanBodyBones.Head,
+                }), 
         };
+
+
 
         [Tooltip("Use PD physics controller to move rigidbodies on the ragdoll to their masters.\n\nHere for comparison")]
         public bool usePDControl;

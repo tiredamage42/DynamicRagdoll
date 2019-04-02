@@ -51,6 +51,7 @@ namespace DynamicRagdoll {
                 SerializedProperty boneProfile = boneProfiles.GetArrayElementAtIndex(i);
                 SerializedProperty bone = boneProfile.FindPropertyRelative("bone");
                 
+                        
                 showBones[i] = EditorGUILayout.Foldout(showBones[i], bone.enumDisplayNames[bone.enumValueIndex] + ":", fs);
                 
                 if (showBones[i]) {
@@ -58,7 +59,13 @@ namespace DynamicRagdoll {
                         DrawPropertiesBlock(boneProfile, i == 0 ? new string[] { "inputForce", "maxForce" } : new string[] { "inputForce", "maxForce", "maxTorque" });
                     }
                     else {
+
                         DrawPropertiesBlock(boneProfile, i == 0 ? new string[] { "fallForceDecay" } : new string[] { "fallForceDecay", "fallTorqueDecay" });
+                    
+                        EditorGUILayout.BeginHorizontal();
+                        GUILayout.FlexibleSpace();
+                        DrawBoneProfileNeighbors(boneProfile.FindPropertyRelative("neighbors"), (HumanBodyBones)bone.enumValueIndex);
+                        EditorGUILayout.EndHorizontal();
                     }
                 }
             }
@@ -94,5 +101,88 @@ namespace DynamicRagdoll {
             base.OnInspectorGUI();
             DrawProfile(serializedObject);
         }
+
+
+        static void DrawBoneProfileNeighbors (SerializedProperty neighborsProp, HumanBodyBones baseBone) {
+            int neighborsLength = neighborsProp.arraySize;
+            
+            System.Func<HumanBodyBones, bool> containsBone = (b) => {
+                int bi = (int)b;
+                for (int i = 0; i < neighborsLength; i++) {
+                    if (neighborsProp.GetArrayElementAtIndex(i).enumValueIndex == bi) {
+                        return true;
+                    }
+                }
+                return false;
+            };
+            System.Func<HumanBodyBones, int> indexOf = (b) => {
+                int bi = (int)b;
+                for (int i = 0; i < neighborsLength; i++) {
+                    if (neighborsProp.GetArrayElementAtIndex(i).enumValueIndex == bi) {
+                        return i;
+                    }
+                }
+                return -1;
+            };
+
+            System.Action<HumanBodyBones> removeBone = (b) => {
+                neighborsProp.DeleteArrayElementAtIndex(indexOf(b));
+            };
+
+
+            System.Action<HumanBodyBones> addBone = (b) => {
+                neighborsProp.InsertArrayElementAtIndex(neighborsLength);
+                neighborsProp.GetArrayElementAtIndex(neighborsLength).enumValueIndex = (int)b;
+            };
+
+            // System.Action<object> selectCallback = (b) => {
+            //     HumanBodyBones hb = (HumanBodyBones)b;
+
+            //     if (containsBone(hb)) {
+            //         removeBone(hb);
+            //     }
+            //     else {
+            //         addBone(hb);
+            //     }
+            // };
+
+
+            if (GUILayout.Button(new GUIContent("Neighbors", "Define which bones count as neighbors for other bones (for the bone decay system)"), EditorStyles.miniButton)) {
+                GenericMenu menu = new GenericMenu();
+
+                for (int i = 0; i < Ragdoll.physicsBonesCount; i++) {
+                    HumanBodyBones hb = Ragdoll.phsysicsHumanBones[i];
+                    if (hb == baseBone) {
+                        continue;
+                    }
+
+
+                    menu.AddItem(new GUIContent(hb.ToString()), containsBone(hb), 
+                        (b) => {
+                        HumanBodyBones hb2 = (HumanBodyBones)b;
+                        if (containsBone(hb2)) {
+                            removeBone(hb2);
+                        }
+                        else {
+                            addBone(hb2);
+                        }
+
+                    }, hb);
+                }
+                
+                // display the menu
+                menu.ShowAsContext();
+            }
+
+
+
+
+
+
+
+        }
+
+
+
     }
 }

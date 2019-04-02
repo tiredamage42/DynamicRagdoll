@@ -144,7 +144,8 @@ namespace DynamicRagdoll {
 		public enum RagdollState { 
 			Animated, 					//fully animated
 			CalculateAnimationVelocity,	//calculating while still showing fully animated
-			Ragdolled, 					//decaying fall, or complete ragdoll (TODO: make seperate states)
+			Falling,					//decaying fall
+			Ragdolled, 					//complete ragdoll
 			TeleportMasterToRagdoll, 	//waiting for get up animation transition, to reorient invisible master
 			BlendToAnimated, 			//blend into animated position
 		}
@@ -165,10 +166,10 @@ namespace DynamicRagdoll {
 		*/
 		public bool isGettingUp { get { return state == RagdollState.Animated && timeSinceStateStart < getupTime; } }
 		const float getupTime = 2.5f;
-
-
-
 		float timeSinceStateStart { get { return Time.time - stateStartTime; } }
+
+
+
 
 		
 		Animator animator;
@@ -289,7 +290,7 @@ namespace DynamicRagdoll {
 			animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
 
 			//change the state
-			ChangeRagdollState(RagdollState.Ragdolled);			
+			ChangeRagdollState(RagdollState.Falling);			
 		}
 
 
@@ -335,7 +336,7 @@ namespace DynamicRagdoll {
 				return;
 			}
 			
-			if (state == RagdollState.Ragdolled || state == RagdollState.CalculateAnimationVelocity)
+			if (state == RagdollState.CalculateAnimationVelocity || state == RagdollState.Falling || state == RagdollState.Ragdolled)
 				return;
 
 
@@ -501,7 +502,7 @@ namespace DynamicRagdoll {
 			
 			
 
-			case RagdollState.Ragdolled:
+			case RagdollState.Falling:
 				HandleFallLerp(Time.deltaTime);
 				break;
 
@@ -587,11 +588,16 @@ namespace DynamicRagdoll {
 				return;	
 			}
 
+			if (state == RagdollState.Falling || state == RagdollState.Ragdolled) {
+
+				// do delayed physics on the ragdoll if any
+				OnRagdollPhysics(); 
+			
+			}
+
 			switch (state) {
 
 			case RagdollState.Ragdolled:
-				// do delayed physics on the ragdoll if any
-				OnRagdollPhysics(); 
 
 				if (disableGetUp == false) {
 					//check the hips velocity to see if the ragdoll is still
@@ -616,10 +622,10 @@ namespace DynamicRagdoll {
 			}
 			else {
 				/*
-					if we're ragdolled, set the calculated animation velocities we calculated in
+					if we're ragdolled and falling, set the calculated animation velocities we calculated in
 					Late Update to the ragdoll bones, also handle joint targets
 				*/
-				if (state == RagdollState.Ragdolled) {
+				if (state == RagdollState.Falling) {
 					
 					SetPhysicsVelocities(Time.fixedDeltaTime);
 				}
@@ -660,7 +666,7 @@ namespace DynamicRagdoll {
 		void UpdateLoop(float deltaTime)
 		{
 			
-			if (state == RagdollState.CalculateAnimationVelocity || state == RagdollState.Ragdolled) {
+			if (state == RagdollState.CalculateAnimationVelocity || state == RagdollState.Falling) {
 				
 				if (profile.usePDControl) {
 					HandlePDControl(deltaTime);
@@ -693,6 +699,18 @@ namespace DynamicRagdoll {
 						StartFallState();
 					}
 				}
+			}
+		}
+
+		/*
+			checking after each physics follow method's update loop (where component values are set)
+			in order to make sure that when it's 0, components are already set to their
+			0 values when changing state
+		*/
+		void CheckForFallEnd (float fallLerp) {
+
+			if (fallLerp == 0) {
+				ChangeRagdollState(RagdollState.Ragdolled);
 			}
 		}
 
@@ -743,6 +761,10 @@ namespace DynamicRagdoll {
 
 			//only skip frames when not showing ragdoll
 			skipFrame = profile.skipFrames && state == RagdollState.CalculateAnimationVelocity;
+
+			if (state == RagdollState.Falling) {
+				CheckForFallEnd(maxForce + maxTorque);
+			}
 		}
 
 		static Vector3 PDControl (float P, float D, Vector3 error, Vector3 lastError, float maxForce, float reciprocalDeltaTime) 
@@ -876,17 +898,34 @@ namespace DynamicRagdoll {
 			1 = dont follow animation at all
 		*/
 		public void SetBoneDecay (HumanBodyBones bones, float decayValue, float neighborDecay) {
+			
+			if (!boneDecays.ContainsKey(bones)) {
+				Debug.LogError(bones + " is not a physics bone, cant set bone decay");
+				return;
+			}
+
 			// making additive, so in case we hit a bone twice in a ragdoll session
 			// it doesnt reset with a lower value
 			boneDecays[bones] += decayValue;
 
 			if (neighborDecay > 0) {
 
-				HashSet<HumanBodyBones> neighbors = GetNeighbors(bones);
-				foreach (var n in neighbors) {
-					SetBoneDecay(n, neighborDecay, 0);
+				HumanBodyBones[] neighbors =  GetNeighbors(bones);
+				if (neighbors != null) {
+					foreach (var n in neighbors) {
+						SetBoneDecay(n, neighborDecay, 0);
+					}
 				}
 			}
+		}
+
+		HumanBodyBones[] GetNeighbors(HumanBodyBones bones) {
+			for (int i = 0; i < profile.bones.Length; i++) {
+				if (profile.bones[i].bone == bones) {
+					return profile.bones[i].neighbors;
+				}
+			}
+			return null;
 		}
 
 
@@ -915,112 +954,6 @@ namespace DynamicRagdoll {
 			}
 			return HumanBodyBones.Jaw;
 		}
-
-		/*
-			Define which bones count as neighbors for other bones (for the bone decay system)
-
-			still tweakign this....
-		*/
-		static HashSet<HumanBodyBones> GetNeighbors (HumanBodyBones bone) {
-            switch (bone) {
-                case HumanBodyBones.Hips:          
-                    return new HashSet<HumanBodyBones>() { 
-                        HumanBodyBones.Chest, 
-                        HumanBodyBones.LeftUpperLeg, 
-                        HumanBodyBones.RightUpperLeg,
-                        
-                        //do all upper if it looks like its hanging in the air too much
-                        
-						//HumanBodyBones.Head,
-                        // HumanBodyBones.RightLowerLeg,
-                        // HumanBodyBones.LeftLowerLeg,
-            
-                        // HumanBodyBones.LeftUpperArm,
-                        // HumanBodyBones.RightUpperArm,
-
-                        // HumanBodyBones.LeftLowerArm,
-                        // HumanBodyBones.RightLowerArm,
-                    };
-                case HumanBodyBones.Chest:          
-                    return new HashSet<HumanBodyBones>() { 
-                        //HumanBodyBones.Hips, 
-                        HumanBodyBones.Head, 
-                        HumanBodyBones.LeftUpperArm, 
-                        HumanBodyBones.RightUpperArm
-                    };
-                case HumanBodyBones.Head:           
-                    return new HashSet<HumanBodyBones>() { 
-                        HumanBodyBones.Chest, 
-                        HumanBodyBones.LeftUpperArm, 
-                        HumanBodyBones.RightUpperArm 
-                    };
-
-				// LOWER LEGS
-                case HumanBodyBones.RightLowerLeg:  
-                    return new HashSet<HumanBodyBones>() { 
-                        HumanBodyBones.RightUpperLeg, HumanBodyBones.Hips ,
-
-                        //do all upper if it looks like its hanging in the air too much
-                        // HumanBodyBones.Chest, 
-                        // HumanBodyBones.LeftUpperArm, 
-                        // HumanBodyBones.RightUpperArm 
-                    };
-                case HumanBodyBones.LeftLowerLeg:   
-                    return new HashSet<HumanBodyBones>() { 
-                        HumanBodyBones.LeftUpperLeg, HumanBodyBones.Hips 
-
-                        //do all upper if it looks like its hanging in the air too much
-                        // HumanBodyBones.Chest, 
-                        // HumanBodyBones.LeftUpperArm, 
-                        // HumanBodyBones.RightUpperArm 
-                    };
-
-				// UPPER LEGS
-                case HumanBodyBones.RightUpperLeg:  
-                    return new HashSet<HumanBodyBones>() { 
-                        HumanBodyBones.Hips, HumanBodyBones.RightLowerLeg ,
-
-                        //do all upper if it looks like its hanging in the air too much
-                        //HumanBodyBones.Chest, 
-                        //HumanBodyBones.LeftUpperArm, 
-                        //HumanBodyBones.RightUpperArm   
-                    };
-                case HumanBodyBones.LeftUpperLeg:   
-                    return new HashSet<HumanBodyBones>() { 
-                        HumanBodyBones.Hips, HumanBodyBones.LeftLowerLeg ,
-
-                        //do all upper if it looks like its hanging in the air too much
-                        //HumanBodyBones.Chest, 
-                        //HumanBodyBones.LeftUpperArm, 
-                        //HumanBodyBones.RightUpperArm 
-                    };
-
-				// LOWER ARMS
-                case HumanBodyBones.RightLowerArm:  
-                    return new HashSet<HumanBodyBones>() { 
-                        HumanBodyBones.RightUpperArm, HumanBodyBones.Chest 
-                    };
-                case HumanBodyBones.LeftLowerArm:   
-                    return new HashSet<HumanBodyBones>() { 
-                        HumanBodyBones.LeftUpperArm, HumanBodyBones.Chest 
-                    };
-
-				// UPPER ARMS
-                case HumanBodyBones.RightUpperArm:  
-                    return new HashSet<HumanBodyBones>() { 
-                        HumanBodyBones.Chest, HumanBodyBones.RightLowerArm,
-                        HumanBodyBones.LeftUpperArm, 
-                        HumanBodyBones.Head,
-                    };
-                case HumanBodyBones.LeftUpperArm:   
-                    return new HashSet<HumanBodyBones>() { 
-                        HumanBodyBones.Chest, HumanBodyBones.LeftLowerArm ,
-                        HumanBodyBones.RightUpperArm, 
-                        HumanBodyBones.Head,
-                    };
-            }
-            return null;
-        }
 
 
 		/*
@@ -1115,8 +1048,12 @@ namespace DynamicRagdoll {
 					*/
 					HandleJointFollow(bone, profile.maxTorque * torqueDecay, i);
 				}
-						
 			}
+
+
+			CheckForFallEnd(fallDecay);
+
+						
 		}
 
 
