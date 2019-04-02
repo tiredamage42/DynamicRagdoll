@@ -3,8 +3,8 @@ using UnityEditor;
 namespace DynamicRagdoll {
     [CustomEditor(typeof(Ragdoll))]
     public class RagdollEditor : Editor {
-        Ragdoll ragdoll;
 
+        Ragdoll ragdoll;
         RagdollProfile profile;
         SerializedObject profileSO;
         void CheckForProfileChange () {
@@ -48,6 +48,13 @@ namespace DynamicRagdoll {
         public override void OnInspectorGUI() {
             CheckForProfileChange();
 
+            if (profileSO != null) {
+                //RagdollProfileEditor.DrawProfile(profileSO);
+            }
+            else {
+                EditorGUILayout.HelpBox("\nAdd a Ragdoll Profile to adjust ragdoll properties.\n\nOtherwise defualts will be used\n", MessageType.Info);
+            }
+
             base.OnInspectorGUI();   
             
             DrawBuildOptions();
@@ -55,7 +62,7 @@ namespace DynamicRagdoll {
                 RagdollProfileEditor.DrawProfile(profileSO);
             }
             else {
-                EditorGUILayout.HelpBox("\nAdd a Ragdoll Profile to adjust ragdoll properties.\n\nOtherwise defualts will be used\n", MessageType.Info);
+                //EditorGUILayout.HelpBox("\nAdd a Ragdoll Profile to adjust ragdoll properties.\n\nOtherwise defualts will be used\n", MessageType.Info);
             }
 
             serializedObject.ApplyModifiedProperties();

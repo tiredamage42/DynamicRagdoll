@@ -21,20 +21,36 @@ namespace DynamicRagdoll {
             s.richText=true;
             GUIStyle fs = new GUIStyle(EditorStyles.foldout);
             fs.richText=true;
+
+
+            EditorGUILayout.Space();
+            
             
             EditorGUILayout.LabelField("<b>Profile Values:</b>", s);
 
-            EditorGUILayout.BeginVertical(GUI.skin.window, GUILayout.MinHeight(10));
+            GUI.backgroundColor = new Color32(0,0,0,25);
+            EditorGUILayout.BeginVertical(GUI.skin.box, GUILayout.MinHeight(0));
+            GUI.backgroundColor = Color.white;            
             
-            EditorGUILayout.PropertyField(profile.FindProperty("headOffset"));
                         
             EditorGUI.indentLevel++;
+
+            GUI.backgroundColor = new Color32(0,0,0,25);
+            EditorGUILayout.BeginVertical(GUI.skin.box);
+            GUI.backgroundColor = Color.white;            
+
             
             SerializedProperty boneProfiles = profile.FindProperty("bones");
             for (int i = 0; i < boneProfiles.arraySize; i++) {
                 if (i == 3 || i == 7) {
+                    EditorGUILayout.EndVertical();
                     EditorGUILayout.Space();
+            
+                    GUI.backgroundColor = new Color32(0,0,0,25);
+                    EditorGUILayout.BeginVertical(GUI.skin.box);
+                    GUI.backgroundColor = Color.white;            
                 }
+                
                 
                 SerializedProperty boneProfile = boneProfiles.GetArrayElementAtIndex(i);
                 SerializedProperty bone = boneProfile.FindPropertyRelative("bone");
@@ -59,9 +75,19 @@ namespace DynamicRagdoll {
                     EditorGUI.indentLevel--;                
                 }
             }
+            EditorGUILayout.EndVertical();
+
+
+            EditorGUILayout.Space();
+            
+            EditorGUILayout.PropertyField(profile.FindProperty("headOffset"));
+            EditorGUILayout.Space();
+            
 
             EditorGUI.indentLevel--;
-            EditorGUILayout.EndVertical();        
+            EditorGUILayout.EndVertical();    
+            EditorGUILayout.Space();
+                
 
             profile.ApplyModifiedProperties();
             EditorUtility.SetDirty(profile.targetObject);

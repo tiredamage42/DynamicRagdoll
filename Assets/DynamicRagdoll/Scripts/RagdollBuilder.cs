@@ -104,6 +104,8 @@ namespace DynamicRagdoll {
 
                 if (addComponents) {
 
+                    EraseRagdoll(animator);
+
                     //add capsules
                     BuildCapsules(physicsBones);
                     AddBreastColliders(physicsBones);

@@ -22,37 +22,49 @@ namespace DynamicRagdoll {
             EditorGUI.indentLevel--;        
         }
         public static void DrawProfile (SerializedObject profile) {
+
             GUIStyle s = new GUIStyle(EditorStyles.label);
             s.richText=true;
             
             GUIStyle fs = new GUIStyle(EditorStyles.foldout);
             fs.richText=true;
+
+            EditorGUILayout.Space();
             
             EditorGUILayout.LabelField("<b>Controller Profile Values:</b>", s);
-            EditorGUILayout.BeginVertical(GUI.skin.window, GUILayout.MinHeight(0));
-            
+
+            GUI.backgroundColor = new Color32(0,0,0,25);
+            EditorGUILayout.BeginVertical(GUI.skin.box, GUILayout.MinHeight(0));
+            GUI.backgroundColor = Color.white;            
 
 
             SerializedProperty usePDControl_prop = profile.FindProperty("usePDControl");
-            EditorGUILayout.PropertyField(usePDControl_prop);
             bool usePDControl = usePDControl_prop.boolValue;
-
             
-            EditorGUILayout.LabelField("<b>Follow Weights:</b>", s);
             EditorGUI.indentLevel++;
 
             SerializedProperty boneProfiles = profile.FindProperty("bones");
             
+            
+            GUI.backgroundColor = new Color32(0,0,0,25);
+            EditorGUILayout.BeginVertical(GUI.skin.box);
+            GUI.backgroundColor = Color.white;            
+
             for (int i = 0; i < boneProfiles.arraySize; i++) {
                 if (i == 3 || i == 7) {
+                    EditorGUILayout.EndVertical();
                     EditorGUILayout.Space();
+            
+                    GUI.backgroundColor = new Color32(0,0,0,25);
+                    EditorGUILayout.BeginVertical(GUI.skin.box);
+                    GUI.backgroundColor = Color.white;            
                 }
                  
                 SerializedProperty boneProfile = boneProfiles.GetArrayElementAtIndex(i);
                 SerializedProperty bone = boneProfile.FindPropertyRelative("bone");
                 
                         
-                showBones[i] = EditorGUILayout.Foldout(showBones[i], bone.enumDisplayNames[bone.enumValueIndex] + ":", fs);
+                showBones[i] = EditorGUILayout.Foldout(showBones[i], "<b>" + bone.enumDisplayNames[bone.enumValueIndex] + ":</b>", fs);
                 
                 if (showBones[i]) {
                     if (usePDControl) {
@@ -69,10 +81,15 @@ namespace DynamicRagdoll {
                     }
                 }
             }
-            EditorGUI.indentLevel--;
+            EditorGUILayout.EndVertical();
 
-            EditorGUILayout.Space();
             
+            EditorGUILayout.Space();
+
+            EditorGUILayout.PropertyField(usePDControl_prop);
+            
+            EditorGUILayout.Space();
+
             DrawPropertiesBlock(profile, "Falling", s, 
             
             usePDControl ?
@@ -91,14 +108,19 @@ namespace DynamicRagdoll {
             );
 
 		    DrawPropertiesBlock(profile, "Get Up", s, new string[] { "ragdollMinTime", "settledSpeed", "orientateDelay", "checkGroundMask", "blendTime" });
-            
-            EditorGUILayout.EndVertical();        
+                        EditorGUILayout.Space();
+
+            EditorGUILayout.EndVertical();   
+            EditorGUI.indentLevel--;
+
+
+            EditorGUILayout.Space();     
             
             profile.ApplyModifiedProperties();
             EditorUtility.SetDirty(profile.targetObject);
         }
         public override void OnInspectorGUI() {
-            base.OnInspectorGUI();
+            //base.OnInspectorGUI();
             DrawProfile(serializedObject);
         }
 
@@ -134,18 +156,6 @@ namespace DynamicRagdoll {
                 neighborsProp.InsertArrayElementAtIndex(neighborsLength);
                 neighborsProp.GetArrayElementAtIndex(neighborsLength).enumValueIndex = (int)b;
             };
-
-            // System.Action<object> selectCallback = (b) => {
-            //     HumanBodyBones hb = (HumanBodyBones)b;
-
-            //     if (containsBone(hb)) {
-            //         removeBone(hb);
-            //     }
-            //     else {
-            //         addBone(hb);
-            //     }
-            // };
-
 
             if (GUILayout.Button(new GUIContent("Neighbors", "Define which bones count as neighbors for other bones (for the bone decay system)"), EditorStyles.miniButton)) {
                 GenericMenu menu = new GenericMenu();
