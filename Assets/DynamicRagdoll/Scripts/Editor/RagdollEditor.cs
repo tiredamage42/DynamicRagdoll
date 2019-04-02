@@ -4,9 +4,19 @@ namespace DynamicRagdoll {
     [CustomEditor(typeof(Ragdoll))]
     public class RagdollEditor : Editor {
         Ragdoll ragdoll;
+
+        RagdollProfile profile;
+        SerializedObject profileSO;
+        void CheckForProfileChange () {
+            if (profile != ragdoll.ragdollProfile) {
+                profile = ragdoll.ragdollProfile;
+                profileSO = profile != null ? new SerializedObject(profile) : null;
+            }
+        }
                     
         void OnEnable () {
             ragdoll = target as Ragdoll;
+            CheckForProfileChange();
         }
                     
         void DrawBuildOptions () {
@@ -20,7 +30,7 @@ namespace DynamicRagdoll {
                 if (isBuilt)
                     RagdollBuilder.EraseRagdoll(ragdoll.GetComponent<Animator>());
                 else
-                    RagdollBuilder.BuildRagdollFull (ragdoll.GetComponent<Animator>(), ragdoll.ragdollProfile, out _, out _, out _);
+                    RagdollBuilder.BuildRagdoll (ragdoll.GetComponent<Animator>(), ragdoll.ragdollProfile, true, false, out _, out _, out _);
 
                 preBuiltProp.boolValue = !isBuilt;
             }
@@ -28,7 +38,7 @@ namespace DynamicRagdoll {
             if (isBuilt) {
                 if (ragdoll.ragdollProfile) {
                     if (GUILayout.Button("Update Ragdoll To Profile")) {
-                        RagdollBuilder.BuildRagdollFromPrebuilt(ragdoll.GetComponent<Animator>(), ragdoll.ragdollProfile, out _, out _, out _);
+                        RagdollBuilder.BuildRagdoll(ragdoll.GetComponent<Animator>(), ragdoll.ragdollProfile, false, false, out _, out _, out _);
                     }
                 }
             }
@@ -36,11 +46,13 @@ namespace DynamicRagdoll {
         }
 
         public override void OnInspectorGUI() {
+            CheckForProfileChange();
+
             base.OnInspectorGUI();   
             
             DrawBuildOptions();
-            if (ragdoll.ragdollProfile) {
-                RagdollProfileEditor.DrawProfile(new SerializedObject( ragdoll.ragdollProfile ));
+            if (profileSO != null) {
+                RagdollProfileEditor.DrawProfile(profileSO);
             }
             else {
                 EditorGUILayout.HelpBox("\nAdd a Ragdoll Profile to adjust ragdoll properties.\n\nOtherwise defualts will be used\n", MessageType.Info);

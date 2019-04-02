@@ -1,6 +1,10 @@
 using UnityEngine;
 
 namespace DynamicRagdoll.Demo {
+
+	/*
+		a simple camera follow script
+	*/
 	public class CameraFollow : MonoBehaviour
 	{
 		public enum UpdateMode { Update, FixedUpdate, LateUpdate };

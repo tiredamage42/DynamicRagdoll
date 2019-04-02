@@ -29,36 +29,60 @@ namespace DynamicRagdoll {
             fs.richText=true;
             
             EditorGUILayout.LabelField("<b>Controller Profile Values:</b>", s);
-            
             EditorGUILayout.BeginVertical(GUI.skin.window, GUILayout.MinHeight(0));
+            
+
+
+            SerializedProperty usePDControl_prop = profile.FindProperty("usePDControl");
+            EditorGUILayout.PropertyField(usePDControl_prop);
+            bool usePDControl = usePDControl_prop.boolValue;
+
             
             EditorGUILayout.LabelField("<b>Follow Weights:</b>", s);
             EditorGUI.indentLevel++;
+
             SerializedProperty boneProfiles = profile.FindProperty("bones");
+            
             for (int i = 0; i < boneProfiles.arraySize; i++) {
                 if (i == 3 || i == 7) {
                     EditorGUILayout.Space();
                 }
-
-
                  
                 SerializedProperty boneProfile = boneProfiles.GetArrayElementAtIndex(i);
                 SerializedProperty bone = boneProfile.FindPropertyRelative("bone");
+                
                 showBones[i] = EditorGUILayout.Foldout(showBones[i], bone.enumDisplayNames[bone.enumValueIndex] + ":", fs);
+                
                 if (showBones[i]) {
-                    DrawPropertiesBlock(boneProfile, i == 0 ? new string[] { "inputForce", "maxForce", "fallDecaySteepness", "fallForceDecay", "fallTorqueDecay" } : new string[] { "inputForce", "maxForce", "maxTorque", "fallDecaySteepness", "fallForceDecay", "fallTorqueDecay" });
+                    if (usePDControl) {
+                        DrawPropertiesBlock(boneProfile, i == 0 ? new string[] { "inputForce", "maxForce" } : new string[] { "inputForce", "maxForce", "maxTorque" });
+                    }
+                    else {
+                        DrawPropertiesBlock(boneProfile, i == 0 ? new string[] { "fallForceDecay" } : new string[] { "fallForceDecay", "fallTorqueDecay" });
+                    }
                 }
             }
             EditorGUI.indentLevel--;
 
             EditorGUILayout.Space();
-            DrawPropertiesBlock(profile, "Controlled", s, new string[] { "PForce", "DForce", "maxForce", "maxJointTorque" });
-            DrawPropertiesBlock(profile, "Falling", s, new string[] { 
-                "calculateVelocityFrames", "followRigidbodyParents", "skipFrames", 
-                "method1FallSpeed", "method1Residual",
-                
-		
-                "fallLerp", "residualForce", "residualJointTorque" });
+            
+            DrawPropertiesBlock(profile, "Falling", s, 
+            
+            usePDControl ?
+                new string[] { 
+                    "PForce", "DForce", 
+                    "maxForcePD", "maxTorquePD",
+                    "calculateVelocityFrames", 
+                    "residualForce", "residualTorque",
+                    "skipFrames", "followRigidbodyParents", 
+                    "fallDecaySpeed", 
+                } 
+            : 
+                new string[] {
+                    "maxTorque", "fallDecaySpeed", "maxGravityAddVelocity"
+                }
+            );
+
 		    DrawPropertiesBlock(profile, "Get Up", s, new string[] { "ragdollMinTime", "settledSpeed", "orientateDelay", "checkGroundMask", "blendTime" });
             
             EditorGUILayout.EndVertical();        

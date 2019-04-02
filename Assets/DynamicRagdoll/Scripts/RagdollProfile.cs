@@ -3,17 +3,31 @@
 namespace DynamicRagdoll {
     //ragdolled angular drag was 20
 
+    /*
+        Object to hold values for ragdolls
+    */
+
     [CreateAssetMenu()]
     public class RagdollProfile : ScriptableObject {
+
+        //per bone options
         [System.Serializable] public class BoneProfile {
             public HumanBodyBones bone;
-            
+
+
+            /*
+                JOINT OPTIONS
+            */
             public Vector2 angularXLimit;
             public float angularYLimit;
             public float angularZLimit = 0;
-            public bool forceOff;
+            [Tooltip("Temporarily disable joint motion (all limits == 0)")] public bool forceOff;
             public Vector3 axis1, axis2;
 
+            /*
+                RIGIDBODY OPTIONS
+            */
+            
             public float mass;
             public float angularDrag = 0.05f;
             public float drag = 0.0f;
@@ -22,6 +36,10 @@ namespace DynamicRagdoll {
             
             public RigidbodyInterpolation interpolation = RigidbodyInterpolation.None;
             public CollisionDetectionMode collisionDetection = CollisionDetectionMode.Discrete;
+            
+            /*
+                COLLIDER OPTIONS
+            */
             
             public PhysicMaterial colliderMaterial;
             public float colliderRadius;
@@ -52,6 +70,8 @@ namespace DynamicRagdoll {
                 this.boxZSize = boxZSize;
             }
         }
+
+        
         public Vector3 headOffset = defaultHeadOffset;
         public BoneProfile[] bones = defaultBoneProfiles;
 

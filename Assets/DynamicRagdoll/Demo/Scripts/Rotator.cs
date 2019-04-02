@@ -1,6 +1,9 @@
 ﻿using UnityEngine;
 
 namespace DynamicRagdoll.Demo {
+    /*
+        rotates transform on axes
+    */
     public class Rotator : MonoBehaviour
     {
         public Vector3 axisWeights = Vector3.forward;

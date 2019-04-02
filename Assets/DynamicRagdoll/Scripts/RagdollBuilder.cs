@@ -2,17 +2,16 @@
 using UnityEngine;
 
 namespace DynamicRagdoll {
+    /*
+        Methods used to build the ragdoll during runtime
+
+        a base ragdoll is built 
+        then the variables, (like joint limits and rigidbody masses), 
+        are adjusted via a ragdoll profile (or the pre supplied default one if none)
+    */
     public static class RagdollBuilder {
         
-		/*
-			Methods used to build the ragdoll during runtime
-
-			a base ragdoll is built 
-			then the variables, (like joint limits and rigidbody masses), 
-			are adjusted via a ragdoll profile (or the pre supplied default one if none)
-		*/
 		
-
         static void DestroyComponents<T> (GameObject g) where T : Component {
             foreach (var c in g.GetComponentsInChildren<T>()) {
                 if (Application.isPlaying)
@@ -21,7 +20,10 @@ namespace DynamicRagdoll {
                     GameObject.DestroyImmediate(c);
             }
         }
-        
+
+        /*
+            remove ragdoll added components below the animator
+        */
         public static void EraseRagdoll (Animator animator) {
             //check for null animator
             if (animator == null) {
@@ -36,10 +38,16 @@ namespace DynamicRagdoll {
 		}	
 
         /*
-            call when you jsut need to get the ragdoll bone references but not add the components
-        */
+            call to get the ragdoll bone references
 
-        public static void BuildRagdollFromPrebuilt (Animator animator, RagdollProfile profile, out float initialHeadOffsetFromChest, out Ragdoll.Bone[] allBones, out Dictionary<HumanBodyBones, Ragdoll.Bone> physicsBones, bool checkForRBComponents=true) {
+            animator component must be humanoid
+
+            set 'addComponents' to true to add the ragdoll components
+
+            if non physics is set to true, we just build the references but dont check for (or add)
+            Rigidbodies, joints, and colliders...
+        */
+        public static void BuildRagdoll (Animator animator, RagdollProfile profile, bool addComponents, bool nonPhysics, out float initialHeadOffsetFromChest, out Ragdoll.Bone[] allBones, out Dictionary<HumanBodyBones, Ragdoll.Bone> physicsBones) {
 			initialHeadOffsetFromChest = -1;
             allBones = null;
             physicsBones = null;
@@ -50,9 +58,11 @@ namespace DynamicRagdoll {
                 return;// null;
             }
 
-            List<Ragdoll.Bone> allBonesList = new List<Ragdoll.Bone>();
 
+            List<Ragdoll.Bone> allBonesList = new List<Ragdoll.Bone>();
+            
             HashSet<int> usedPhysicsTransforms = new HashSet<int>();
+            
             //build bones list that use physics
 			physicsBones = new Dictionary<HumanBodyBones, Ragdoll.Bone>();
             for (int i = 0; i < Ragdoll.physicsBonesCount; i++) {
@@ -65,199 +75,55 @@ namespace DynamicRagdoll {
 				}
                 usedPhysicsTransforms.Add(boneT.GetInstanceID());
 
-                Ragdoll.Bone newPhysicsBone = new Ragdoll.Bone(boneT, checkForRBComponents, false, true, i == 0);
+
+
+                Ragdoll.Bone newPhysicsBone = new Ragdoll.Bone(boneT, false, true, i == 0);
 
 				physicsBones.Add(Ragdoll.phsysicsHumanBones[i], newPhysicsBone);	
                 allBonesList.Add(newPhysicsBone);
 			}
 
+            //build other non physics bones
 
+            //get all transform children of the hip bone
             Transform[] allChildren = allBonesList[0].transform.GetComponentsInChildren<Transform>();
 
 			for (int i = 0; i < allChildren.Length; i++) {
                 Transform child = allChildren[i];
+
+                //if its not a physics bone
                 if (!usedPhysicsTransforms.Contains(child.GetInstanceID())) {
-					allBonesList.Add(new Ragdoll.Bone(child, false, child.GetComponentInChildren<Rigidbody>() != null, false, false));
+
+					allBonesList.Add(new Ragdoll.Bone(child, child.GetComponentInChildren<Rigidbody>() != null, false, false));
                 }
 			}
 			allBones = allBonesList.ToArray();
 
 
+            if (!nonPhysics) {
 
+                if (addComponents) {
 
+                    //add capsules
+                    BuildCapsules(physicsBones);
+                    AddBreastColliders(physicsBones);
+                    AddHeadCollider(physicsBones);
 
-
-
-			
-            //initial head position from chest (used for resizing chest collider based on head offset)				
-			initialHeadOffsetFromChest = physicsBones[HumanBodyBones.Chest].transform.InverseTransformPoint(physicsBones[HumanBodyBones.Head].transform.position).y;
-
-
-            //if no profile we already pre built and adjusted to defaults
+                    //add rigidbodies
+                    BuildBodies(physicsBones);
+                    
+                    //add joints
+                    BuildJoints(physicsBones);
+                }
             
-            //else: update to profile values if using a custom profile
-            if (profile) {
-					
+                //initial head position from chest (used for resizing chest collider based on head offset)				
+                initialHeadOffsetFromChest = physicsBones[HumanBodyBones.Chest].transform.InverseTransformPoint(physicsBones[HumanBodyBones.Head].position).y;
+
                 Ragdoll.UpdateBonesToProfileValues(physicsBones, profile, initialHeadOffsetFromChest);
             }
-            
-			//return bones;
 		}
         
-
-
-
-
-
-        /*
-            call when building a ragdoll from scratch
-            animator component must be humanoid
-        */
-        public static void BuildRagdollFull (Animator animator, RagdollProfile profile, out float initialHeadOffsetFromChest, out Ragdoll.Bone[] allBones, out Dictionary<HumanBodyBones, Ragdoll.Bone> physicsBones) {
-            initialHeadOffsetFromChest = -1;
-            allBones = null;
-            physicsBones = null;
-
-            //check for null animator
-            if (animator == null) {
-                Debug.Log("No animator found...(BuildRagdollFull");
-                return;// null;
-            }
-
-            EraseRagdoll(animator);
-            
-            //null profile so it doesnt try adjust values before we add collider/joint/rb components
-            BuildRagdollFromPrebuilt(animator, null, out initialHeadOffsetFromChest, out allBones, out physicsBones, false);
-            if (physicsBones == null) {
-                return;// null;
-            }
-
-            //add capsules
-            BuildCapsules(physicsBones);
-            AddBreastColliders(physicsBones);
-            AddHeadCollider(physicsBones);
-
-            //add rigidbodies
-            BuildBodies(physicsBones);
-            
-            //add joints
-            BuildJoints(physicsBones);
-
-            
-            Ragdoll.UpdateBonesToProfileValues(physicsBones, profile, initialHeadOffsetFromChest);
-
-            //return bones;
-		}
-        public static HashSet<HumanBodyBones> GetNeighbors (HumanBodyBones bone) {
-            switch (bone) {
-                case HumanBodyBones.Hips:          
-                    return new HashSet<HumanBodyBones>() { 
-                        HumanBodyBones.Chest, 
-                        HumanBodyBones.LeftUpperLeg, 
-                        HumanBodyBones.RightUpperLeg,
-                        
-                        //do all upper or it looks like its hanging in the air
-                        HumanBodyBones.Head,
-
-                        HumanBodyBones.LeftUpperArm,
-                        HumanBodyBones.RightUpperArm,
-
-                        HumanBodyBones.LeftLowerArm,
-                        HumanBodyBones.RightLowerArm,
-
-
-                    };
-
-                case HumanBodyBones.Chest:          
-                    return new HashSet<HumanBodyBones>() { 
-                        //HumanBodyBones.Hips, 
-                        HumanBodyBones.Head, 
-                        HumanBodyBones.LeftUpperArm, 
-                        HumanBodyBones.RightUpperArm
-                    };
-                case HumanBodyBones.Head:           
-                    return new HashSet<HumanBodyBones>() { 
-                        HumanBodyBones.Chest, 
-                        HumanBodyBones.LeftUpperArm, 
-                        HumanBodyBones.RightUpperArm 
-                    };
-
-
-
-                case HumanBodyBones.RightLowerLeg:  
-                    return new HashSet<HumanBodyBones>() { 
-                        HumanBodyBones.RightUpperLeg, HumanBodyBones.Hips ,
-
-                        //do all upper or it looks like its hanging in the air
-                        // HumanBodyBones.Chest, 
-                        // HumanBodyBones.LeftUpperArm, 
-                        // HumanBodyBones.RightUpperArm 
-                        
-                    };
-                case HumanBodyBones.LeftLowerLeg:   
-                    return new HashSet<HumanBodyBones>() { 
-                        HumanBodyBones.LeftUpperLeg, HumanBodyBones.Hips 
-
-
-                        //do all upper or it looks like its hanging in the air
-                        // HumanBodyBones.Chest, 
-                        // HumanBodyBones.LeftUpperArm, 
-                        // HumanBodyBones.RightUpperArm 
-                       
-                        
-                    };
-                case HumanBodyBones.RightUpperLeg:  
-                    return new HashSet<HumanBodyBones>() { 
-                        HumanBodyBones.Hips, HumanBodyBones.RightLowerLeg ,
-
-                        //do all upper or it looks like its hanging in the air
-                        HumanBodyBones.Chest, 
-                        //HumanBodyBones.LeftUpperArm, 
-                        HumanBodyBones.RightUpperArm 
-                        
-                    };
-                case HumanBodyBones.LeftUpperLeg:   
-                    return new HashSet<HumanBodyBones>() { 
-                        HumanBodyBones.Hips, HumanBodyBones.LeftLowerLeg ,
-
-
-                        //do all upper or it looks like its hanging in the air
-                        HumanBodyBones.Chest, 
-                        HumanBodyBones.LeftUpperArm, 
-                        //HumanBodyBones.RightUpperArm 
-
-                    };
-                case HumanBodyBones.RightLowerArm:  
-                    return new HashSet<HumanBodyBones>() { 
-                        HumanBodyBones.RightUpperArm, HumanBodyBones.Chest 
-                    };
-                case HumanBodyBones.LeftLowerArm:   
-                    return new HashSet<HumanBodyBones>() { 
-                        HumanBodyBones.LeftUpperArm, HumanBodyBones.Chest 
-                    };
-
-                case HumanBodyBones.RightUpperArm:  
-                    return new HashSet<HumanBodyBones>() { 
-                        HumanBodyBones.Chest, HumanBodyBones.RightLowerArm,
-
-                        HumanBodyBones.LeftUpperArm, 
-
-                        //HumanBodyBones.Head,
-                        
-                    };
-                case HumanBodyBones.LeftUpperArm:   
-                    return new HashSet<HumanBodyBones>() { 
-                        HumanBodyBones.Chest, HumanBodyBones.LeftLowerArm ,
-
-                        HumanBodyBones.RightUpperArm, 
-
-                        //HumanBodyBones.Head,
-                        
-
-                    };
-            }
-            return null;
-        }
+        
 
         static HumanBodyBones GetParentBone (HumanBodyBones bone) {
             switch (bone) {
