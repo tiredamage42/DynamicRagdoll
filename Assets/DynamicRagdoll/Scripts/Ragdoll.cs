@@ -70,7 +70,6 @@ namespace DynamicRagdoll {
 				}
 			}	
 			
-			
 			public void SetFollowTarget(Bone followTarget) {
 				this.followTarget = followTarget;
 			}
@@ -96,6 +95,16 @@ namespace DynamicRagdoll {
 					transform.position = followTarget.position;
 				}
 				SetRotation(followTarget.GetRotation());
+
+				/*
+					immediately update physics position...
+					transform set wasnt updating fast enough for physics detection of the ragdoll
+					through raycasts/collisions
+				*/
+				if (rigidbody != null && rigidbody.isKinematic) {
+					rigidbody.MovePosition(transform.position);
+					rigidbody.MoveRotation(transform.rotation);
+				}
 			}
 
 			public void LoadSnapshot (float snapshotBlend, bool useFollowTarget) {

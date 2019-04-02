@@ -281,11 +281,6 @@ namespace DynamicRagdoll {
 				ragdoll.UseGravity(true);
 			}
 		
-
-			// do delayed physics on the ragdoll 
-			// maybe move to fixed update since velocity set method calls this in late update...
-			OnRagdollPhysics(); 
-
 			//turn on ragdoll renderers, disable master renderers
 			EnableRenderers(false, true);	
 
@@ -317,10 +312,13 @@ namespace DynamicRagdoll {
 
 		//maybe wait for fixed update
 		void OnRagdollPhysics () {
-			foreach (var physicsCallback in physicsCallbacks) {
-				physicsCallback();
+			if (physicsCallbacks.Count > 0) {
+
+				foreach (var physicsCallback in physicsCallbacks) {
+					physicsCallback();
+				}
+				physicsCallbacks.Clear();
 			}
-			physicsCallbacks.Clear();
 		}
 
 		/*
@@ -472,6 +470,17 @@ namespace DynamicRagdoll {
 			return timeSinceStateStart >= profile.orientateDelay;
 		}
 
+
+		/*
+			teleport all ragdoll (and ragdoll parents) in order to match animation
+			no need for secondary transforms since the ragdoll isnt being shown
+
+			this way we can still 'shoot' or collide with the ragdoll
+		*/
+		void SimpleTeleportRagdollToMasterWhileAnimated () {
+			ragdoll.TeleportToTarget(Ragdoll.TeleportType.PhysicsBonesAndParents);
+		}
+
 		void LateUpdate()
 		{
 			if (controllerInvalid) {
@@ -481,6 +490,21 @@ namespace DynamicRagdoll {
 		
 
 			switch (state) {
+			
+			case RagdollState.Animated: 
+				/*
+					TRY UNCOMMENTING HERE IF WE'RE HAVING TROUBLE WITH PHYSICS DETECTION 
+					OF RAGDOLL NOT DETECTING IK CHANGES
+				*/
+				// SimpleTeleportRagdollToMasterWhileAnimated();
+				break;
+			
+			
+
+			case RagdollState.Ragdolled:
+				HandleFallLerp(Time.deltaTime);
+				break;
+
 			case RagdollState.TeleportMasterToRagdoll:
 				if (HandleWaitForMasterTeleport()) {
 					TeleportMasterToRagdoll();
@@ -491,18 +515,6 @@ namespace DynamicRagdoll {
 					ResetToAnimated();
 				}
 				break;
-			case RagdollState.Animated:
-
-				// maybe move this to fixed update...
-
-				/*
-					teleport all ragdoll (and ragdoll parents) in order to match animation
-					no need for secondary transforms since the ragdoll isnt being shown
-
-					this way we can still 'shoot' or collide with the ragdoll
-				*/
-				ragdoll.TeleportToTarget(Ragdoll.TeleportType.PhysicsBonesAndParents);
-			 	break;
 			}
 			
 			if (!profile.usePDControl) {
@@ -575,6 +587,28 @@ namespace DynamicRagdoll {
 				return;	
 			}
 
+			switch (state) {
+
+			case RagdollState.Ragdolled:
+				// do delayed physics on the ragdoll if any
+				OnRagdollPhysics(); 
+
+				if (disableGetUp == false) {
+					//check the hips velocity to see if the ragdoll is still
+					CheckForGetUp();
+				}
+				break;
+
+			case RagdollState.Animated:
+				/*
+					maybe move this to late update if we're not hitting transforms 
+					that were edited on ik, as that happens after fixed update...
+				*/
+				SimpleTeleportRagdollToMasterWhileAnimated();
+				break;
+			}
+			
+
 			if (profile.usePDControl) {
 
 				UpdateLoop(Time.fixedDeltaTime);
@@ -626,17 +660,6 @@ namespace DynamicRagdoll {
 		void UpdateLoop(float deltaTime)
 		{
 			
-			switch (state) {
-		
-			case RagdollState.Ragdolled:
-				HandleFallLerp(deltaTime);
-
-				if (disableGetUp == false) {
-					CheckForGetUp();
-				}
-				break;
-			}
-
 			if (state == RagdollState.CalculateAnimationVelocity || state == RagdollState.Ragdolled) {
 				
 				if (profile.usePDControl) {
@@ -853,7 +876,9 @@ namespace DynamicRagdoll {
 			1 = dont follow animation at all
 		*/
 		public void SetBoneDecay (HumanBodyBones bones, float decayValue, float neighborDecay) {
-			boneDecays[bones] = decayValue;
+			// making additive, so in case we hit a bone twice in a ragdoll session
+			// it doesnt reset with a lower value
+			boneDecays[bones] += decayValue;
 
 			if (neighborDecay > 0) {
 

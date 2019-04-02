@@ -75,26 +75,26 @@ namespace DynamicRagdoll.Demo
 
 			//switch camera to follow ragdoll	
 			camFollow.target = ragdollController.ragdoll.RootBone().transform;
-			
 			ragdolled = true;
 		}
 			
 		void FixedUpdate () {
-			UpdateShooting();
-
 			RagdollController.RagdollState state = ragdollController.state;
 
-			// was going through floor when getting up
+			// was going through floor when getting up (animation Y position goes below 0)
 			if (state == RagdollController.RagdollState.TeleportMasterToRagdoll || state == RagdollController.RagdollState.BlendToAnimated) {
-			//if (ragdolled) {
 				return;
 			}
 
 			//stick to floor
-
 			float deltaTime = Time.fixedDeltaTime;
+			float buffer = .5f;
+			float checkHeight = .25f;
+			float checkDistance = checkHeight + buffer;
+
+			Ray ray = new Ray(transform.position + Vector3.up * buffer, Vector3.down);
 			RaycastHit hit;
-			if (Physics.Raycast(transform.position + Vector3.up * .25f, Vector3.down, out hit, .5f, groundLayerMask )) {
+			if (Physics.Raycast(ray, out hit, checkDistance, groundLayerMask )) {
 				floorY = Mathf.Lerp(floorY, hit.point.y, deltaTime * heightSpeed);
 			}
 			else {
@@ -109,6 +109,12 @@ namespace DynamicRagdoll.Demo
 
 		void Update () 
 		{
+			UpdateShooting();
+
+			//check for manual ragdoll
+			if (Input.GetKeyDown(KeyCode.R)) {
+				DoRagdoll();
+			}
 
 			//cehck if we started getting up
 			if (ragdolled) {
@@ -124,19 +130,16 @@ namespace DynamicRagdoll.Demo
 				} 
 			}
 			
-			//check for manual ragdoll
-			if (Input.GetKeyDown(KeyCode.R)) {
-				DoRagdoll();
-			}
-
 			if (ragdollController.state == RagdollController.RagdollState.Animated && !ragdollController.isGettingUp) {
-			//if (!ragdolled && !ragdollController.isGettingUp) {
+				
+				//do turning
 				transform.Rotate(0f, Input.GetAxis("Horizontal") * turnSpeed * Time.deltaTime, 0f);
+				
+				//set speed
 				SetMovementSpeed(Input.GetAxis("Vertical") * (Input.GetKey(KeyCode.LeftShift) ? 2 : 1));
 			}
 			
 			UpdateSloMo();
-
 
 			if (Input.GetKeyDown(KeyCode.B)) 
 			{
@@ -157,33 +160,47 @@ namespace DynamicRagdoll.Demo
 		{
 			if (Input.GetMouseButtonDown(0))
 			{
-				Ray ray = cam.ScreenPointToRay(Input.mousePosition);
-				RaycastHit hit;
-				if (Physics.Raycast(ray, out hit, 100f))
-				{
-					Rigidbody rb = hit.transform.GetComponent<Rigidbody>();
-					if (rb) {
+				StartCoroutine(ShootBullet());
+			}
+		}
 
-						System.Action executePhysics = () => rb.AddForceAtPosition(ray.direction.normalized * (bulletForce/ Time.timeScale), hit.point, ForceMode.VelocityChange);
+		IEnumerator ShootBullet (){
+			yield return new WaitForFixedUpdate();
+			
+			Ray ray = cam.ScreenPointToRay(Input.mousePosition);
+			RaycastHit hit;
+			
+			if (Physics.Raycast(ray, out hit, 100f))
+			{
+				Rigidbody rb = hit.transform.GetComponent<Rigidbody>();
+				if (rb) {
+
+					Vector3 force = ray.direction.normalized * bulletForce/Time.timeScale;
+
+					// store the physics result in a delegate
+					System.Action executePhysics = () => rb.AddForceAtPosition(force, hit.point, ForceMode.VelocityChange);
 						 
-						if (hit.transform.IsChildOf(ragdollController.ragdoll.transform)) {
-							
-							ragdollController.SetBoneDecay(hit.transform, 1, .75f);
-							//stores the method for delayed execution
-							ragdollController.StorePhysics(executePhysics);
-							
-							
-							DoRagdoll();
-							
-						}
-						else {
-							executePhysics();
-						}
+					//chekc if it's a ragdoll bone
+					if (hit.transform.IsChildOf(ragdollController.ragdoll.transform)) {		
+						// set bone decay for the hit bone, slightly lower for neighbor bones
+						// so the physics will affect it
+						ragdollController.SetBoneDecay(hit.transform, 1, .75f);
+						
+						//stores the physics method from above for delayed execution
+						ragdollController.StorePhysics(executePhysics);
+						//go ragdoll
+						DoRagdoll();	
+					}
+					else {
+						executePhysics();
 					}
 				}
 			}
 		}
 
+		/*
+			GUI STUFF
+		*/
 		void OnGUI ()
 		{
 			DrawCrosshair();
