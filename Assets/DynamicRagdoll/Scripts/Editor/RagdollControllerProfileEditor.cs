@@ -68,21 +68,35 @@ namespace DynamicRagdoll {
                 
                 if (showBones[i]) {
                     if (usePDControl) {
+                    
+                        //DrawPropertiesBlock(boneProfile, i == 0 ? new string[] { "inputForce", "maxForce", "minCollisionMagnituteForRagdoll" } : new string[] { "inputForce", "maxForce", "maxTorque", "minCollisionMagnituteForRagdoll" });
                         DrawPropertiesBlock(boneProfile, i == 0 ? new string[] { "inputForce", "maxForce" } : new string[] { "inputForce", "maxForce", "maxTorque" });
+                    
                     }
                     else {
 
-                        DrawPropertiesBlock(boneProfile, i == 0 ? new string[] { "fallForceDecay" } : new string[] { "fallForceDecay", "fallTorqueDecay" });
+                        DrawPropertiesBlock(boneProfile, i == 0 ? 
+                            new string[] { 
+                                //"fallForceDecay", "minCollisionMagnituteForRagdoll", "collisionMagnitudeDecayRange", "collisionNeighborDecayMultiplier" 
+                                "fallForceDecay"//, "collisionMagnitudeDecayRange", "collisionNeighborDecayMultiplier" 
+                            } : 
+                            
+                            new string[] { 
+                                //"fallForceDecay", "fallTorqueDecay", "minCollisionMagnituteForRagdoll", "collisionMagnitudeDecayRange", "collisionNeighborDecayMultiplier" 
+                                "fallForceDecay", "fallTorqueDecay"//, "collisionMagnitudeDecayRange", "collisionNeighborDecayMultiplier" 
+                            });
                     
                         EditorGUILayout.BeginHorizontal();
+                        
                         GUILayout.FlexibleSpace();
+
                         DrawBoneProfileNeighbors(boneProfile.FindPropertyRelative("neighbors"), (HumanBodyBones)bone.enumValueIndex);
+                        
                         EditorGUILayout.EndHorizontal();
                     }
                 }
             }
             EditorGUILayout.EndVertical();
-
             
             EditorGUILayout.Space();
 
@@ -103,14 +117,24 @@ namespace DynamicRagdoll {
                 } 
             : 
                 new string[] {
-                    "maxTorque", "fallDecaySpeed", "maxGravityAddVelocity"
+                    "maxTorque", "fallDecaySpeed", "maxGravityAddVelocity",
+
+                    // "incomingCollisionRagdollMagnitude",
+                    // "incomingCollisionCheckHeight", 
+                    // "incomingCollisionCheckWidth", 
+                    // "outgoingCollisionRagdollMagnitude",
+                    // "outgoingCollisionCheckHeight",
+                    // "outgoingCollisionCheckWidth",
+                    
                 }
             );
 
 		    DrawPropertiesBlock(profile, "Get Up", s, new string[] { "ragdollMinTime", "settledSpeed", "orientateDelay", "checkGroundMask", "blendTime" });
-                        EditorGUILayout.Space();
+            
+            EditorGUILayout.Space();
 
             EditorGUILayout.EndVertical();   
+            
             EditorGUI.indentLevel--;
 
 
@@ -183,16 +207,6 @@ namespace DynamicRagdoll {
                 // display the menu
                 menu.ShowAsContext();
             }
-
-
-
-
-
-
-
         }
-
-
-
     }
 }

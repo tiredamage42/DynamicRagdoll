@@ -24,6 +24,8 @@ namespace DynamicRagdoll.Demo
 		/*
 			Demo variables
 		*/
+
+		public LayerMask shootMask;
 		public Texture crosshairTexture;
 		public float turnSpeed = 500f;
 		public float slowTime = .3f;
@@ -31,7 +33,8 @@ namespace DynamicRagdoll.Demo
 		[Range(0,1)] public float gravity = 1;
 		public float heightSpeed = 20;
 		public LayerMask groundLayerMask;
-		float currentSpeed, origFixedDelta, floorY;		
+		float currentSpeed, origFixedDelta, floorY;
+	
 		bool slomo;
 		Camera cam;
 		Animator anim;		
@@ -40,7 +43,40 @@ namespace DynamicRagdoll.Demo
 
 
 		RagdollController ragdollController;
-		bool ragdolled;
+		bool cameraTargetIsAnimatedHips;
+
+		
+		/*
+			switch camera to follow ragdoll	or animated hips based on ragdoll state
+		*/
+		void CheckCameraTarget () {
+			
+			if (
+				ragdollController.state == RagdollController.RagdollState.BlendToAnimated || 
+				ragdollController.state == RagdollController.RagdollState.Animated ||
+				ragdollController.state == RagdollController.RagdollState.CalculateAnimationVelocity
+			) {
+				if (!cameraTargetIsAnimatedHips) {
+
+					//switch cameara to follow our characetr
+					camFollow.target = anim.GetBoneTransform(HumanBodyBones.Hips);
+					camFollow.updateMode = CameraFollow.UpdateMode.Update;
+					
+					cameraTargetIsAnimatedHips = true;
+				}
+			}
+			else {
+				if (cameraTargetIsAnimatedHips) {
+
+					//switch camera to follow ragdoll	
+					camFollow.target = ragdollController.ragdoll.RootBone().transform;
+					camFollow.updateMode = CameraFollow.UpdateMode.FixedUpdate;
+					
+			
+					cameraTargetIsAnimatedHips = false;
+				}
+			}
+		}
 
 			
 		void Awake ()
@@ -66,18 +102,9 @@ namespace DynamicRagdoll.Demo
 			transform.position = new Vector3(pos.x + d.x, floorY, pos.z + d.z);
 		}
 
-		void DoRagdoll () {
-			//set the fall speed based on our speed
-			ragdollController.SetFallSpeed(currentSpeed == 0 ? idleFallSpeed : (currentSpeed == 1 ? walkFallSpeed : runFallSpeed));
-			
-			//go ragdoll
-			ragdollController.GoRagdoll();
+		public Transform floorTransform;
 
-			//switch camera to follow ragdoll	
-			camFollow.target = ragdollController.ragdoll.RootBone().transform;
-			ragdolled = true;
-		}
-			
+		
 		void FixedUpdate () {
 			RagdollController.RagdollState state = ragdollController.state;
 
@@ -96,6 +123,7 @@ namespace DynamicRagdoll.Demo
 			RaycastHit hit;
 			if (Physics.Raycast(ray, out hit, checkDistance, groundLayerMask )) {
 				floorY = Mathf.Lerp(floorY, hit.point.y, deltaTime * heightSpeed);
+				floorTransform = hit.transform;
 			}
 			else {
 				floorY += Physics.gravity.y * deltaTime * gravity;
@@ -109,25 +137,21 @@ namespace DynamicRagdoll.Demo
 
 		void Update () 
 		{
+			CheckCameraTarget();
+
 			UpdateShooting();
 
 			//check for manual ragdoll
 			if (Input.GetKeyDown(KeyCode.R)) {
-				DoRagdoll();
+				ragdollController.GoRagdoll();
 			}
 
 			//cehck if we started getting up
-			if (ragdolled) {
-				if (ragdollController.state == RagdollController.RagdollState.BlendToAnimated) {
-					//switch cameara to follow our characetr
-					camFollow.target = anim.GetBoneTransform(HumanBodyBones.Hips);
-					
+			if (ragdollController.state == RagdollController.RagdollState.BlendToAnimated) {
+				if (currentSpeed != 0) {
 					//set zero speed
 					SetMovementSpeed(0);
-
-					//as far as this script is concerned we're not ragdolled anymore
-					ragdolled = false;
-				} 
+				}
 			}
 			
 			if (ragdollController.state == RagdollController.RagdollState.Animated && !ragdollController.isGettingUp) {
@@ -138,12 +162,19 @@ namespace DynamicRagdoll.Demo
 				//set speed
 				SetMovementSpeed(Input.GetAxis("Vertical") * (Input.GetKey(KeyCode.LeftShift) ? 2 : 1));
 			}
-			
+
+			//set the fall speed based on our speed
+			ragdollController.SetFallSpeed(currentSpeed == 0 ? idleFallSpeed : (currentSpeed == 1 ? walkFallSpeed : runFallSpeed));
+						
 			UpdateSloMo();
 
 			if (Input.GetKeyDown(KeyCode.B)) 
 			{
-				cannonBall.LaunchToPosition(transform.position);
+				cannonBall.LaunchToPosition(camFollow.transform.position, ragdollController.ragdoll.RootBone().position);
+			}
+			if (Input.GetKeyDown(KeyCode.U)) 
+			{
+				cannonBall.LaunchToPosition(ragdollController.ragdoll.RootBone().position + Vector3.up * 25, ragdollController.ragdoll.RootBone().position);
 			}
 		}
 
@@ -170,29 +201,38 @@ namespace DynamicRagdoll.Demo
 			Ray ray = cam.ScreenPointToRay(Input.mousePosition);
 			RaycastHit hit;
 			
-			if (Physics.Raycast(ray, out hit, 100f))
+			if (Physics.Raycast(ray, out hit, 100f, shootMask, QueryTriggerInteraction.Ignore))
 			{
-				Rigidbody rb = hit.transform.GetComponent<Rigidbody>();
-				if (rb) {
+				//check if we hit a ragdoll bone
+				RagdollBone bone = hit.transform.GetComponent<RagdollBone>();
+				if (bone) {
 
-					Vector3 force = ray.direction.normalized * bulletForce/Time.timeScale;
+					Vector3 force = ray.direction.normalized * bulletForce / Time.timeScale;
+					
+					// treat it like a rigidbody or collider
+					bone.AddForceAtPosition(force, hit.point, ForceMode.VelocityChange);
 
-					// store the physics result in a delegate
-					System.Action executePhysics = () => rb.AddForceAtPosition(force, hit.point, ForceMode.VelocityChange);
-						 
-					//chekc if it's a ragdoll bone
-					if (hit.transform.IsChildOf(ragdollController.ragdoll.transform)) {		
-						// set bone decay for the hit bone, slightly lower for neighbor bones
-						// so the physics will affect it
-						ragdollController.SetBoneDecay(hit.transform, 1, .75f);
+					// check if the ragdoll has a controller
+					if (bone.ragdoll.hasController) {
+						RagdollController controller = bone.ragdoll.controller;
+
+						// set bone decay for the hit bone, so the physics will affect it
+						// slightly lower for neighbor bones
+						controller.SetBoneDecay(bone.bone, 1, .75f);
 						
-						//stores the physics method from above for delayed execution
-						ragdollController.StorePhysics(executePhysics);
-						//go ragdoll
-						DoRagdoll();	
+						//make it go ragdoll
+						controller.GoRagdoll();					
 					}
-					else {
-						executePhysics();
+				}
+				else {
+
+					Rigidbody rb = hit.transform.GetComponent<Rigidbody>();
+					
+					if (rb) {
+					
+						Vector3 force = ray.direction.normalized * bulletForce / Time.timeScale;
+					
+						rb.AddForceAtPosition(force, hit.point, ForceMode.VelocityChange);
 					}
 				}
 			}
@@ -201,8 +241,7 @@ namespace DynamicRagdoll.Demo
 		/*
 			GUI STUFF
 		*/
-		void OnGUI ()
-		{
+		void OnGUI () {
 			DrawCrosshair();
 			DrawTutorialBox();
 		}

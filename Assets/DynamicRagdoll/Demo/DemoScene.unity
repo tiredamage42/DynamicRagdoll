@@ -630,6 +630,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ragdollProfile: {fileID: 0}
   preBuilt: 1
+  controller: {fileID: 0}
   setValuesUpdate: 0
 --- !u!4 &170622316 stripped
 Transform:
@@ -1201,6 +1202,9 @@ MonoBehaviour:
   idleFallSpeed: 5
   walkFallSpeed: 2
   runFallSpeed: 2
+  shootMask:
+    serializedVersion: 2
+    m_Bits: 0
   crosshairTexture: {fileID: 2800000, guid: e33b2037e5bde7849a7d9f8656b1f88e, type: 3}
   turnSpeed: 250
   slowTime: 0.3
@@ -1210,6 +1214,30 @@ MonoBehaviour:
   groundLayerMask:
     serializedVersion: 2
     m_Bits: 1
+  floorTransform: {fileID: 0}
+--- !u!114 &362911033
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 362911029}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a0d11e378dc99404db3551e8678ef451, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  incoming:
+    magnitudeThreshold: 5
+    height: 2.25
+    radius: 0.75
+  outgoing:
+    magnitudeThreshold: 2
+    height: 2
+    radius: 0.35
+  calculateSelfVelocityMode: 0
+  magnitudeBonrDecayRange: {x: 10, y: 50}
+  boneNeighborDecayMultiplier: 0.75
 --- !u!1 &439228797 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 100130, guid: 9c070831ea7c445e29cf73df0bff7dc6,
@@ -1361,6 +1389,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ragdollProfile: {fileID: 0}
   preBuilt: 1
+  controller: {fileID: 0}
   setValuesUpdate: 1
 --- !u!1 &522445119 stripped
 GameObject:
@@ -1905,6 +1934,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ragdollProfile: {fileID: 11400000, guid: b0c43ed46ab244aa586ede7a29d2ddfb, type: 2}
   preBuilt: 0
+  controller: {fileID: 0}
   setValuesUpdate: 1
 --- !u!1 &663153620
 GameObject:
@@ -5291,7 +5321,7 @@ GameObject:
   - component: {fileID: 1750436783}
   m_Layer: 0
   m_Name: Floor
-  m_TagString: Untagged
+  m_TagString: Floor
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 4294967295
@@ -5806,8 +5836,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   velocity: 20
-  mass: 40
-  scale: 0.4
+  mass: 10
+  scale: 1
 --- !u!54 &1819561083
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -5890,8 +5920,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1819561080}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -1.0470276, y: 0.20000005, z: -4.375969}
-  m_LocalScale: {x: 0.4, y: 0.4, z: 0.4}
+  m_LocalPosition: {x: 0, y: 25, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 0

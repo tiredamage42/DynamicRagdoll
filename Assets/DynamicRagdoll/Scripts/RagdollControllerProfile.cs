@@ -10,7 +10,14 @@ namespace DynamicRagdoll {
         // per bone options
         [System.Serializable] public class BoneProfile {
             public HumanBodyBones bone;
+
+            // [Tooltip("Collisions magnitude range for linearly interpolating the bone decay set by collisions.\nIf magnitude == x, then bone decay = 0\nIf magnitude == y, then bone decay = 1")] 
+            // public Vector2 collisionMagnitudeDecayRange = new Vector2(10, 50);
             
+            // [Tooltip("Multiplier for decay set by collisions on neighbors of this bone")]
+            // [Range(0,1)] public float collisionNeighborDecayMultiplier = .75f;
+
+
             /*
                 Normal velocity set method
             */
@@ -117,6 +124,24 @@ namespace DynamicRagdoll {
 
         [Tooltip("Calculated animation velocities will have gravity added to them\nif their magnitude is under this value.\n\nRaise if ragdoll hangs in the air too much")]
 		[Range(0f, 1f)] public float maxGravityAddVelocity = 1f;
+
+        
+        // [Tooltip("Collisions coming in above this magnitude on the character will trigger ragdolling")] 
+        // public float incomingCollisionRagdollMagnitude = 10;
+        // public float incomingCollisionCheckHeight = 2.25f;
+        // public float incomingCollisionCheckWidth = .5f;
+
+        
+        // [Tooltip("Character will trigger ragdolling when colliding and travelling above this speed")] 
+        // public float outgoingCollisionRagdollMagnitude = 2;
+        // public float outgoingCollisionCheckHeight = 2f;
+        // public float outgoingCollisionCheckWidth = .35f;
+
+
+
+
+        
+            
 
 
         /*

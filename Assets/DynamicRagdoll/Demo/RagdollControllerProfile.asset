@@ -609,7 +609,7 @@ MonoBehaviour:
   residualForce: 0.25
   residualTorque: 120
   fallDecaySpeed: 0.5
-  ragdollMinTime: 3
+  ragdollMinTime: 1
   settledSpeed: 0.05
   orientateDelay: 0.25
   checkGroundMask:

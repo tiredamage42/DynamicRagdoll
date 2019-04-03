@@ -5,6 +5,7 @@ TagManager:
   serializedVersion: 2
   tags:
   - IgnoreMe
+  - Floor
   layers:
   - Default
   - TransparentFX

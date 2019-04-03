@@ -1,15 +1,16 @@
 ﻿using UnityEngine;
 using System.Collections.Generic;
 
-//jumping forward when running? try lowering max force...
-
 /*
 	Script for handling when to ragdoll, and switching between ragdolled and animations
 
 	attach this script to the main character
 
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	
+	while animated:
 
-	hides ragdoll and makes it kinematic while teleporting it around to fit animation
+		hides ragdoll and makes it kinematic while teleporting it around to fit animation
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -32,7 +33,7 @@ using System.Collections.Generic;
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-	After velocity calculation frames:
+	After velocity calculation frame(s):
 		When using the new velocity calculation method:
 
 			-	adjust all the transforms on the ragdoll to match their masters
@@ -54,17 +55,36 @@ using System.Collections.Generic;
 				any physics forces or calculations performed on the ragdoll (such as bullet hits)
 				have to be saved as delegates. 
 				
+				this is done behind the scenes when we use the RagdollBone component physics calls:
+
+					e.g. AddForceAtPosition, AddExplosionForce, etc...
+					(any of teh standard unity physics calls)
+				
+				the bone component then checks if it's controlled or not, so you dont have to worry about it
+
+
+
 				Example:
+					RaycastHit hit;
+					if (Physics.Raycast(ray, out hit), 100f, shootMask, QueryTriggerInteraction.Ignore))
+					{
+						//check if we hit a ragdoll bone
+						RagdollBone bone = hit.transform.GetComponent<RagdollBone>();
+						if (bone) {
 
-					Rigidbody ragdollRigidbody = ...; //
+							// check if the ragdoll has a controller
+							if (bone.ragdoll.hasController) {
 
-					System.Action addBulletForce = () => {
-						Vector3 force = shootDirection * (bulletForce/ Time.timeScale);
-						ragdollRigidbody.AddForceAtPosition(force, point, ForceMode.VelocityChange); 
-					};
+								//make it go ragdoll
+								bone.ragdoll.controller.GoRagdoll();					
+							}
 
-					ragdollController.StorePhysics(executePhysics);
-					ragdollController.GoRagdoll();
+							// treat it like a rigidbody or collider
+							bone.AddForceAtPosition(ray.direction.normalized * bulletForce / Time.timeScale, hit.point, ForceMode.VelocityChange);
+						}
+					}
+			
+
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 					 
@@ -100,19 +120,37 @@ using System.Collections.Generic;
 		bone decay for the bone's neighbors (which can be edited below) can be set as well.
 
 		Example:
-			if we just shot the character's head:
 
-			float mainDecay = 1f;
-			float neighborDecay = .75f;
+			RaycastHit hit;
+			if (Physics.Raycast(ray, out hit)
+			{
+				//check if we hit a ragdoll bone
+				RagdollBone bone = hit.transform.GetComponent<RagdollBone>();
+				if (bone) {
+					// treat it like a rigidbody or collider
+					bone.AddForceAtPosition(ray.direction.normalized * bulletForce / Time.timeScale, hit.point, ForceMode.VelocityChange);
 
-			Transform ragdollHeadTransform = ...; 
-			
-			ragdollController.SetBoneDecay(ragdollHeadTransform, mainDecay, neighborDecay);
-			
-			// alternatively...
-			// ragdollController.SetBoneDecay(HumanBodyBones.Head, mainDecay, neighborDecay);
-							
-			ragdollController.GoRagdoll ();
+					// check if the ragdoll has a controller
+					if (bone.ragdoll.hasController) {
+						RagdollController controller = bone.ragdoll.controller;
+
+						float mainDecay = 1f;
+						float neighborDecay = .75f;
+
+						// set bone decay for the hit bone, so the physics will affect it
+						// slightly lower for neighbor bones
+
+						controller.SetBoneDecay(bone.bone, mainDecay, neighborDecay);
+						
+						//make it go ragdoll
+						controller.GoRagdoll();					
+					}
+				}
+			}
+
+		Note: bone decay does not need to be set manually for collisions, collision decay options per bone
+			are edited in the ragdoll controller profile and handled via RagdollBone components
+
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -167,9 +205,6 @@ namespace DynamicRagdoll {
 		public bool isGettingUp { get { return state == RagdollState.Animated && timeSinceStateStart < getupTime; } }
 		const float getupTime = 2.5f;
 		float timeSinceStateStart { get { return Time.time - stateStartTime; } }
-
-
-
 
 		
 		Animator animator;
@@ -371,6 +406,10 @@ namespace DynamicRagdoll {
 			calculatedAnimationVelocityFrames = 0;
 
 			ChangeRagdollState(RagdollState.CalculateAnimationVelocity);
+
+			// if (!profile.usePDControl){
+			// 	StartFallState();
+			// }
 		}
 
 
@@ -525,7 +564,7 @@ namespace DynamicRagdoll {
 		}
 
 
-		void Awake () // Initialize
+		void Awake () 
 		{
 			if (!profile) {
 				Debug.LogWarning("No Controller Profile on " + name);
@@ -549,6 +588,9 @@ namespace DynamicRagdoll {
 					
 			// set the ragdolls follow target (assumes same bone setup...)
 			ragdoll.SetFollowTarget(animator);
+			
+			// tell the ragdoll it's being controlled
+			ragdoll.SetController(this);
 
 
 			// initialize animation following
@@ -562,7 +604,9 @@ namespace DynamicRagdoll {
 			ResetToAnimated();
 
 			ResetBoneDecays();
+
 		}
+
 
 		/*
 			initialize root bone forward calculation, for determining
@@ -632,7 +676,7 @@ namespace DynamicRagdoll {
 			}
 		}
 
-		
+		const float epsilon = .0001f;
 
 		void HandleFallLerp (float deltaTime) {
 			// Lerp follow force to zero from residual values
@@ -640,10 +684,21 @@ namespace DynamicRagdoll {
 			
 			if (maxForce != 0 || maxTorque != 0) {
 				SetPDControllerValues(Mathf.Lerp(maxForce, 0, speed), Mathf.Lerp(maxTorque, 0, speed));
+
+				if (maxForce <= epsilon) {
+					maxForce = 0;
+				}
+				if (maxTorque <= epsilon) {
+					maxTorque = 0;
+				}
 			}
 
 			if (fallDecay != 0) {
 				fallDecay = Mathf.Lerp(fallDecay, 0, speed);
+
+				if (fallDecay <= epsilon) {
+					fallDecay = 0;
+				}
 			}
 		}
 
@@ -708,8 +763,10 @@ namespace DynamicRagdoll {
 			0 values when changing state
 		*/
 		void CheckForFallEnd (float fallLerp) {
-
+			//Debug.Log("cheking for fall end");
+			
 			if (fallLerp == 0) {
+				//Debug.Log("fal end");
 				ChangeRagdollState(RagdollState.Ragdolled);
 			}
 		}
@@ -909,50 +966,13 @@ namespace DynamicRagdoll {
 			boneDecays[bones] += decayValue;
 
 			if (neighborDecay > 0) {
+				
+				HumanBodyBones[] neighbors = profile.bones[Ragdoll.PhysicsBone2Index(bones)].neighbors;
 
-				HumanBodyBones[] neighbors =  GetNeighbors(bones);
-				if (neighbors != null) {
-					foreach (var n in neighbors) {
-						SetBoneDecay(n, neighborDecay, 0);
-					}
+				foreach (var n in neighbors) {
+					SetBoneDecay(n, neighborDecay, 0);
 				}
 			}
-		}
-
-		HumanBodyBones[] GetNeighbors(HumanBodyBones bones) {
-			for (int i = 0; i < profile.bones.Length; i++) {
-				if (profile.bones[i].bone == bones) {
-					return profile.bones[i].neighbors;
-				}
-			}
-			return null;
-		}
-
-
-		/*
-			Set the bone decay for the bone Transform (in the range 0...1)
-			0 = follow animation normally
-			1 = dont follow animation at all
-		*/
-		public void SetBoneDecay (Transform bone, float decayValue, float neighborDecay) {
-			HumanBodyBones unityBone = GetBoneForTransform(bone);
-			
-			if (unityBone != HumanBodyBones.Jaw) {
-
-				SetBoneDecay(unityBone, decayValue, neighborDecay);
-			}
-		}
-		/*
-			Get the unity bone type by the transform, 
-			returns jaw if it's not part of the ragdoll
-		*/
-		HumanBodyBones GetBoneForTransform (Transform transform) {
-			for (int i = 0; i < Ragdoll.physicsBonesCount; i++) {
-				if (ragdoll.GetPhysicsBone(Ragdoll.phsysicsHumanBones[i]).transform == transform) {
-					return Ragdoll.phsysicsHumanBones[i];
-				}
-			}
-			return HumanBodyBones.Jaw;
 		}
 
 
@@ -975,6 +995,10 @@ namespace DynamicRagdoll {
 			on the actual ragdoll
 		*/
 		void SetPhysicsVelocities (float deltaTime) {
+
+			//Debug.Log("setting velocities");
+
+			//fallDecay = 0;
 
 			float maxVelocityForGravityAdd2 = profile.maxGravityAddVelocity * profile.maxGravityAddVelocity;
 
@@ -1063,6 +1087,8 @@ namespace DynamicRagdoll {
 			called in LateUpdate since we're using the animated character for these
 			calculations
 		*/
+
+		
 		void CalculateAnimationVelocities (float deltaTime) {
 			if (fallDecay != 0) {
 
@@ -1091,7 +1117,6 @@ namespace DynamicRagdoll {
 					animatedBoneVelocities[i] = boneVelocity;
 					
 					lastAnimatedBonePositions[i] = bonePosition;		
-					
 				}
 			}
 		}

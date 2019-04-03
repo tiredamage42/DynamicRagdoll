@@ -16,23 +16,47 @@ namespace DynamicRagdoll {
 
 		while in editor mode values are adjusted every update loop for easier tweaking
 		of values
-		
 	*/
 	
 	[RequireComponent(typeof(Animator))]
 	public class Ragdoll : MonoBehaviour {
 
+		public static int PhysicsBone2Index (HumanBodyBones bone) {
+			switch (bone) {
+				case HumanBodyBones.Hips: return 0;
+				case HumanBodyBones.Chest:  return 1;
+				case HumanBodyBones.Head: return 2;
+				case HumanBodyBones.RightLowerLeg: return 3;
+				case HumanBodyBones.LeftLowerLeg: return 4;
+				case HumanBodyBones.RightUpperLeg:  return 5;
+				case HumanBodyBones.LeftUpperLeg: return 6;
+				case HumanBodyBones.RightLowerArm:  return 7;
+				case HumanBodyBones.LeftLowerArm: return 8;
+				case HumanBodyBones.RightUpperArm:  return 9;
+				case HumanBodyBones.LeftUpperArm: return 10;
+			}
+			return -1;
+		}
+
 		public static HumanBodyBones[] phsysicsHumanBones = new HumanBodyBones[] {
 			HumanBodyBones.Hips, //HIPS NEEDS TO BE FIRST
 			
-			HumanBodyBones.Chest, HumanBodyBones.Head, 
+			HumanBodyBones.Chest, 
+			HumanBodyBones.Head, 
 			
-			HumanBodyBones.RightLowerLeg, HumanBodyBones.LeftLowerLeg, 
-			HumanBodyBones.RightUpperLeg, HumanBodyBones.LeftUpperLeg, 
+			HumanBodyBones.RightLowerLeg, 
+			HumanBodyBones.LeftLowerLeg, 
+			HumanBodyBones.RightUpperLeg, 
+			HumanBodyBones.LeftUpperLeg, 
 
-			HumanBodyBones.RightLowerArm, HumanBodyBones.LeftLowerArm, 
-			HumanBodyBones.RightUpperArm, HumanBodyBones.LeftUpperArm, 
+			HumanBodyBones.RightLowerArm, 
+			HumanBodyBones.LeftLowerArm, 
+			HumanBodyBones.RightUpperArm, 
+			HumanBodyBones.LeftUpperArm, 
 		};
+
+
+
 		public readonly static int physicsBonesCount = phsysicsHumanBones.Length;
 
 		/*
@@ -145,6 +169,70 @@ namespace DynamicRagdoll {
 		bool initializedValues;
 		//initial head position from chest (used for resizing chest collider based on head offset)				
 		float initialHeadOffsetFromChest;
+
+
+		/*
+			subscribe to get a notification when a ragdoll bone enters a collision
+
+			callback must take in:
+				HumanBodyBones, Collision
+		*/
+		public void AddCollisionCallback (System.Action<RagdollBone, Collision> callback) {
+			if (CheckForErroredRagdoll("AddCollisionCallback"))
+				return;
+			
+			collisionEnterCallbacks.Add(callback);
+		}
+
+		HashSet<System.Action<RagdollBone, Collision>> collisionEnterCallbacks = new HashSet<System.Action<RagdollBone, Collision>>();
+		
+		/*
+			send the message out that bone was collided
+			(given to ragdollbone component)
+		*/
+		void BroadcastCollision (RagdollBone bone, Collision collision) {
+
+			foreach (var cb in collisionEnterCallbacks) {
+				cb(bone, collision);
+			}
+		}
+
+		/*
+			Add all teh physical ragdoll components (for checking collisions)
+		*/
+		void InitializeRagdollBoneComponents () {
+			
+			
+			for (int i = 0; i < physicsBonesCount; i++) {	
+
+				RagdollBone boneComponent = allBones[i].AddComponent<RagdollBone>();
+
+				boneComponent._InitializeInternal(this, phsysicsHumanBones[i], BroadcastCollision);
+			}
+		}
+
+		public RagdollController controller;
+		public void SetController (RagdollController controller) {
+			this.controller = controller;
+		}
+		public bool hasController { get { return controller != null; } }
+
+
+		/*
+			make ragdoll ignore collisions with collider
+		*/
+		public void IgnoreCollisions(Collider collider, bool ignore) {
+			if (CheckForErroredRagdoll("SaveSnapshot"))
+				return;
+			
+
+			for (int i = 0; i < physicsBonesCount; i++) {	
+				Physics.IgnoreCollision(allBones[i].collider, collider, ignore);
+			}
+		}
+
+
+
 
 
 
@@ -361,6 +449,8 @@ namespace DynamicRagdoll {
 					
 					//get all renderers
 					allRenderers = GetComponentsInChildren<Renderer>();
+
+					InitializeRagdollBoneComponents();
 				}
 				//display errors
 				else {
