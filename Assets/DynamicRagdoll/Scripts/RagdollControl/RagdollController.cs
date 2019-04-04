@@ -17,37 +17,18 @@ using System.Collections.Generic;
 
 	when ragdoll is initiated, 
 
-		When using the new velocity calculation method:
+		-	we store all the current positions of teh animated character
 
-			-	we store all the current positions of teh animated character
-
-			- 	we wait a frame to have a calculated velocity to set in the next physics update
+		- 	we wait a frame to have a calculated velocity to set in the next physics update
 		
-		when using the PD controller method:
-
-			- 	we turn on the rigidbodies (kinematic = false) but keep gravity off
-
-			-	the ragdoll begins to follow the animations via physics
-				for a specified number of frames in order to calculate the velocities of the limbs
-				during the animation
-
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	After velocity calculation frame(s):
-		When using the new velocity calculation method:
+		
+		-	adjust all the transforms on the ragdoll to match their masters
 
-			-	adjust all the transforms on the ragdoll to match their masters
-
-			-	turn on all physics for the ragdoll
-
-
-		when using the PD controller method:
-
-			-	turn on gravity for the ragdoll
-
-			-	adjust all teh secondary transforms on the ragdoll to match the character
-				(fingers and other non rigidbody parts)
-
+		-	turn on all physics for the ragdoll
+		
 		-	switch the renderrs to show the ragdoll that has the velocity of the animations
 
 		- 	call any delayed physics:
@@ -62,32 +43,29 @@ using System.Collections.Generic;
 				
 				the bone component then checks if it's controlled or not, so you dont have to worry about it
 
-
-
 				Example:
-					RaycastHit hit;
-					if (Physics.Raycast(ray, out hit), 100f, shootMask, QueryTriggerInteraction.Ignore))
-					{
-						//check if we hit a ragdoll bone
-						RagdollBone bone = hit.transform.GetComponent<RagdollBone>();
-						if (bone) {
-
-							// check if the ragdoll has a controller
-							if (bone.ragdoll.hasController) {
-
-								//make it go ragdoll
-								bone.ragdoll.controller.GoRagdoll();					
-							}
-
-							// treat it like a rigidbody or collider
-							bone.AddForceAtPosition(ray.direction.normalized * bulletForce / Time.timeScale, hit.point, ForceMode.VelocityChange);
-						}
-					}
 			
+				RaycastHit hit;
+				if (Physics.Raycast(ray, out hit), 100f, shootMask, QueryTriggerInteraction.Ignore))
+				{
+					//check if we hit a ragdoll bone
+					RagdollBone bone = hit.transform.GetComponent<RagdollBone>();
+					if (bone) {
+
+						// check if the ragdoll has a controller
+						if (bone.ragdoll.hasController) {
+
+							//make it go ragdoll
+							bone.ragdoll.controller.GoRagdoll();					
+						}
+
+						// treat it like a rigidbody or collider
+						bone.AddForceAtPosition(ray.direction.normalized * bulletForce / Time.timeScale, hit.point, ForceMode.VelocityChange);
+					}
+				}
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-					 
 						
 	now we can have the leftover physics from the animation follow, without having to 
 	worry too much about how closely the rigidbodies follow the actual animation
@@ -108,8 +86,7 @@ using System.Collections.Generic;
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	Bone Decay
-		when using the velocity set method (default method), we can use slower fall decays
-		which in my opinion look better, the downside is that by setting teh velocity directly,
+		by setting teh velocity of the bones when falling (to try and mimic the animation),
 		we lose any external forces we had set towards the beginning of the fall
 
 		in order to avoid this, set the bone decay for a bone to a value in the range (0,1).
@@ -148,10 +125,8 @@ using System.Collections.Generic;
 				}
 			}
 
-		Note: bone decay does not need to be set manually for collisions, collision decay options per bone
-			are edited in the ragdoll controller profile and handled via RagdollBone components
 
-
+		Note: bone decay for collisions is implemented in CharacterCollisions.cs
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -228,9 +203,6 @@ namespace DynamicRagdoll {
 
 		Dictionary<HumanBodyBones, float> boneDecays = new Dictionary<HumanBodyBones, float>();
 
-		/*
-			Velocity calculation values
-		*/
 		VelocityTracker[] animationVelocityTrackers;
 
 
@@ -241,13 +213,6 @@ namespace DynamicRagdoll {
 		Quaternion[] startLocalRotations, localToJointSpaces;
 		float[] lastTorques;
 
-
-		/*
-			PD Control values
-		*/
-		float maxForce, maxTorque;
-		bool skipFrame;
-		Vector3[] originalRBPositions, lastPDErrors;
 
 		/*
 			Set the fall decay speed for the next 'Ragdolling'
@@ -267,51 +232,20 @@ namespace DynamicRagdoll {
 			ragdoll.EnableRenderers(ragdollEnabled);
 		}
 
-
-		/*
-			PD Control values
-		*/
-		void SetPDControllerValues (float force, float jointTorque) {
-			maxForce = force;
-			maxTorque = jointTorque;
-		}
-
 		
 		/*
 			Actually start using physics on the ragdoll
 		*/
 		void StartFallState () {
 			
+			fallDecay = 1;
 
-			if (!profile.usePDControl) {
-				fallDecay = 1;
+			//teleport the whole ragdoll to fit the master
+			ragdoll.TeleportToTarget(Ragdoll.TeleportType.All);
 
-				//teleport the whole ragdoll to fit the master
-				ragdoll.TeleportToTarget(Ragdoll.TeleportType.All);
-
-				//enable physics for ragdoll 
-				//(wasnt needed for calculation for velocity method)
-				ragdoll.SetKinematic(false);
-				
-			}
-			else {
-				
-				// The initial strength immediately after the impact
-				SetPDControllerValues(profile.residualForce, profile.residualTorque);
-		
-				/*
-					teleports secondary non rigidbody transforms on the ragdoll to their
-					corresponding local rotations on the master 
-				
-					for fingers and other stuff that's only important when 
-					the ragdoll model is actually showing
-				*/
-				ragdoll.TeleportToTarget(Ragdoll.TeleportType.SecondaryNonPhysicsBones);
-
-				//enable gravity
-				ragdoll.UseGravity(true);
-			}
-		
+			//enable physics for ragdoll 
+			ragdoll.SetKinematic(false);
+			
 			//turn on ragdoll renderers, disable master renderers
 			EnableRenderers(false, true);	
 
@@ -370,41 +304,17 @@ namespace DynamicRagdoll {
 				return;
 
 
-			if (!profile.usePDControl) {
-				/*
-					store start positions to begin calculating the velocity of the playing animation
-				*/
-				StoreAnimationStartPositions();
-			}
-			else {
-				//set the pd values
-				SetPDControllerValues(profile.maxForcePD, profile.maxTorquePD);
-			
-				//dont skip first frame of velocity calculations 
-				//(or maybe not, need to check this)
-				skipFrame = false;
-
-				/*
-					reset the PD errors to 0 so we dont have
-					any leftover forces from a previous ragdolling
-				*/
-				ResetPDControllerErrors();
-
-				//enable physics on the ragdoll
-				ragdoll.SetKinematic(false);				
-				//dont use gravity though, it's not needed as the ragdoll isnt being rendered yet
-				ragdoll.UseGravity(false);
-			}
+			/*
+				store start positions to begin calculating the velocity of the playing animation
+			*/
+			StoreAnimationStartPositions();
 				
-
 			//wait a few frames in order to calculate the velocity of the current animations
 			calculatedAnimationVelocityFrames = 0;
 
 			ChangeRagdollState(RagdollControllerState.CalculateAnimationVelocity);
 
-			// if (!profile.usePDControl){
 			// 	StartFallState();
-			// }
 		}
 
 
@@ -533,13 +443,9 @@ namespace DynamicRagdoll {
 				*/
 				// SimpleTeleportRagdollToMasterWhileAnimated();
 				break;
-			
-			
-
 			case RagdollControllerState.Falling:
 				HandleFallLerp(Time.deltaTime);
 				break;
-
 			case RagdollControllerState.TeleportMasterToRagdoll:
 				if (HandleWaitForMasterTeleport()) {
 					TeleportMasterToRagdoll();
@@ -551,11 +457,8 @@ namespace DynamicRagdoll {
 				}
 				break;
 			}
-			
-			if (!profile.usePDControl) {
 
-				UpdateLoop(Time.deltaTime);
-			}
+			UpdateLoop(Time.deltaTime);
 		}
 
 
@@ -587,19 +490,15 @@ namespace DynamicRagdoll {
 			// tell the ragdoll it's being controlled
 			ragdoll.SetController(this);
 
-
 			// initialize animation following
 			InitializeJointFollowing();
 			InitializeVelocitySetValues();
-			InitializePDControl();
 			
-
 			// disable physics
 			ragdoll.SetKinematic(true);
+
 			ResetToAnimated();
-
 			ResetBoneDecays();
-
 		}
 
 
@@ -651,23 +550,14 @@ namespace DynamicRagdoll {
 				*/
 				SimpleTeleportRagdollToMasterWhileAnimated();
 				break;
-			}
-			
 
-			if (profile.usePDControl) {
-
-				UpdateLoop(Time.fixedDeltaTime);
-
-			}
-			else {
+			case RagdollControllerState.Falling:
 				/*
 					if we're ragdolled and falling, set the calculated animation velocities we calculated in
 					Late Update to the ragdoll bones, also handle joint targets
 				*/
-				if (state == RagdollControllerState.Falling) {
-					
-					SetPhysicsVelocities(Time.fixedDeltaTime);
-				}
+				SetPhysicsVelocities(Time.fixedDeltaTime);
+				break;
 			}
 		}
 
@@ -677,17 +567,6 @@ namespace DynamicRagdoll {
 			// Lerp follow force to zero from residual values
 			float speed = (fallSpeed == -1 ? profile.fallDecaySpeed : fallSpeed) * deltaTime;
 			
-			if (maxForce != 0 || maxTorque != 0) {
-				SetPDControllerValues(Mathf.Lerp(maxForce, 0, speed), Mathf.Lerp(maxTorque, 0, speed));
-
-				if (maxForce <= epsilon) {
-					maxForce = 0;
-				}
-				if (maxTorque <= epsilon) {
-					maxTorque = 0;
-				}
-			}
-
 			if (fallDecay != 0) {
 				fallDecay = Mathf.Lerp(fallDecay, 0, speed);
 
@@ -718,12 +597,7 @@ namespace DynamicRagdoll {
 			
 			if (state == RagdollControllerState.CalculateAnimationVelocity || state == RagdollControllerState.Falling) {
 				
-				if (profile.usePDControl) {
-					HandlePDControl(deltaTime);
-				}
-				else {
-					CalculateAnimationVelocities(deltaTime);
-				}
+				CalculateAnimationVelocities(deltaTime);
 
 				if (state == RagdollControllerState.CalculateAnimationVelocity) {
 					/*
@@ -733,16 +607,11 @@ namespace DynamicRagdoll {
 					
 					calculatedAnimationVelocityFrames++;
 					/*
-						if we're using the velocity change method we just need one frame 
-						to register the velocity to start with during falling
-						(that calculation was just done above)
-
-						if using the pd controller method, we need a few frames in order to build up
-						and stabilize forces used to move the rigidbodies
+						we need one frame to register the velocity to start with during falling
+						(that calculation was just done above).. check this
 					*/
-					int targetFrames = profile.usePDControl ? profile.calculateVelocityFrames : 1;
-
-
+					int targetFrames = 1;
+					
 					if (calculatedAnimationVelocityFrames >= targetFrames) {
 
 						calculatedAnimationVelocityFrames = 0;
@@ -765,70 +634,6 @@ namespace DynamicRagdoll {
 
 
 			
-
-		void HandlePDControl (float deltaTime) {
-			//skip frame to avoid force error for follow being 0 (makes ragdoll drop straight down)
-			if (skipFrame) {
-				skipFrame = false;
-				return;
-			}
-				
-			if (state == RagdollControllerState.CalculateAnimationVelocity) {
-				/*
-					update position of non rigidbodied transforms on ragdoll model 
-					that are parents of rigidbody bones.
-					this eliminates large errors between bone and master positions that lead to huge jumps
-				*/
-				if (profile.followRigidbodyParents) {
-					ragdoll.TeleportToTarget(Ragdoll.TeleportType.PhysicsParents);
-				}
-			}
-			
-			// Use physics to move the bones to where the corresponding master bone is
-			float reciprocalDeltaTime = 1f / deltaTime;
-			
-			for (int i = 0; i < Ragdoll.physicsBonesCount; i++) {
-				Ragdoll.Bone bone = ragdoll.GetPhysicsBone(Ragdoll.phsysicsHumanBones[i]);
-
-				float inputForceMultiplier = profile.bones[i].inputForce;
-				float maxForceMultiplier = profile.bones[i].maxForce;
-				
-				Vector3 forceError = Vector3.zero;
-
-				if (inputForceMultiplier != 0 && maxForce != 0 && maxForceMultiplier != 0){
-					
-					// Force error
-					forceError = (bone.followTarget.position + bone.followTarget.rotation * originalRBPositions[i]) - bone.rigidbody.worldCenterOfMass;
-					// Calculate and apply world force
-					Vector3 force = PDControl(profile.PForce * inputForceMultiplier, profile.DForce, forceError, lastPDErrors[i], maxForce * maxForceMultiplier, reciprocalDeltaTime);
-					bone.rigidbody.AddForce(force, ForceMode.VelocityChange);					
-				}
-				lastPDErrors[i] = forceError;
-
-				HandleJointFollow(bone, maxTorque * profile.bones[i].maxTorque, i);
-			}
-
-			//only skip frames when not showing ragdoll
-			skipFrame = profile.skipFrames && state == RagdollControllerState.CalculateAnimationVelocity;
-
-			if (state == RagdollControllerState.Falling) {
-				CheckForFallEnd(maxForce + maxTorque);
-			}
-		}
-
-		static Vector3 PDControl (float P, float D, Vector3 error, Vector3 lastError, float maxForce, float reciprocalDeltaTime) 
-		{
-			// theSignal = P * (theError + D * theDerivative) This is the implemented algorithm.
-			Vector3 signal = P * (error + D * ( error - lastError ) * reciprocalDeltaTime);
-			
-			float sqrMag = signal.sqrMagnitude;
-			if (sqrMag > maxForce * maxForce) {
-				return signal * (maxForce / Mathf.Sqrt(sqrMag));
-				//return Vector3.ClampMagnitude(signal, max);
-			}
-			return signal;
-		}
-
 		void InitializeVelocitySetValues () {
 
 			animationVelocityTrackers = new VelocityTracker[Ragdoll.physicsBonesCount];
@@ -845,20 +650,6 @@ namespace DynamicRagdoll {
 
 			}
 		}
-
-		void InitializePDControl () {
-			originalRBPositions = new Vector3[Ragdoll.physicsBonesCount];
-			lastPDErrors = new Vector3[Ragdoll.physicsBonesCount];
-			for (int i = 0; i < Ragdoll.physicsBonesCount; i++) {
-				//get the ragdoll's rigidbody
-				Rigidbody rigidbody = ragdoll.GetPhysicsBone(Ragdoll.phsysicsHumanBones[i]).rigidbody;
-
-				// store original offset
-				originalRBPositions[i] = Quaternion.Inverse(rigidbody.rotation) * (rigidbody.worldCenterOfMass - rigidbody.position); 		
-			}
-		}
-
-
 
 		void InitializeJointFollowing () {
 
@@ -878,7 +669,6 @@ namespace DynamicRagdoll {
 				//save rotation values for setting joint rotation
 				localToJointSpaces[i] = Quaternion.LookRotation(Vector3.Cross (joint.axis, joint.secondaryAxis), joint.secondaryAxis);
 				
-				//startLocalRotations[i] = bone.followTarget.transform.localRotation * localToJointSpaces[i];
 				startLocalRotations[i] = joint.transform.localRotation * localToJointSpaces[i];
 
 				localToJointSpaces[i] = Quaternion.Inverse(localToJointSpaces[i]);
@@ -898,19 +688,6 @@ namespace DynamicRagdoll {
 				animationVelocityTrackers[i].Reset();
 			}
 		}
-
-
-		/*
-			reset the pd controller errors to 0 so we dont have
-			any leftover forces from a previous ragdolling
-		*/	
-		void ResetPDControllerErrors () {
-			for (int i = 0; i < Ragdoll.physicsBonesCount; i++) {
-				lastPDErrors[i] = Vector3.zero;
-			}
-		}
-
-
 		
 		/*
 			Reset bone decays back to 0 for the next ragdolling
@@ -940,9 +717,7 @@ namespace DynamicRagdoll {
 
 			if (neighborDecay > 0) {
 				
-				HumanBodyBones[] neighbors = profile.bones[Ragdoll.PhysicsBone2Index(bones)].neighbors;
-
-				foreach (var n in neighbors) {
+				foreach (var n in profile.bones[Ragdoll.PhysicsBone2Index(bones)].neighbors) {
 					SetBoneDecay(n, neighborDecay, 0);
 				}
 			}

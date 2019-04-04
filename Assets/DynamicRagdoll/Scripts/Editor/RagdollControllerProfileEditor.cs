@@ -37,10 +37,6 @@ namespace DynamicRagdoll {
             EditorGUILayout.BeginVertical(GUI.skin.box, GUILayout.MinHeight(0));
             GUI.backgroundColor = Color.white;            
 
-
-            SerializedProperty usePDControl_prop = profile.FindProperty("usePDControl");
-            bool usePDControl = usePDControl_prop.boolValue;
-            
             EditorGUI.indentLevel++;
 
             SerializedProperty boneProfiles = profile.FindProperty("bones");
@@ -67,59 +63,24 @@ namespace DynamicRagdoll {
                 showBones[i] = EditorGUILayout.Foldout(showBones[i], "<b>" + bone.enumDisplayNames[bone.enumValueIndex] + ":</b>", fs);
                 
                 if (showBones[i]) {
-                    if (usePDControl) {
                     
-                        //DrawPropertiesBlock(boneProfile, i == 0 ? new string[] { "inputForce", "maxForce", "minCollisionMagnituteForRagdoll" } : new string[] { "inputForce", "maxForce", "maxTorque", "minCollisionMagnituteForRagdoll" });
-                        DrawPropertiesBlock(boneProfile, i == 0 ? new string[] { "inputForce", "maxForce" } : new string[] { "inputForce", "maxForce", "maxTorque" });
+                    DrawPropertiesBlock(boneProfile, i == 0 ? new string[] { "fallForceDecay" } : new string[] { "fallForceDecay", "fallTorqueDecay" });
+                
+                    EditorGUILayout.BeginHorizontal();
                     
-                    }
-                    else {
+                    GUILayout.FlexibleSpace();
 
-                        DrawPropertiesBlock(boneProfile, i == 0 ? 
-                            new string[] { 
-                                //"fallForceDecay", "minCollisionMagnituteForRagdoll", "collisionMagnitudeDecayRange", "collisionNeighborDecayMultiplier" 
-                                "fallForceDecay"//, "collisionMagnitudeDecayRange", "collisionNeighborDecayMultiplier" 
-                            } : 
-                            
-                            new string[] { 
-                                //"fallForceDecay", "fallTorqueDecay", "minCollisionMagnituteForRagdoll", "collisionMagnitudeDecayRange", "collisionNeighborDecayMultiplier" 
-                                "fallForceDecay", "fallTorqueDecay"//, "collisionMagnitudeDecayRange", "collisionNeighborDecayMultiplier" 
-                            });
+                    DrawBoneProfileNeighbors(boneProfile.FindPropertyRelative("neighbors"), (HumanBodyBones)bone.enumValueIndex);
                     
-                        EditorGUILayout.BeginHorizontal();
-                        
-                        GUILayout.FlexibleSpace();
-
-                        DrawBoneProfileNeighbors(boneProfile.FindPropertyRelative("neighbors"), (HumanBodyBones)bone.enumValueIndex);
-                        
-                        EditorGUILayout.EndHorizontal();
-                    }
+                    EditorGUILayout.EndHorizontal();
+                
                 }
             }
             EditorGUILayout.EndVertical();
-            
+                        
             EditorGUILayout.Space();
 
-            EditorGUILayout.PropertyField(usePDControl_prop);
-            
-            EditorGUILayout.Space();
-
-            DrawPropertiesBlock(profile, "Falling", s, 
-            
-            usePDControl ?
-                new string[] { 
-                    "PForce", "DForce", 
-                    "maxForcePD", "maxTorquePD",
-                    "calculateVelocityFrames", 
-                    "residualForce", "residualTorque",
-                    "skipFrames", "followRigidbodyParents", 
-                    "fallDecaySpeed", 
-                } 
-            : 
-                new string[] {
-                    "maxTorque", "fallDecaySpeed", "maxGravityAddVelocity", 
-                }
-            );
+            DrawPropertiesBlock(profile, "Falling", s, new string[] { "maxTorque", "fallDecaySpeed", "maxGravityAddVelocity" } );
 
 		    DrawPropertiesBlock(profile, "Get Up", s, new string[] { "ragdollMinTime", "settledSpeed", "orientateDelay", "checkGroundMask", "blendTime" });
             
@@ -128,7 +89,6 @@ namespace DynamicRagdoll {
             EditorGUILayout.EndVertical();   
             
             EditorGUI.indentLevel--;
-
 
             EditorGUILayout.Space();     
             
@@ -139,7 +99,6 @@ namespace DynamicRagdoll {
             //base.OnInspectorGUI();
             DrawProfile(serializedObject);
         }
-
 
         static void DrawBoneProfileNeighbors (SerializedProperty neighborsProp, HumanBodyBones baseBone) {
             int neighborsLength = neighborsProp.arraySize;

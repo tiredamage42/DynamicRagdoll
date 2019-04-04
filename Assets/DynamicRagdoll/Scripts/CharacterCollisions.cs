@@ -81,7 +81,7 @@ namespace DynamicRagdoll.Collisions {
         [Tooltip("How much taller is the incoming check from the top of the character's head")]
         public float incomingHeightOffsest = .25f;
                 
-        public UpdateMode calculateVelocityMode = UpdateMode.Update;
+        //public UpdateMode calculateVelocityMode = UpdateMode.Update;
 
         
         /*
@@ -104,8 +104,8 @@ namespace DynamicRagdoll.Collisions {
 		TriggerDetector inCollisionDetector, outCollisionDetector;		
         RagdollController ragdollController;
         CharacterController characterController;
-        bool wasDetectingOutgoing;
-        VelocityTracker velocityTracker;
+        //bool wasDetectingOutgoing;
+        //VelocityTracker velocityTracker;
         
 
         //calculate the character height based on the distance between the top of our head
@@ -129,10 +129,9 @@ namespace DynamicRagdoll.Collisions {
         void Awake () 
 		{
             characterController = GetComponent<CharacterController>();
-
             ragdollController = GetComponent<RagdollController>();
 			
-            velocityTracker = new VelocityTracker(transform, Vector3.zero);
+            //velocityTracker = new VelocityTracker(transform, Vector3.zero);
 		}
         
 		void Start () {
@@ -168,12 +167,12 @@ namespace DynamicRagdoll.Collisions {
 			return detector;
 		}
 
-        void Update () {
-            CalculateSelfVelocity(UpdateMode.Update, Time.deltaTime);
-		}
-		void LateUpdate () {
-			CalculateSelfVelocity(UpdateMode.LateUpdate, Time.deltaTime);
-		}
+        // void Update () {
+        //     CalculateSelfVelocity(UpdateMode.Update, Time.deltaTime);
+		// }
+		// void LateUpdate () {
+		// 	CalculateSelfVelocity(UpdateMode.LateUpdate, Time.deltaTime);
+		// }
 
            
 		void UpdateTriggerTrackers () {
@@ -182,17 +181,16 @@ namespace DynamicRagdoll.Collisions {
                 check for collisions only when we're animating or blending to animation
             */
             bool detectOutgoing = ragdollController.state == RagdollControllerState.Animated;
-			bool detectIncoming = detectOutgoing || ragdollController.state == RagdollControllerState.BlendToAnimated;
 			
-            if (detectOutgoing) {
-                if (!wasDetectingOutgoing) {
-                    velocityTracker.Reset();
-                }
-            }
-            wasDetectingOutgoing = detectOutgoing;
+            // if (detectOutgoing) {
+            //     if (!wasDetectingOutgoing) {
+            //         velocityTracker.Reset();
+            //     }
+            // }
+            // wasDetectingOutgoing = detectOutgoing;
 
-            inCollisionDetector.enabled = detectIncoming;
             outCollisionDetector.enabled = detectOutgoing;
+            inCollisionDetector.enabled = detectOutgoing || ragdollController.state == RagdollControllerState.BlendToAnimated;
 		}
 
 
@@ -202,21 +200,21 @@ namespace DynamicRagdoll.Collisions {
            
             UpdateCapsules();
             
-            CalculateSelfVelocity(UpdateMode.FixedUpdate, Time.fixedDeltaTime);
+           // CalculateSelfVelocity(UpdateMode.FixedUpdate, Time.fixedDeltaTime);
         }
 
 
-        void CalculateSelfVelocity (UpdateMode modeCheck, float deltaTime) {
-            bool detectOutgoing = ragdollController.state == RagdollControllerState.Animated;
-            if (!detectOutgoing) {
-                return;
-            }
-            if (modeCheck != calculateVelocityMode) {
-				return;
-			}
-            //calculate our transform's velocity
-            velocityTracker.TrackVelocity(1f / deltaTime, true);
-        }
+        // void CalculateSelfVelocity (UpdateMode modeCheck, float deltaTime) {
+        //     bool detectOutgoing = ragdollController.state == RagdollControllerState.Animated;
+        //     if (!detectOutgoing) {
+        //         return;
+        //     }
+        //     if (modeCheck != calculateVelocityMode) {
+		// 		return;
+		// 	}
+        //     //calculate our transform's velocity
+        //     //velocityTracker.TrackVelocity(1f / deltaTime, true);
+        // }
         
         
         void UpdateCapsules () {
@@ -249,8 +247,7 @@ namespace DynamicRagdoll.Collisions {
                 offset for step height, so steps dont make us go ragdoll
             */
             float mid = (charHeight + characterController.stepOffset) * .5f;
-            capsule.center = new Vector3(0, (charHeight * .5f) + (characterController.stepOffset * .5f), 0);
-            
+            capsule.center = new Vector3(0, mid, 0);
             capsule.height = charHeight - characterController.stepOffset;
             capsule.radius = characterController.radius + outgoing.radiusOffset;
         }
@@ -261,8 +258,8 @@ namespace DynamicRagdoll.Collisions {
         void UpdateIncomingTriggerCapsule (float charHeight) {
             CapsuleCollider capsule = inCollisionDetector.capsule;
             float h = charHeight + incomingHeightOffsest;
-            capsule.center = new Vector3(0, h * .5f, 0);
             capsule.height = h;
+            capsule.center = new Vector3(0, capsule.height * .5f, 0);
             capsule.radius = characterController.radius + incoming.radiusOffset;
         }
 
@@ -310,7 +307,8 @@ namespace DynamicRagdoll.Collisions {
             when the smaller inner capsule triggers, we've run into something
         */
         void OnOutgoingCollision (Collider other) {
-            CheckVelocityCollision(velocityTracker.velocity, outgoing.magnitudeThreshold, other, "outgoing");
+            //CheckVelocityCollision(velocityTracker.velocity, outgoing.magnitudeThreshold, other, "outgoing");
+            CheckVelocityCollision(characterController.velocity, outgoing.magnitudeThreshold, other, "outgoing");
         }
 
         /*
@@ -335,10 +333,9 @@ namespace DynamicRagdoll.Collisions {
 				collisions on bones are only registered to add decay, 
 				so we only care if we're hit when falling....
 			*/
-			if (ragdollController.state != RagdollControllerState.Falling) {
+			if (ragdollController.state != RagdollControllerState.Falling)
 				return;
-			}
-
+			
 			//ignore floor
 			if (collision.transform.CompareTag("Floor")) {
 				return;
