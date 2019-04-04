@@ -1,5 +1,5 @@
 ﻿using UnityEngine;
-
+using System;
 namespace DynamicRagdoll {
     /*
         component scene representation of teh physical ragdoll bones
@@ -14,20 +14,18 @@ namespace DynamicRagdoll {
     public class RagdollBone : MonoBehaviour
     {
         public HumanBodyBones bone;
-        System.Action<RagdollBone, Collision> broadCastCollision;
+        Action<RagdollBone, Collision> broadCastCollision;
         public Ragdoll ragdoll;
-        Rigidbody rigidbody;
+        Rigidbody rb;
 
         void Awake () {
-            rigidbody = GetComponent<Rigidbody>();
+            rb = GetComponent<Rigidbody>();
         }
-
 
         /*
             has to be public i guess...  :/
         */
-
-        public void _InitializeInternal (Ragdoll ragdoll, HumanBodyBones bone, System.Action<RagdollBone, Collision> broadCastCollision) {
+        public void _InitializeInternal (Ragdoll ragdoll, HumanBodyBones bone, Action<RagdollBone, Collision> broadCastCollision) {
             this.ragdoll = ragdoll;
             this.bone = bone;
             this.broadCastCollision = broadCastCollision;
@@ -42,13 +40,16 @@ namespace DynamicRagdoll {
 
             if (ragdoll.hasController) {
                 // have the ragdoll controller store physics calculations (just in case it has to delay them)
-                ragdoll.controller.StorePhysics(() => rigidbody.AddForceAtPosition(force, position, forceMode));
+                ragdoll.controller.StorePhysics(
+
+                    () => rb.AddForceAtPosition(force, position, forceMode)
+                    
+                );
             }
             else {
-                rigidbody.AddForceAtPosition(force, position, forceMode);
+                rb.AddForceAtPosition(force, position, forceMode);
             }
         }
-
 
         void OnCollisionEnter(Collision collision) {
             broadCastCollision(this, collision);

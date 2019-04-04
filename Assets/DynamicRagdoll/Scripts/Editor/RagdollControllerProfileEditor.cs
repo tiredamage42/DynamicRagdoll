@@ -117,15 +117,7 @@ namespace DynamicRagdoll {
                 } 
             : 
                 new string[] {
-                    "maxTorque", "fallDecaySpeed", "maxGravityAddVelocity",
-
-                    // "incomingCollisionRagdollMagnitude",
-                    // "incomingCollisionCheckHeight", 
-                    // "incomingCollisionCheckWidth", 
-                    // "outgoingCollisionRagdollMagnitude",
-                    // "outgoingCollisionCheckHeight",
-                    // "outgoingCollisionCheckWidth",
-                    
+                    "maxTorque", "fallDecaySpeed", "maxGravityAddVelocity", 
                 }
             );
 

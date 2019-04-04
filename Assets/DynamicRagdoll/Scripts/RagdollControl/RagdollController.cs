@@ -179,13 +179,11 @@ namespace DynamicRagdoll {
 	[RequireComponent(typeof(Animator))] 
 	public class RagdollController : MonoBehaviour
 	{
-		public enum RagdollState { 
-			Animated, 					//fully animated
-			CalculateAnimationVelocity,	//calculating while still showing fully animated
-			Falling,					//decaying fall
-			Ragdolled, 					//complete ragdoll
-			TeleportMasterToRagdoll, 	//waiting for get up animation transition, to reorient invisible master
-			BlendToAnimated, 			//blend into animated position
+		
+		public bool ragdollRenderersEnabled {
+			get {
+				return state != RagdollControllerState.Animated && state != RagdollControllerState.CalculateAnimationVelocity;
+			}
 		}
 		
 		public Ragdoll ragdoll;
@@ -194,7 +192,7 @@ namespace DynamicRagdoll {
 		[Tooltip("Don't get up anymore... 'dead'")]
 		public bool disableGetUp;
 		
-		[HideInInspector] public RagdollState state = RagdollState.Animated;
+		[HideInInspector] public RagdollControllerState state = RagdollControllerState.Animated;
 
 		/*
 			currently returns if we just entered the animated state, 
@@ -202,7 +200,7 @@ namespace DynamicRagdoll {
 		
 			... or set up system to callback when animation is done
 		*/
-		public bool isGettingUp { get { return state == RagdollState.Animated && timeSinceStateStart < getupTime; } }
+		public bool isGettingUp { get { return state == RagdollControllerState.Animated && timeSinceStateStart < getupTime; } }
 		const float getupTime = 2.5f;
 		float timeSinceStateStart { get { return Time.time - stateStartTime; } }
 
@@ -233,7 +231,7 @@ namespace DynamicRagdoll {
 		/*
 			Velocity calculation values
 		*/
-		Vector3[] animatedBoneVelocities, massCenterOffsets, lastAnimatedBonePositions;
+		VelocityTracker[] animationVelocityTrackers;
 
 
 		/*
@@ -257,9 +255,6 @@ namespace DynamicRagdoll {
 		public void SetFallSpeed (float fallSpeed) {
 			this.fallSpeed = fallSpeed;
 		}
-
-
-
 
 
 		/*
@@ -325,11 +320,11 @@ namespace DynamicRagdoll {
 			animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
 
 			//change the state
-			ChangeRagdollState(RagdollState.Falling);			
+			ChangeRagdollState(RagdollControllerState.Falling);			
 		}
 
 
-		void ChangeRagdollState (RagdollState newState) {
+		void ChangeRagdollState (RagdollControllerState newState) {
 			state = newState;
 			//store the state change time
 			stateStartTime = Time.time;
@@ -371,7 +366,7 @@ namespace DynamicRagdoll {
 				return;
 			}
 			
-			if (state == RagdollState.CalculateAnimationVelocity || state == RagdollState.Falling || state == RagdollState.Ragdolled)
+			if (state == RagdollControllerState.CalculateAnimationVelocity || state == RagdollControllerState.Falling || state == RagdollControllerState.Ragdolled)
 				return;
 
 
@@ -405,7 +400,7 @@ namespace DynamicRagdoll {
 			//wait a few frames in order to calculate the velocity of the current animations
 			calculatedAnimationVelocityFrames = 0;
 
-			ChangeRagdollState(RagdollState.CalculateAnimationVelocity);
+			ChangeRagdollState(RagdollControllerState.CalculateAnimationVelocity);
 
 			// if (!profile.usePDControl){
 			// 	StartFallState();
@@ -438,7 +433,7 @@ namespace DynamicRagdoll {
 			// play get up animation
 			animator.SetTrigger(onBack ? "BackTrigger" : "FrontTrigger");
 
-			ChangeRagdollState(RagdollState.TeleportMasterToRagdoll);
+			ChangeRagdollState(RagdollControllerState.TeleportMasterToRagdoll);
 		}
 
 		/*
@@ -468,7 +463,7 @@ namespace DynamicRagdoll {
 			transform.rotation = rotation;
 			transform.position = position;
 
-			ChangeRagdollState(RagdollState.BlendToAnimated);
+			ChangeRagdollState(RagdollControllerState.BlendToAnimated);
 		}
 
 		/*
@@ -497,7 +492,7 @@ namespace DynamicRagdoll {
 			EnableRenderers(true, false);
 
 			//change state to animated
-			ChangeRagdollState(RagdollState.Animated);
+			ChangeRagdollState(RagdollControllerState.Animated);
 		}
 
 
@@ -531,7 +526,7 @@ namespace DynamicRagdoll {
 
 			switch (state) {
 			
-			case RagdollState.Animated: 
+			case RagdollControllerState.Animated: 
 				/*
 					TRY UNCOMMENTING HERE IF WE'RE HAVING TROUBLE WITH PHYSICS DETECTION 
 					OF RAGDOLL NOT DETECTING IK CHANGES
@@ -541,16 +536,16 @@ namespace DynamicRagdoll {
 			
 			
 
-			case RagdollState.Falling:
+			case RagdollControllerState.Falling:
 				HandleFallLerp(Time.deltaTime);
 				break;
 
-			case RagdollState.TeleportMasterToRagdoll:
+			case RagdollControllerState.TeleportMasterToRagdoll:
 				if (HandleWaitForMasterTeleport()) {
 					TeleportMasterToRagdoll();
 				}
 				break;
-			case RagdollState.BlendToAnimated:
+			case RagdollControllerState.BlendToAnimated:
 				if (HandleBlendToAnimation()) {
 					ResetToAnimated();
 				}
@@ -632,7 +627,7 @@ namespace DynamicRagdoll {
 				return;	
 			}
 
-			if (state == RagdollState.Falling || state == RagdollState.Ragdolled) {
+			if (state == RagdollControllerState.Falling || state == RagdollControllerState.Ragdolled) {
 
 				// do delayed physics on the ragdoll if any
 				OnRagdollPhysics(); 
@@ -641,7 +636,7 @@ namespace DynamicRagdoll {
 
 			switch (state) {
 
-			case RagdollState.Ragdolled:
+			case RagdollControllerState.Ragdolled:
 
 				if (disableGetUp == false) {
 					//check the hips velocity to see if the ragdoll is still
@@ -649,7 +644,7 @@ namespace DynamicRagdoll {
 				}
 				break;
 
-			case RagdollState.Animated:
+			case RagdollControllerState.Animated:
 				/*
 					maybe move this to late update if we're not hitting transforms 
 					that were edited on ik, as that happens after fixed update...
@@ -669,7 +664,7 @@ namespace DynamicRagdoll {
 					if we're ragdolled and falling, set the calculated animation velocities we calculated in
 					Late Update to the ragdoll bones, also handle joint targets
 				*/
-				if (state == RagdollState.Falling) {
+				if (state == RagdollControllerState.Falling) {
 					
 					SetPhysicsVelocities(Time.fixedDeltaTime);
 				}
@@ -721,7 +716,7 @@ namespace DynamicRagdoll {
 		void UpdateLoop(float deltaTime)
 		{
 			
-			if (state == RagdollState.CalculateAnimationVelocity || state == RagdollState.Falling) {
+			if (state == RagdollControllerState.CalculateAnimationVelocity || state == RagdollControllerState.Falling) {
 				
 				if (profile.usePDControl) {
 					HandlePDControl(deltaTime);
@@ -730,7 +725,7 @@ namespace DynamicRagdoll {
 					CalculateAnimationVelocities(deltaTime);
 				}
 
-				if (state == RagdollState.CalculateAnimationVelocity) {
+				if (state == RagdollControllerState.CalculateAnimationVelocity) {
 					/*
 						wait a few frames in order to calculate the velocity of the current animations
 						then actually go ragdoll
@@ -763,11 +758,8 @@ namespace DynamicRagdoll {
 			0 values when changing state
 		*/
 		void CheckForFallEnd (float fallLerp) {
-			//Debug.Log("cheking for fall end");
-			
 			if (fallLerp == 0) {
-				//Debug.Log("fal end");
-				ChangeRagdollState(RagdollState.Ragdolled);
+				ChangeRagdollState(RagdollControllerState.Ragdolled);
 			}
 		}
 
@@ -781,7 +773,7 @@ namespace DynamicRagdoll {
 				return;
 			}
 				
-			if (state == RagdollState.CalculateAnimationVelocity) {
+			if (state == RagdollControllerState.CalculateAnimationVelocity) {
 				/*
 					update position of non rigidbodied transforms on ragdoll model 
 					that are parents of rigidbody bones.
@@ -817,9 +809,9 @@ namespace DynamicRagdoll {
 			}
 
 			//only skip frames when not showing ragdoll
-			skipFrame = profile.skipFrames && state == RagdollState.CalculateAnimationVelocity;
+			skipFrame = profile.skipFrames && state == RagdollControllerState.CalculateAnimationVelocity;
 
-			if (state == RagdollState.Falling) {
+			if (state == RagdollControllerState.Falling) {
 				CheckForFallEnd(maxForce + maxTorque);
 			}
 		}
@@ -837,19 +829,20 @@ namespace DynamicRagdoll {
 			return signal;
 		}
 
-
-
 		void InitializeVelocitySetValues () {
 
-			animatedBoneVelocities = new Vector3[Ragdoll.physicsBonesCount];
-			massCenterOffsets = new Vector3[Ragdoll.physicsBonesCount];
-			lastAnimatedBonePositions = new Vector3[Ragdoll.physicsBonesCount];
-		
-			for (int i = 0; i < Ragdoll.physicsBonesCount; i++) {
-				Ragdoll.Bone bone = ragdoll.GetPhysicsBone(Ragdoll.phsysicsHumanBones[i]);
+			animationVelocityTrackers = new VelocityTracker[Ragdoll.physicsBonesCount];
 
-				//get the local center of mass offset of the ragdoll bone
-				massCenterOffsets[i] = bone.transform.InverseTransformPoint(bone.rigidbody.worldCenterOfMass);
+			for (int i = 0; i < Ragdoll.physicsBonesCount; i++) {
+				
+				Ragdoll.Bone bone = ragdoll.GetPhysicsBone(Ragdoll.phsysicsHumanBones[i]);
+				
+				//track position (offset by ragdoll bone's rigidbody centor of mass) of the follow target
+				
+				Vector3 massCenterOffset = bone.transform.InverseTransformPoint(bone.rigidbody.worldCenterOfMass);
+
+				animationVelocityTrackers[i] = new VelocityTracker(bone.followTarget.transform, massCenterOffset);
+
 			}
 		}
 
@@ -897,34 +890,14 @@ namespace DynamicRagdoll {
 		}
 		
 		
-
-
-		
-		
 		/*
 			store the first positions to start calculating the velocity of the master animation
 		*/
 		void StoreAnimationStartPositions () {
 			for (int i = 0; i < Ragdoll.physicsBonesCount; i++) {	
-				// the master bone
-				Transform followTarget = ragdoll.GetPhysicsBone(Ragdoll.phsysicsHumanBones[i]).followTarget.transform;
-
-				//get position (offset by ragdoll bone's rigidbody centor of mass) of the follow target
-				lastAnimatedBonePositions[i] = CalculateBonePosition(followTarget, massCenterOffsets[i]);				
+				animationVelocityTrackers[i].Reset();
 			}
 		}
-
-		/*
-			the position of the bone,
-
-			offset by the center of mass of the correspoding ragdoll rigidbody
-		*/
-		static Vector3 CalculateBonePosition(Transform bone, Vector3 centerOfMass) {
-			return bone.position + (bone.rotation * centerOfMass);		
-		}
-
-		
-
 
 
 		/*
@@ -996,12 +969,7 @@ namespace DynamicRagdoll {
 		*/
 		void SetPhysicsVelocities (float deltaTime) {
 
-			//Debug.Log("setting velocities");
-
-			//fallDecay = 0;
-
 			float maxVelocityForGravityAdd2 = profile.maxGravityAddVelocity * profile.maxGravityAddVelocity;
-
 
 			float fallDecayCurveSample = 1f - fallDecay; //set up curves backwards... whoops
 			
@@ -1029,14 +997,17 @@ namespace DynamicRagdoll {
 
 				// if we're still using some force to follow
 				if (forceDecay != 0) {
+
+					Vector3 animVelocity = animationVelocityTrackers[i].velocity;
+
 					/*
 						if animation velocity is below threshold magnitude, add some gravity to it
 					*/
-					float animationVelocityMag2 = animatedBoneVelocities[i].sqrMagnitude;				
+					float animationVelocityMag2 = animVelocity.sqrMagnitude;				
 					
 					if (animationVelocityMag2 < maxVelocityForGravityAdd2) {
 
-						animatedBoneVelocities[i].y = Physics.gravity.y * deltaTime;
+						animVelocity.y = Physics.gravity.y * deltaTime;
 					}
 
 					/*
@@ -1045,14 +1016,12 @@ namespace DynamicRagdoll {
 						use the most extreme component of each vector as the "target animated" velocity
 					*/
 					if (boneDecay != 0) {	
-
-						animatedBoneVelocities[i] = MaxAbs(ragdollBoneVelocty, animatedBoneVelocities[i]);
+						animVelocity = MaxAbs(ragdollBoneVelocty, animVelocity);
 					}
 
 					// set the velocity on the ragdoll rigidbody (based on the force decay)
-					bone.rigidbody.velocity = Vector3.Lerp(ragdollBoneVelocty, animatedBoneVelocities[i], forceDecay);
+					bone.rigidbody.velocity = Vector3.Lerp(ragdollBoneVelocty, animVelocity, forceDecay);
 				}
-					
 			
 				if (i != 0) {
 
@@ -1074,10 +1043,7 @@ namespace DynamicRagdoll {
 				}
 			}
 
-
-			CheckForFallEnd(fallDecay);
-
-						
+			CheckForFallEnd(fallDecay);						
 		}
 
 
@@ -1087,36 +1053,14 @@ namespace DynamicRagdoll {
 			called in LateUpdate since we're using the animated character for these
 			calculations
 		*/
-
-		
 		void CalculateAnimationVelocities (float deltaTime) {
 			if (fallDecay != 0) {
 
 				float reciprocalDeltaTime = 1f / deltaTime;
-					
+				
 				// for each physics bone...
 				for (int i = 0; i < Ragdoll.physicsBonesCount; i++) {
-					HumanBodyBones unityBone = Ragdoll.phsysicsHumanBones[i];
-
-					// the master bone
-					Transform followTarget = ragdoll.GetPhysicsBone(unityBone).followTarget.transform;
-					
-					// the new position of the bone,
-					Vector3 bonePosition = CalculateBonePosition(followTarget, massCenterOffsets[i]);
-					
-					
-					Vector3 distance = bonePosition - lastAnimatedBonePositions[i];
-					
-					/*
-						velocity = distance / time
-					
-						but multiplying is faster
-					*/
-					Vector3 boneVelocity = distance * reciprocalDeltaTime;
-
-					animatedBoneVelocities[i] = boneVelocity;
-					
-					lastAnimatedBonePositions[i] = bonePosition;		
+					animationVelocityTrackers[i].TrackVelocity(reciprocalDeltaTime, false);
 				}
 			}
 		}

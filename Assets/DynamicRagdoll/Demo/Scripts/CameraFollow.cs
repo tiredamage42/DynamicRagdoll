@@ -7,7 +7,6 @@ namespace DynamicRagdoll.Demo {
 	*/
 	public class CameraFollow : MonoBehaviour
 	{
-		public enum UpdateMode { Update, FixedUpdate, LateUpdate };
 
 		public UpdateMode updateMode = UpdateMode.LateUpdate;
 

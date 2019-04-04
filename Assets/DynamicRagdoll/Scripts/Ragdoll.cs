@@ -1,6 +1,8 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
 
+
+
 namespace DynamicRagdoll {
 	/*
 
@@ -16,6 +18,9 @@ namespace DynamicRagdoll {
 
 		while in editor mode values are adjusted every update loop for easier tweaking
 		of values
+
+
+		trying to set this up to be used as any other collider / rigidibody
 	*/
 	
 	[RequireComponent(typeof(Animator))]
@@ -228,6 +233,24 @@ namespace DynamicRagdoll {
 
 			for (int i = 0; i < physicsBonesCount; i++) {	
 				Physics.IgnoreCollision(allBones[i].collider, collider, ignore);
+			}
+		}
+
+		/*
+			the total mass of all the ragdoll rigidbodies
+		*/
+
+		public float mass {
+			get {
+				if (CheckForErroredRagdoll("LoadSnapshot"))
+					return 0;
+				
+				float m = 0;
+				for (int i =0 ; i < physicsBonesCount; i++) {
+					m += allBones[i].rigidbody.mass;
+				}
+				return m;
+			
 			}
 		}
 
