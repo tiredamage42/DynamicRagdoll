@@ -1,11 +1,7 @@
 ﻿using UnityEngine;
-
 namespace DynamicRagdoll.Demo {
-
-    public class PlayerControl : MonoBehaviour
-    {
+    public class PlayerControl : MonoBehaviour {
         public Character controlledCharacter;
-
         public float turnSpeed = 500f;
 		
         [Header("Slow Time")]
@@ -19,32 +15,50 @@ namespace DynamicRagdoll.Demo {
 		public float ballMass = 40f;
 		public float ballScale = .4f;
 		
-
-
         float origFixedDelta;
         bool slomo, cameraTargetIsAnimatedHips;
 		
-		
         Shooting shooting;
-        CameraFollow camFollow;
+        CameraHandler camFollow;
         Camera cam;
         CannonBall cannonBall;
 
         void Awake () {
             shooting = GetComponent<Shooting>();
-            camFollow = GetComponent<CameraFollow>();
+            camFollow = GetComponent<CameraHandler>();
             cam = GetComponent<Camera>();
 
             cannonBall = GameObject.FindObjectOfType<CannonBall>();			
 
             origFixedDelta = Time.fixedDeltaTime;
             Cursor.visible = false;
+
+        }
+        void Start () {
+
+            AttachToCharacter(controlledCharacter);
         }
 
+        void AttachToCharacter (Character character) {
+            if (controlledCharacter != null) {
+                //enable ai for the last controlled character
+                controlledCharacter.GetComponent<AIControl>().enabled = true;    
+            }
 
-        // Update is called once per frame
-        void Update()
-        {
+            controlledCharacter = character;
+
+            if (controlledCharacter != null) {
+                //disable ai for our new controlled character
+                controlledCharacter.GetComponent<AIControl>().enabled = false;
+
+                Ragdoll.Bone hipBone = controlledCharacter.ragdollController.ragdoll.RootBone();
+                camFollow.target = hipBone.followTarget.transform;
+                camFollow.updateMode = UpdateMode.Update;
+            }
+        }
+        
+        void Update() {
+
             CheckCameraTarget();
 
             UpdateSloMo();
@@ -61,7 +75,7 @@ namespace DynamicRagdoll.Demo {
 
                 RagdollController ragdollController = controlledCharacter.ragdollController;
 
-                Vector3 ragRootBonePosition = ragdollController.ragdoll.RootBone().position;
+                Vector3 ragRootBonePosition = ragdollController.ragdoll.RootBone().transform.position;
 
                 /*
                     launch the ball from the camera to the controleld character
@@ -86,22 +100,18 @@ namespace DynamicRagdoll.Demo {
                     ragdollController.GoRagdoll();
                 }
 
-
                 /*
                     moved the controlled character 
                 */
-                if (ragdollController.state == RagdollControllerState.Animated && !ragdollController.isGettingUp) {
-				
+                if (!controlledCharacter.overrideControl)
+                {
                     //do turning
                     controlledCharacter.transform.Rotate(0f, Input.GetAxis("Horizontal") * turnSpeed * Time.deltaTime, 0f);
                     
                     //set speed
                     controlledCharacter.SetMovementSpeed(Input.GetAxis("Vertical") * (Input.GetKey(KeyCode.LeftShift) ? 2 : 1));
                 }
-
             }
-
-
         }
 
         void UpdateSloMo () {
@@ -111,9 +121,6 @@ namespace DynamicRagdoll.Demo {
 				slomo = !slomo;
 			}
 		}
-
-
-
 
         /*
 			switch camera to follow ragdoll	or animated hips based on ragdoll state
@@ -126,28 +133,17 @@ namespace DynamicRagdoll.Demo {
             }
 
             RagdollController ragdollController = controlledCharacter.ragdollController;
+		
+            //switch camera to follow ragdoll (or animated hips)
+            if (ragdollController.ragdollRenderersEnabled == cameraTargetIsAnimatedHips) {
+
+                cameraTargetIsAnimatedHips = !cameraTargetIsAnimatedHips;
 
 
-			if (ragdollController.ragdollRenderersEnabled) {
-				if (cameraTargetIsAnimatedHips) {
-
-					//switch camera to follow ragdoll	
-					camFollow.target = ragdollController.ragdoll.RootBone().transform;
-                    camFollow.updateMode = UpdateMode.FixedUpdate;
-					
-					cameraTargetIsAnimatedHips = false;
-				}
-			}
-			else {
-				if (!cameraTargetIsAnimatedHips) {
-                    
-					//switch cameara to follow our characetr
-					camFollow.target = ragdollController.ragdoll.RootBone().followTarget.transform;
-                    camFollow.updateMode = UpdateMode.Update;
-					
-					cameraTargetIsAnimatedHips = true;
-				}
-			}
+                Ragdoll.Bone hipBone = ragdollController.ragdoll.RootBone();
+                camFollow.target = cameraTargetIsAnimatedHips ? hipBone.followTarget.transform : hipBone.transform;
+                camFollow.updateMode = cameraTargetIsAnimatedHips ? UpdateMode.Update : UpdateMode.FixedUpdate;
+            }
 		}
 
         /*

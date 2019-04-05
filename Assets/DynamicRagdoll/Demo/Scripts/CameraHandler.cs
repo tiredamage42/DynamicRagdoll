@@ -5,8 +5,49 @@ namespace DynamicRagdoll.Demo {
 	/*
 		a simple camera follow script
 	*/
-	public class CameraFollow : MonoBehaviour
+	public class CameraHandler : MonoBehaviour
 	{
+
+		public float freeMoveSpeed = 1.0f;
+
+		public float freeMoveTurn = 1;
+ 
+		void UpdateFreeCam () {
+
+			float turnAxisY = 0;
+			if (Input.GetKey(KeyCode.LeftArrow))
+				turnAxisY -= 1;
+			if (Input.GetKey(KeyCode.RightArrow))
+				turnAxisY += 1;
+			float turnAxisX = 0;
+			if (Input.GetKey(KeyCode.UpArrow)) 
+				turnAxisX += 1;
+			if (Input.GetKey(KeyCode.DownArrow)) 
+				turnAxisX -= 1;
+			float depthAxis = 0;
+			if (Input.GetKey(KeyCode.E))
+				depthAxis -= 1;
+			if (Input.GetKey(KeyCode.Q))
+				depthAxis += 1;
+
+
+			float moveAxisY = 0;
+			if (Input.GetKey(KeyCode.S))
+				moveAxisY -= 1;
+			if (Input.GetKey(KeyCode.W))
+				moveAxisY += 1;
+			float moveAxisX = 0;
+			if (Input.GetKey(KeyCode.A)) 
+				moveAxisX -= 1;
+			if (Input.GetKey(KeyCode.D)) 
+				moveAxisX += 1;
+			
+			
+			
+			transform.position += (transform.right * moveAxisX + transform.forward * moveAxisY + transform.up * depthAxis) * freeMoveSpeed;
+			transform.eulerAngles += new Vector3(turnAxisX, turnAxisY, 0) * freeMoveTurn;
+			
+		}
 
 		public UpdateMode updateMode = UpdateMode.LateUpdate;
 
@@ -22,7 +63,7 @@ namespace DynamicRagdoll.Demo {
 				return;
 			}
 			// Setting the relative position as the initial relative position of the camera in the scene.
-			startDir = (target.position - transform.position).normalized;	
+			startDir = (-transform.position).normalized;	
 		}
 		
 		void Update () 
@@ -40,13 +81,17 @@ namespace DynamicRagdoll.Demo {
 
 		void UpdateLoop (UpdateMode modeCheck, float deltaTime) {
 			
-			if (!target) {
-				return;
-			}
 			if (modeCheck != updateMode) {
 				return;
 			}
 
+			if (!target) {
+				
+				UpdateFreeCam();
+				return;
+			}
+
+			
 			Vector3 camPos = transform.position;
 			Quaternion camRot = transform.rotation;
 			Vector3 targetPos = target.position;

@@ -4,9 +4,7 @@ using UnityEngine;
 namespace DynamicRagdoll.Demo {
 
 	/*
-	 
 		script for showing how to "shoot" the ragdolls
-
 	*/
     public class Shooting : MonoBehaviour
     {
@@ -33,9 +31,6 @@ namespace DynamicRagdoll.Demo {
 				
                 if (ragdollBone) {
 					
-					// treat it like a rigidbody or collider
-					ragdollBone.AddForceAtPosition(ray.direction.normalized * modifiedBulletForce, hit.point, ForceMode.VelocityChange);
-
 					// check if the ragdoll has a controller
 					if (ragdollBone.ragdoll.hasController) {
 						RagdollController controller = ragdollBone.ragdoll.controller;
@@ -44,22 +39,19 @@ namespace DynamicRagdoll.Demo {
 						// slightly lower for neighbor bones
 
 						float mainDecay = 1;
-						float neighborDecay = .75f;
-						controller.SetBoneDecay(ragdollBone.bone, mainDecay, neighborDecay);
+						float neighborMultiplier = .75f;
+						controller.SetBoneDecay(ragdollBone.bone, mainDecay, neighborMultiplier);
 						
 						//make it go ragdoll
 						controller.GoRagdoll();					
 					}
 				}
-				else {
+				// shoot normally
 
-					// shoot normally
-
-					Rigidbody rb = hit.transform.GetComponent<Rigidbody>();
-					
-                    if (rb) {
-						rb.AddForceAtPosition(ray.direction.normalized * modifiedBulletForce, hit.point, ForceMode.VelocityChange);
-					}
+				Rigidbody rb = hit.transform.GetComponent<Rigidbody>();
+				
+				if (rb) {
+					rb.AddForceAtPosition(ray.direction.normalized * modifiedBulletForce, hit.point, ForceMode.VelocityChange);
 				}
 			}
 		}

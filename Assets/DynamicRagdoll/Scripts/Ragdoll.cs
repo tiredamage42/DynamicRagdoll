@@ -71,6 +71,12 @@ namespace DynamicRagdoll {
 			or secondary, like a finger
 		*/
 		public class Bone {
+
+			public float defaultDepenetrationVelocity;
+			public void OverrideDepenetrationSpeed (float newSpeed) {
+				rigidbody.maxDepenetrationVelocity = newSpeed == -1 ? defaultDepenetrationVelocity : newSpeed;
+			}
+			
 			public Rigidbody rigidbody;
 			public ConfigurableJoint joint;
 			public Collider collider;
@@ -80,9 +86,6 @@ namespace DynamicRagdoll {
 			public Vector3 snapshotPosition;
 			public Quaternion snapshotRotation;
 
-			public Vector3 position { get { return transform.position; } }
-			public Quaternion rotation { get { return transform.rotation; } }
-			public GameObject gameObject { get { return transform.gameObject; } }
 
 			public Bone (Transform transform, bool isPhysicsParent, bool isPhysicsBone, bool isRoot) {
 				this.transform = transform;
@@ -105,69 +108,78 @@ namespace DynamicRagdoll {
 
 			public void SaveSnapshot () {
 				if (isRoot) {
-					snapshotPosition = position;
+					snapshotPosition = transform.position;
 				}
 				snapshotRotation = GetRotation();
 			}
 			public void LoadSnapShot () {
-				if (isRoot) {
-					transform.position = snapshotPosition;
+				TeleportTo(snapshotPosition, snapshotRotation);
+			}
+
+			public void EnableJointLimits(ConfigurableJointMotion m) {
+				if (joint) {
+					joint.angularXMotion = joint.angularYMotion = joint.angularZMotion = m;
 				}
-				SetRotation(snapshotRotation);
+			}
+
+			public void TeleportTo (Vector3 position, Quaternion rotation) {
+				if (isRoot) {
+					transform.position = position;
+				}
+				SetRotation(rotation);
+				
+				
+				/*
+					immediately update physics position...
+					transform set wasnt updating fast enough for physics detection of the ragdoll
+					through raycasts/collisions
+				*/
+				if (rigidbody != null) {
+					rigidbody.isKinematic = true;
+					rigidbody.position = (transform.position);
+					rigidbody.rotation = (transform.rotation);
+					rigidbody.isKinematic = false;
+				}
 			}
 
 			public void TeleportToTarget () {
 				if (followTarget == null) {
 					return;
 				}
-				if (isRoot) {
-					transform.position = followTarget.position;
-				}
-				SetRotation(followTarget.GetRotation());
-
-				/*
-					immediately update physics position...
-					transform set wasnt updating fast enough for physics detection of the ragdoll
-					through raycasts/collisions
-				*/
-				if (rigidbody != null && rigidbody.isKinematic) {
-					rigidbody.MovePosition(transform.position);
-					rigidbody.MoveRotation(transform.rotation);
-				}
+				TeleportTo(followTarget.transform.position, followTarget.GetRotation());
 			}
+
 
 			public void LoadSnapshot (float snapshotBlend, bool useFollowTarget) {
 				Bone boneToUse = useFollowTarget && followTarget != null ? followTarget : this;
-				if (isRoot) {
-					transform.position = Vector3.Lerp(boneToUse.position, snapshotPosition, snapshotBlend);
-				}
-				SetRotation(Quaternion.Slerp(boneToUse.GetRotation(), snapshotRotation, snapshotBlend));
+				
+				TeleportTo(
+					Vector3.Lerp(boneToUse.transform.position, snapshotPosition, snapshotBlend), 
+					Quaternion.Slerp(boneToUse.GetRotation(), snapshotRotation, snapshotBlend)
+				);
 			}
 
 			Quaternion GetRotation () {
 				return isRoot ? transform.rotation : transform.localRotation;
 			}
+
 			void SetRotation(Quaternion rotation) {
-				if (isRoot) {
+				if (isRoot) 
 					transform.rotation = rotation;
-				}
-				else {
+				else 
 					transform.localRotation = rotation;
-				}
 			}
 
 			public T AddComponent<T> () where T : Component {
-				return gameObject.AddComponent<T>();
+				return transform.gameObject.AddComponent<T>();
 			}		
 		}
 
 
 		public RagdollProfile ragdollProfile;
 
-
 		// were teh ragdoll components added in the editor already ?
 		[HideInInspector] public bool preBuilt;
-
 		Renderer[] allRenderers;
 		Dictionary<HumanBodyBones, Bone> physicsBones;
 		Bone[] allBones;
@@ -175,12 +187,78 @@ namespace DynamicRagdoll {
 		//initial head position from chest (used for resizing chest collider based on head offset)				
 		float initialHeadOffsetFromChest;
 
+		/*
+			cehck if a collider is part of our ragdoll
+		*/
+		public bool ColliderIsPartOfRagdoll (Collider collider) {
+			if (CheckForErroredRagdoll("ColliderIsPartOfRagdoll"))
+				return false;
+	
+			for (int i = 0; i < physicsBonesCount; i++) {	
+				if (allBones[i].collider == collider) {
+					return true;
+				}
+			}
+			return false;
+		}
+
+
+		/*
+			override the depenetration speed, set to -1 to use default
+		*/
+		public void OverrideDepenetrationSpeed (float newSpeed) {
+			if (CheckForErroredRagdoll("OverrideDepenetrationSpeed"))
+				return;
+	
+			for (int i = 0; i < physicsBonesCount; i++) {	
+				allBones[i].OverrideDepenetrationSpeed(newSpeed);
+			}
+		}
+
+		/*
+			ignore collisions with other physics bones on the same ragdoll
+		*/
+		public void IgnoreSelfCollisions (bool ignore) {
+			if (CheckForErroredRagdoll("IgnoreSelfCollisions"))
+				return;
+	
+			for (int i = 0; i < physicsBonesCount; i++) {	
+			
+				Bone boneA = allBones[i];
+
+				for (int x = i + 1; x < physicsBonesCount; x++) {	
+					Bone boneB = allBones[x];
+
+					// dont handle connected joints, joint component already does
+					if (boneB.joint && boneB.joint.connectedBody == boneA.rigidbody)
+						continue;
+					if (boneA.joint && boneA.joint.connectedBody == boneB.rigidbody)
+						continue;
+					
+					Physics.IgnoreCollision(boneA.collider, boneB.collider, ignore);
+				}
+			}
+		}
+			
+		/*
+			enable disable joint limits
+		*/
+		public void EnableJointLimits (bool enabled) {
+			if (CheckForErroredRagdoll("EnableJointLimits"))
+				return;
+			
+			ConfigurableJointMotion m = enabled ? ConfigurableJointMotion.Limited : ConfigurableJointMotion.Free;
+			for (int i = 0; i < physicsBonesCount; i++) {	
+				allBones[i].EnableJointLimits(m);
+			}	
+		}
+
 
 		/*
 			subscribe to get a notification when a ragdoll bone enters a collision
 
 			callback must take in:
-				HumanBodyBones, Collision
+				RagdollBone, Collision
 		*/
 		public void AddCollisionCallback (System.Action<RagdollBone, Collision> callback) {
 			if (CheckForErroredRagdoll("AddCollisionCallback"))
@@ -196,7 +274,6 @@ namespace DynamicRagdoll {
 			(given to ragdollbone component)
 		*/
 		void BroadcastCollision (RagdollBone bone, Collision collision) {
-
 			foreach (var cb in collisionEnterCallbacks) {
 				cb(bone, collision);
 			}
@@ -206,13 +283,8 @@ namespace DynamicRagdoll {
 			Add all teh physical ragdoll components (for checking collisions)
 		*/
 		void InitializeRagdollBoneComponents () {
-			
-			
 			for (int i = 0; i < physicsBonesCount; i++) {	
-
-				RagdollBone boneComponent = allBones[i].AddComponent<RagdollBone>();
-
-				boneComponent._InitializeInternal(this, phsysicsHumanBones[i], BroadcastCollision);
+				allBones[i].AddComponent<RagdollBone>()._InitializeInternal(this, phsysicsHumanBones[i], BroadcastCollision);
 			}
 		}
 
@@ -230,7 +302,6 @@ namespace DynamicRagdoll {
 			if (CheckForErroredRagdoll("SaveSnapshot"))
 				return;
 			
-
 			for (int i = 0; i < physicsBonesCount; i++) {	
 				Physics.IgnoreCollision(allBones[i].collider, collider, ignore);
 			}
@@ -239,19 +310,15 @@ namespace DynamicRagdoll {
 		/*
 			the total mass of all the ragdoll rigidbodies
 		*/
-
-		public float mass {
-			get {
-				if (CheckForErroredRagdoll("LoadSnapshot"))
-					return 0;
-				
-				float m = 0;
-				for (int i =0 ; i < physicsBonesCount; i++) {
-					m += allBones[i].rigidbody.mass;
-				}
-				return m;
+		public float CalculateMass() {
+			if (CheckForErroredRagdoll("LoadSnapshot"))
+				return 0;
 			
+			float m = 0;
+			for (int i =0 ; i < physicsBonesCount; i++) {
+				m += allBones[i].rigidbody.mass;
 			}
+			return m;
 		}
 
 
@@ -332,10 +399,9 @@ namespace DynamicRagdoll {
 				return;
 			
 			for (int i = 0; i < physicsBonesCount; i++) {	
-				allBones[i].gameObject.layer = layer;
+				allBones[i].transform.gameObject.layer = layer;
 			}
 		}
-
 
 		public Bone GetPhysicsBone (HumanBodyBones bone) {
 			if (CheckForErroredRagdoll("GetPhysicsBone"))
@@ -358,8 +424,6 @@ namespace DynamicRagdoll {
 			teleport ragdoll bones (based on teleport type)
 
 			to their master positions
-
-
 
 			TODO: implemetn checking for follow target for follow target specific methods
 		*/
@@ -407,8 +471,6 @@ namespace DynamicRagdoll {
 			if (CheckForErroredRagdoll("SetFollowTarget"))
 				return;
 
-
-
 			// generate Ragdoll bones for the follow target
 			// set as non physics, so no profile or adding of components needed, 
 			
@@ -447,8 +509,6 @@ namespace DynamicRagdoll {
 		}
 
 
-
-
 		/*
 			Build the runtime representations of the ragdoll bones
 
@@ -474,13 +534,14 @@ namespace DynamicRagdoll {
 					allRenderers = GetComponentsInChildren<Renderer>();
 
 					InitializeRagdollBoneComponents();
+
+					OverrideDepenetrationSpeed(-1); //set depenetration speed as default
+
 				}
 				//display errors
 				else {
 					CheckForErroredRagdoll("Awake");
 				}
-
-				
 			}
 		}
 
@@ -526,7 +587,7 @@ namespace DynamicRagdoll {
 				Bone bone = bones[boneProfile.bone];
 
 				//set rigidbody values for bone
-				UpdateRigidbodyToProfile(bone.rigidbody, boneProfile);
+				UpdateRigidbodyToProfile(bone, bone.rigidbody, boneProfile);
 				
 				//adjust collider values for bone
 				UpdateColliderToProfile (bone.collider, boneProfile, headOffset, initialHeadOffsetFromChest);
@@ -619,7 +680,7 @@ namespace DynamicRagdoll {
 			l.limit = boneProfile.forceOff ? 0 : boneProfile.angularZLimit;
 			joint.angularZLimit = l;
 		}
-		static void UpdateRigidbodyToProfile (Rigidbody rigidbody, RagdollProfile.BoneProfile boneProfile) {
+		static void UpdateRigidbodyToProfile (Ragdoll.Bone bone, Rigidbody rigidbody, RagdollProfile.BoneProfile boneProfile) {
 			//set rigidbody values for bone
 			
 			rigidbody.maxAngularVelocity = boneProfile.maxAngularVelocity;
@@ -627,10 +688,11 @@ namespace DynamicRagdoll {
 			rigidbody.angularDrag = boneProfile.drag;
 			rigidbody.mass = boneProfile.mass;
 
-			rigidbody.maxDepenetrationVelocity = boneProfile.maxDepenetrationVelocity;
-			
 			rigidbody.interpolation = boneProfile.interpolation;
 			rigidbody.collisionDetectionMode = boneProfile.collisionDetection;
+
+			//setting thebone default so it can be changed at runtime
+			bone.defaultDepenetrationVelocity = boneProfile.maxDepenetrationVelocity;
 		}
     }
 }

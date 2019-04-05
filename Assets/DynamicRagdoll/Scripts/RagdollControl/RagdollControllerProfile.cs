@@ -103,6 +103,8 @@ namespace DynamicRagdoll {
         [Tooltip("Calculated animation velocities will have gravity added to them\nif their magnitude is under this value.\n\nRaise if ragdoll hangs in the air too much")]
 		[Range(0f, 1f)] public float maxGravityAddVelocity = 1f;
 
+        [Range(0,1)] public float loseFollowDot = .5f;
+
         
         [Tooltip("Default for how fast the character loses control after ragdolling")]
         [Range(.5f, 4.5f)] public float fallDecaySpeed = 1.5f;				

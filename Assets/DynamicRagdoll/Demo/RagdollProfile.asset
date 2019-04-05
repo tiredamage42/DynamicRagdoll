@@ -21,7 +21,7 @@ MonoBehaviour:
     forceOff: 0
     axis1: {x: 1, y: 0, z: 0}
     axis2: {x: 0, y: 0, z: 1}
-    mass: 2.5
+    mass: 50000
     angularDrag: 0.05
     drag: 0
     maxAngularVelocity: 1000
@@ -39,7 +39,7 @@ MonoBehaviour:
     forceOff: 0
     axis1: {x: 1, y: 0, z: 0}
     axis2: {x: 0, y: 0, z: 1}
-    mass: 2.5
+    mass: 50000
     angularDrag: 0.05
     drag: 0
     maxAngularVelocity: 1000
@@ -57,7 +57,7 @@ MonoBehaviour:
     forceOff: 0
     axis1: {x: 1, y: 0, z: 0}
     axis2: {x: 0, y: 0, z: 1}
-    mass: 1
+    mass: 50000
     angularDrag: 0.05
     drag: 0
     maxAngularVelocity: 1000
@@ -75,7 +75,7 @@ MonoBehaviour:
     forceOff: 0
     axis1: {x: 1, y: 0, z: 0}
     axis2: {x: 0, y: 0, z: 1}
-    mass: 1.5
+    mass: 50000
     angularDrag: 0.05
     drag: 0
     maxAngularVelocity: 1000
@@ -93,7 +93,7 @@ MonoBehaviour:
     forceOff: 0
     axis1: {x: 1, y: 0, z: 0}
     axis2: {x: 0, y: 0, z: 1}
-    mass: 1.5
+    mass: 50000
     angularDrag: 0.05
     drag: 0
     maxAngularVelocity: 1000
@@ -111,7 +111,7 @@ MonoBehaviour:
     forceOff: 0
     axis1: {x: 1, y: 0, z: 0}
     axis2: {x: 0, y: 0, z: 1}
-    mass: 1.5
+    mass: 50000
     angularDrag: 0.05
     drag: 0
     maxAngularVelocity: 1000
@@ -129,7 +129,7 @@ MonoBehaviour:
     forceOff: 0
     axis1: {x: 1, y: 0, z: 0}
     axis2: {x: 0, y: 0, z: 1}
-    mass: 1.5
+    mass: 50000
     angularDrag: 0.05
     drag: 0
     maxAngularVelocity: 1000
@@ -147,7 +147,7 @@ MonoBehaviour:
     forceOff: 0
     axis1: {x: 0, y: 1, z: 0}
     axis2: {x: 0, y: 0, z: 1}
-    mass: 1
+    mass: 50000
     angularDrag: 0.05
     drag: 0
     maxAngularVelocity: 1000
@@ -165,7 +165,7 @@ MonoBehaviour:
     forceOff: 0
     axis1: {x: 0, y: 1, z: 0}
     axis2: {x: 0, y: 0, z: 1}
-    mass: 1
+    mass: 50000
     angularDrag: 0.05
     drag: 0
     maxAngularVelocity: 1000
@@ -183,7 +183,7 @@ MonoBehaviour:
     forceOff: 0
     axis1: {x: 0, y: 0, z: 1}
     axis2: {x: 0, y: 1, z: 0}
-    mass: 1
+    mass: 50000
     angularDrag: 0.05
     drag: 0
     maxAngularVelocity: 1000
@@ -201,7 +201,7 @@ MonoBehaviour:
     forceOff: 0
     axis1: {x: 0, y: 0, z: 1}
     axis2: {x: 0, y: 1, z: 0}
-    mass: 1
+    mass: 50000
     angularDrag: 0.05
     drag: 0
     maxAngularVelocity: 1000

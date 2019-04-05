@@ -4,6 +4,37 @@ namespace DynamicRagdoll {
     [CustomEditor(typeof(Ragdoll))]
     public class RagdollEditor : Editor {
 
+        static GUIStyle InitializeStyle (GUIStyle s) {
+            GUIStyle r = new GUIStyle(s);
+            r.richText = true;
+            return r;
+        }
+        static GUIStyle _foldoutStyle, _labelStyle;
+        
+        public static GUIStyle foldoutStyle {
+            get {
+
+                if (_foldoutStyle == null)
+                    _foldoutStyle = InitializeStyle(EditorStyles.foldout);
+                return _foldoutStyle;
+            }
+        }
+        public static GUIStyle labelStyle {
+            get {
+                
+                if (_labelStyle == null)
+                    _labelStyle = InitializeStyle(EditorStyles.label);
+                return _labelStyle;       
+            }
+        }
+
+        public static void StartBox () {
+            GUI.backgroundColor = new Color32(0,0,0,25);
+            EditorGUILayout.BeginVertical(GUI.skin.box);
+            GUI.backgroundColor = Color.white;            
+        }
+        
+
         Ragdoll ragdoll;
         RagdollProfile profile;
         SerializedObject profileSO;
@@ -25,7 +56,9 @@ namespace DynamicRagdoll {
             EditorGUILayout.BeginHorizontal();
             
             SerializedProperty preBuiltProp = serializedObject.FindProperty("preBuilt");
+            
             bool isBuilt = preBuiltProp.boolValue;
+            
             if (GUILayout.Button(isBuilt ? "Clear Ragdoll" : "Pre Build Ragdoll")) {
                 if (isBuilt)
                     RagdollBuilder.EraseRagdoll(ragdoll.GetComponent<Animator>());
@@ -48,23 +81,18 @@ namespace DynamicRagdoll {
         public override void OnInspectorGUI() {
             CheckForProfileChange();
 
-            if (profileSO != null) {
-                //RagdollProfileEditor.DrawProfile(profileSO);
-            }
-            else {
+            if (profileSO == null) {
                 EditorGUILayout.HelpBox("\nAdd a Ragdoll Profile to adjust ragdoll properties.\n\nOtherwise defualts will be used\n", MessageType.Info);
             }
-
+            
             base.OnInspectorGUI();   
             
             DrawBuildOptions();
+            
             if (profileSO != null) {
                 RagdollProfileEditor.DrawProfile(profileSO);
             }
-            else {
-                //EditorGUILayout.HelpBox("\nAdd a Ragdoll Profile to adjust ragdoll properties.\n\nOtherwise defualts will be used\n", MessageType.Info);
-            }
-
+            
             serializedObject.ApplyModifiedProperties();
             EditorUtility.SetDirty(serializedObject.targetObject);
         }

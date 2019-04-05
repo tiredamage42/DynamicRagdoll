@@ -20,7 +20,6 @@ namespace DynamicRagdoll.Demo
 		public float walkFallSpeed = 1;
 		public float runFallSpeed = 1;
 
-
 		[Header("Movement")]
 		public UpdateMode moveUpdate = UpdateMode.Update;
 
@@ -39,9 +38,12 @@ namespace DynamicRagdoll.Demo
 		public float fallRagdollTime = .2f;
 
 		[HideInInspector] public RagdollController ragdollController;
-		bool grounded;
-		float currentSpeed, floorY;
-		float currentGravity, lastGroundHitTime, lastGroundTime;
+		public bool overrideControl { get { return ragdollController.state != RagdollControllerState.Animated || ragdollController.isGettingUp; } }
+
+
+		public float currentSpeed;
+		bool grounded, inCoyoteHang;
+		float floorY, currentGravity, lastGroundHitTime, lastGroundTime;
 		Animator anim;		
 		Vector3 animDelta;
 		CharacterController characterController;
@@ -99,31 +101,37 @@ namespace DynamicRagdoll.Demo
 		}		
 
 		void ApplyMovement (UpdateMode checkMode) {
-			if (moveUpdate != checkMode) {
+			if (moveUpdate != checkMode)
 				return;
-			}
+
 			/*
 				skip moving the main transform if we're completely ragdolled, or waiting to reorient
 				the main transform view the ragdoll controller
 			*/
-			if (ragdollController.state == RagdollControllerState.Ragdolled || ragdollController.state == RagdollControllerState.TeleportMasterToRagdoll) {
+			if (ragdollController.state == RagdollControllerState.Ragdolled || ragdollController.state == RagdollControllerState.TeleportMasterToRagdoll)
 				return;
-			}
 
-			//when animated or blending to animation
+			/*
+				when animated or blending to animation
+				use character controller movement 
+				
+				it has less step offset jitter than the normal transform movement
+				especially when getting up 
+			*/
 			if (ragdollController.state == RagdollControllerState.Animated || ragdollController.state == RagdollControllerState.BlendToAnimated) {
 				
-				// use character controller movement 
-				// has less step offset jitter when getting up than the normal transform movement
-				if (!characterController.enabled) {
+				if (!characterController.enabled)
 					characterController.enabled = true;
-				}
 
 				Vector3 animMove = animDelta;
 				
 				if (grounded) {
-					//stick to ground
-					animMove.y = maxGravity;
+
+					if (!inCoyoteHang) {
+						//stick to ground
+						animMove.y = maxGravity;
+					}
+
 				}
 				else {
 					//add gravity				
@@ -141,9 +149,8 @@ namespace DynamicRagdoll.Demo
 					and teh characer chontroller acts as a 'protective shell' when it's enabled
 				*/
 
-				if (characterController.enabled) {
+				if (characterController.enabled)
 					characterController.enabled = false;
-				}
 
 				Vector3 animMove = transform.position + animDelta;
 
@@ -157,7 +164,6 @@ namespace DynamicRagdoll.Demo
 				}
 				transform.position = animMove;
 			}
-
 		}
 
 		void CheckPhysics (out bool isFalling) {
@@ -174,15 +180,16 @@ namespace DynamicRagdoll.Demo
 			CalculateCurrentGravity(Time.fixedDeltaTime);
 		}
 
-
 		void CheckIfGrounded (Ray groundRay, float rayDistaneBuffer, bool wasGrounded, float checkDistance) {
 			grounded = false;
+			inCoyoteHang = false;
 			RaycastHit hit;
-			if (Physics.Raycast(groundRay, out hit, checkDistance + rayDistaneBuffer, groundLayerMask)) {
+			if (Physics.Raycast(groundRay, out hit, checkDistance + rayDistaneBuffer, groundLayerMask, QueryTriggerInteraction.Ignore)) {
 				
 				// if we're falling, dont let us go "up"
 				// ragdoll was falling up stairs...
 				bool skipFloorSet = ragdollController.state == RagdollControllerState.Falling && hit.point.y > floorY;
+				
 				if (!skipFloorSet) {
 					floorY = hit.point.y;
 				}
@@ -194,6 +201,7 @@ namespace DynamicRagdoll.Demo
 				//stay grounded if we just left the ground (like wile e coyote)
 				if (wasGrounded) {
 					grounded = Time.time - lastGroundHitTime <= coyoteTime;
+					inCoyoteHang = grounded;
 				}
 			}
 			if (grounded) {
@@ -202,14 +210,14 @@ namespace DynamicRagdoll.Demo
 		}
 
 		bool CheckForFallRagdoll (Ray groundRay, float rayDistaneBuffer) {
-			if (grounded) {
+			if (grounded)
 				return false;
-			}
+			
 			//check if we've spend enough time not grounded
 			if (Time.time - lastGroundTime >= fallRagdollTime) {
 
 				//if we have and the drop is high enough, go ragdoll
-				if (!Physics.Raycast(groundRay, fallDistance + rayDistaneBuffer, groundLayerMask)) {
+				if (!Physics.Raycast(groundRay, fallDistance + rayDistaneBuffer, groundLayerMask, QueryTriggerInteraction.Ignore)) {
 					return true;
 				}
 			}
@@ -226,9 +234,8 @@ namespace DynamicRagdoll.Demo
 			currentGravity += Physics.gravity.y * deltaTime * deltaTime;
 			
 			// cap gravity
-			if (currentGravity < maxGravity) {
+			if (currentGravity < maxGravity)
 				currentGravity = maxGravity;
-			}
 		}		
 	}
 }

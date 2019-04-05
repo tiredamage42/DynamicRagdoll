@@ -7,14 +7,15 @@ namespace DynamicRagdoll {
     */
     public class VelocityTracker
     {
-
         public Vector3 velocity;
 
-        Transform trackTransform;
-        
+        Transform trackTransform;   
         Vector3 localOffset, lastPosition;
-        
-        Vector3 actualPosition { get { return localOffset != Vector3.zero ? trackTransform.position + (trackTransform.rotation * localOffset) : trackTransform.position; } }
+        Vector3 actualPosition { 
+            get { 
+                return localOffset != Vector3.zero ? trackTransform.position + (trackTransform.rotation * localOffset) : trackTransform.position; 
+            } 
+        }
 
         /*
             local offset could be center of mass

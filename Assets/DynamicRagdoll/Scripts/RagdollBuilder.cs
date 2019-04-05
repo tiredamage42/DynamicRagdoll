@@ -119,7 +119,7 @@ namespace DynamicRagdoll {
                 }
             
                 //initial head position from chest (used for resizing chest collider based on head offset)				
-                initialHeadOffsetFromChest = physicsBones[HumanBodyBones.Chest].transform.InverseTransformPoint(physicsBones[HumanBodyBones.Head].position).y;
+                initialHeadOffsetFromChest = physicsBones[HumanBodyBones.Chest].transform.InverseTransformPoint(physicsBones[HumanBodyBones.Head].transform.position).y;
 
                 Ragdoll.UpdateBonesToProfileValues(physicsBones, profile, initialHeadOffsetFromChest);
             }
@@ -172,11 +172,11 @@ namespace DynamicRagdoll {
                 
                 float distance;
                 if (upperCapsuleBones.Contains(k)) {
-					distance = bone.transform.InverseTransformPoint(bones[GetChildBone(k)].position)[direction];
+					distance = bone.transform.InverseTransformPoint(bones[GetChildBone(k)].transform.position)[direction];
                 }
                 else
                 {
-                    Vector3 endPoint = (bone.position - bones[GetParentBone(k)].position) + bone.position;
+                    Vector3 endPoint = (bone.transform.position - bones[GetParentBone(k)].transform.position) + bone.transform.position;
 					distance = bone.transform.InverseTransformPoint(endPoint)[direction];
 
                     if (bone.transform.GetComponentsInChildren(typeof(Transform)).Length > 1)
@@ -210,7 +210,7 @@ namespace DynamicRagdoll {
             Bounds bounds = new Bounds();
 
             //encapsulate upper arms and upper legs positions
-            for (int i = 0; i < 4; i++) bounds.Encapsulate(bone.transform.InverseTransformPoint(encapsulate[i].position));
+            for (int i = 0; i < 4; i++) bounds.Encapsulate(bone.transform.InverseTransformPoint(encapsulate[i].transform.position));
             
             if (adjustMin) {
                 Vector3 min = bounds.min;
@@ -220,7 +220,7 @@ namespace DynamicRagdoll {
 
             //adjust max bounds based on next bone
             Vector3 max = bounds.max;
-            max.y = bone.transform.InverseTransformPoint(topCutoff.position).y;
+            max.y = bone.transform.InverseTransformPoint(topCutoff.transform.position).y;
 			
             bounds.max = max;
             return bounds;

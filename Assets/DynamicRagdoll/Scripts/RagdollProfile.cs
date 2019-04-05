@@ -44,7 +44,7 @@ namespace DynamicRagdoll {
             public PhysicMaterial colliderMaterial;
             public float colliderRadius;
             public float boxZOffset;
-            public float boxZSize = .25f;
+            public float boxZSize = .35f;
 
             public BoneProfile(HumanBodyBones bone, Vector2 angularXLimit, float angularYLimit, float angularZLimit, Vector3 axis1, Vector3 axis2, float mass, float colliderRadius, float boxZOffset, float boxZSize) {
                 this.bone = bone;
@@ -78,7 +78,7 @@ namespace DynamicRagdoll {
         static RagdollProfile _defaultProfile;
         public static RagdollProfile defaultProfile {
             get {
-                if (_defaultProfile == null) {
+                if (_defaultProfile == null || !Application.isPlaying) {
                     _defaultProfile = ScriptableObject.CreateInstance<RagdollProfile>();
                     _defaultProfile.headOffset = defaultHeadOffset;
                     _defaultProfile.bones = defaultBoneProfiles;
@@ -96,9 +96,9 @@ namespace DynamicRagdoll {
         static BoneProfile[] defaultBoneProfiles {
             get {
                 return new BoneProfile[] {
-                    new BoneProfile(HumanBodyBones.Hips,  new Vector2(0, 0), 0, 0, Vector3.right, Vector3.forward, 2.5f, 0, 0, .2f),
-                    new BoneProfile(HumanBodyBones.Chest, new Vector2(-45, 15), 15, 15, Vector3.right, Vector3.forward, 2.5f, 0, 0, .2f),
-                    new BoneProfile(HumanBodyBones.Head,  new Vector2(-75, 75), 25, 25, Vector3.right, Vector3.forward, 1.0f, .15f, 0, .2f),
+                    new BoneProfile(HumanBodyBones.Hips,  new Vector2(0, 0), 0, 0, Vector3.right, Vector3.forward, 2.5f, 0, 0, .3f),
+                    new BoneProfile(HumanBodyBones.Chest, new Vector2(-45, 15), 15, 15, Vector3.right, Vector3.forward, 2.5f, 0, 0, .3f),
+                    new BoneProfile(HumanBodyBones.Head,  new Vector2(-75, 75), 25, 25, Vector3.right, Vector3.forward, 1.0f, .15f, 0, .3f),
                     
                     new BoneProfile(HumanBodyBones.RightLowerLeg, new Vector2(-90, 0), 10, 10, Vector3.right, Vector3.forward, 1.5f, .075f, 0, .2f),
                     new BoneProfile(HumanBodyBones.LeftLowerLeg,  new Vector2(-90, 0), 10, 10, Vector3.right, Vector3.forward, 1.5f, .075f, 0, .2f),
