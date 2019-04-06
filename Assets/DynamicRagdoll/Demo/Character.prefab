@@ -34,7 +34,6 @@ MonoBehaviour:
   profile: {fileID: 11400000, guid: f1f48623e355a4f7588096c4f41770a2, type: 2}
   disableGetUp: 0
   state: 0
-  wasCollided: 0
 --- !u!114 &3374815456780745496
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -86,17 +85,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a0d11e378dc99404db3551e8678ef451, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  crippleMass: 10
-  outgoing:
-    magnitudeThreshold: 5
-    radiusOffset: 0.1
-  incoming:
-    magnitudeThreshold: 5
-    radiusOffset: 0.25
-  incomingHeightOffsest: 0.25
+  outgoingMagnitudeThreshold: 5
+  incomingMagnitudeThreshold: 5
+  incomingCheckOffset: 0.5
+  characterControllerIgnoreTime: 2
+  crushMass: 20
+  crushMassTopOffset: 0.25
   decayMagnitudeRange: {x: 10, y: 50}
   neighborDecayMultiplier: 0.75
-  characterControllerIgnoreTime: 2
 --- !u!1 &3374815457856484176
 GameObject:
   m_ObjectHideFlags: 0

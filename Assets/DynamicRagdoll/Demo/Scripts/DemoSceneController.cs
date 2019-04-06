@@ -38,12 +38,20 @@ namespace DynamicRagdoll.Demo {
                 currentRain.Add(Instantiate(rainObject, position, rotation).transform);
             }
             else {
-                Transform t = currentRain[Random.Range(0, currentRain.Count)];
-                t.position = position;
-                t.rotation = rotation;
+                if (maxRainObjects > 0) {
 
-                t.localScale = Vector3.one * Random.Range(rainSizeRange.x, rainSizeRange.y);
-                t.GetComponent<Rigidbody>().mass = t.localScale.x;
+                    Transform t = currentRain[Random.Range(0, currentRain.Count)];
+                    t.position = position;
+                    t.rotation = rotation;
+
+                    t.localScale = Vector3.one * Random.Range(rainSizeRange.x, rainSizeRange.y);
+                    t.GetComponent<Rigidbody>().mass = t.localScale.x * 100;
+                    
+                    //fast movign object
+                    t.GetComponent<Rigidbody>().collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
+                    
+                }
+
             }
         }
 

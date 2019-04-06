@@ -47,7 +47,7 @@ namespace DynamicRagdoll.Demo {
         void TurnToDestination () {
             Vector3 lookDir = destination - transform.position;
             lookDir.y = 0;
-            transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(lookDir), turnSpeed);
+            transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(lookDir), turnSpeed * Time.deltaTime);
         }
 
         

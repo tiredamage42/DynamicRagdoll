@@ -135,10 +135,20 @@ namespace DynamicRagdoll {
 					through raycasts/collisions
 				*/
 				if (rigidbody != null) {
+					CollisionDetectionMode originalDetectionMode = rigidbody.collisionDetectionMode;
+
+					//need to set the collision detection mode as discrete to set kinematic and 
+					//teleport rigidbody (or unity throws an error)
+					rigidbody.collisionDetectionMode = CollisionDetectionMode.Discrete;
+
 					rigidbody.isKinematic = true;
 					rigidbody.position = (transform.position);
 					rigidbody.rotation = (transform.rotation);
 					rigidbody.isKinematic = false;
+					
+					rigidbody.collisionDetectionMode = originalDetectionMode;
+										
+
 				}
 			}
 
@@ -260,21 +270,33 @@ namespace DynamicRagdoll {
 			callback must take in:
 				RagdollBone, Collision
 		*/
-		public void AddCollisionCallback (System.Action<RagdollBone, Collision> callback) {
-			if (CheckForErroredRagdoll("AddCollisionCallback"))
+		public void AddCollisionEnterCallback (System.Action<RagdollBone, Collision> callback) {
+			if (CheckForErroredRagdoll("AddCollisionEnterCallback"))
 				return;
 			
 			collisionEnterCallbacks.Add(callback);
 		}
+		public void AddCollisionStayCallback (System.Action<RagdollBone, Collision> callback) {
+			if (CheckForErroredRagdoll("AddCollisionStayCallback"))
+				return;
+			
+			collisionStayCallbacks.Add(callback);
+		}
 
 		HashSet<System.Action<RagdollBone, Collision>> collisionEnterCallbacks = new HashSet<System.Action<RagdollBone, Collision>>();
-		
+		HashSet<System.Action<RagdollBone, Collision>> collisionStayCallbacks = new HashSet<System.Action<RagdollBone, Collision>>();
+
 		/*
 			send the message out that bone was collided
 			(given to ragdollbone component)
 		*/
-		void BroadcastCollision (RagdollBone bone, Collision collision) {
+		void BroadcastCollisionEnter (RagdollBone bone, Collision collision) {
 			foreach (var cb in collisionEnterCallbacks) {
+				cb(bone, collision);
+			}
+		}
+		void BroadcastCollisionStay (RagdollBone bone, Collision collision) {
+			foreach (var cb in collisionStayCallbacks) {
 				cb(bone, collision);
 			}
 		}
@@ -284,7 +306,7 @@ namespace DynamicRagdoll {
 		*/
 		void InitializeRagdollBoneComponents () {
 			for (int i = 0; i < physicsBonesCount; i++) {	
-				allBones[i].AddComponent<RagdollBone>()._InitializeInternal(this, phsysicsHumanBones[i], BroadcastCollision);
+				allBones[i].AddComponent<RagdollBone>()._InitializeInternal(this, phsysicsHumanBones[i], BroadcastCollisionEnter, BroadcastCollisionStay);
 			}
 		}
 

@@ -233,7 +233,7 @@ namespace DynamicRagdoll {
 
 			//enable physics for ragdoll 
 			ragdoll.UseGravity(true);
-			ragdoll.OverrideDepenetrationSpeed(-1);
+			//ragdoll.OverrideDepenetrationSpeed(-1);
 			ragdoll.IgnoreSelfCollisions(false);
 			
 			//turn on ragdoll renderers, disable master renderers
@@ -261,7 +261,7 @@ namespace DynamicRagdoll {
 			
 			//disable physics affecting ragdoll
 			ragdoll.UseGravity(false); 
-			ragdoll.OverrideDepenetrationSpeed(0);
+			//ragdoll.OverrideDepenetrationSpeed(1);
 			ragdoll.IgnoreSelfCollisions(true);
 			
 
@@ -426,7 +426,7 @@ namespace DynamicRagdoll {
 			
 			// disable physics
 			ragdoll.UseGravity(false);
-			ragdoll.OverrideDepenetrationSpeed(0);
+			//ragdoll.OverrideDepenetrationSpeed(-1);
 			ragdoll.IgnoreSelfCollisions(true);
 			
 

@@ -8,13 +8,17 @@ namespace DynamicRagdoll.Demo {
 		void Awake () {
 			rb = GetComponent<Rigidbody>();
 			rb.isKinematic = false;
+
+			//it's a fast moving object
+			rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
 		}
 		
 		IEnumerator LaunchToPosition (Vector3 start, Vector3 position, float scale, float mass, float velocity) {
 			yield return new WaitForFixedUpdate();
 			rb.isKinematic = false;
 			rb.position = start;
-			transform.localScale = Vector3.one * scale;
+			GetComponent<SphereCollider>().radius = scale * .5f;
+			transform.GetChild(0).localScale = Vector3.one * scale;
 			rb.mass = mass;
 			//rb.useGravity = false;
 			// Hurl ball towards hit transform

@@ -35,7 +35,7 @@ namespace DynamicRagdoll {
             public float maxDepenetrationVelocity = 10; // or 1e+32;
             
             public RigidbodyInterpolation interpolation = RigidbodyInterpolation.None;
-            public CollisionDetectionMode collisionDetection = CollisionDetectionMode.Discrete;
+            public CollisionDetectionMode collisionDetection = CollisionDetectionMode.ContinuousDynamic;
             
             /*
                 COLLIDER OPTIONS
@@ -62,7 +62,7 @@ namespace DynamicRagdoll {
                 maxDepenetrationVelocity = 10;
                 
                 interpolation = RigidbodyInterpolation.None;
-                collisionDetection = CollisionDetectionMode.Discrete;
+                collisionDetection = CollisionDetectionMode.ContinuousDynamic;
             
 
                 this.colliderRadius = colliderRadius;

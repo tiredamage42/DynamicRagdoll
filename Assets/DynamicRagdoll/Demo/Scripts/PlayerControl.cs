@@ -1,4 +1,6 @@
 ﻿using UnityEngine;
+using System.Collections;
+
 namespace DynamicRagdoll.Demo {
     public class PlayerControl : MonoBehaviour {
         public Character controlledCharacter;
@@ -70,6 +72,14 @@ namespace DynamicRagdoll.Demo {
 			{
                 shooting.Shoot(cam.ScreenPointToRay(Input.mousePosition));
 			}
+            /*
+                launch the ball from the camera
+            */
+            if (Input.GetKeyDown(KeyCode.B)) 
+            {
+                Ray ray = cam.ScreenPointToRay(Input.mousePosition);
+                cannonBall.Launch(ray.origin, ray.origin + ray.direction * 50, ballScale, ballMass, ballVelocity);
+            }
 
             if (controlledCharacter) {
 
@@ -77,13 +87,6 @@ namespace DynamicRagdoll.Demo {
 
                 Vector3 ragRootBonePosition = ragdollController.ragdoll.RootBone().transform.position;
 
-                /*
-                    launch the ball from the camera to the controleld character
-                */
-                if (Input.GetKeyDown(KeyCode.B)) 
-                {
-                    cannonBall.Launch(camFollow.transform.position, ragRootBonePosition, ballScale, ballMass, ballVelocity);
-                }
 
                 /*
                     drop teh ball on the controlled character
@@ -111,8 +114,43 @@ namespace DynamicRagdoll.Demo {
                     //set speed
                     controlledCharacter.SetMovementSpeed(Input.GetAxis("Vertical") * (Input.GetKey(KeyCode.LeftShift) ? 2 : 1));
                 }
+
+                //disable char control
+                if (Input.GetKeyDown(KeyCode.P)) {
+
+                    AttachToCharacter(null);
+                }
+            }
+            else {
+                /*
+                    look for character to control
+                */
+
+                if (Input.GetMouseButtonDown(1))
+                {
+                    StartCoroutine(CheckForCharacter(cam.ScreenPointToRay(Input.mousePosition)));
+                }
+                
             }
         }
+        IEnumerator CheckForCharacter (Ray ray){
+			yield return new WaitForFixedUpdate();
+			
+			RaycastHit hit;
+			
+			if (Physics.Raycast(ray, out hit, 100f, shooting.shootMask, QueryTriggerInteraction.Ignore))
+            {
+				//check if we hit a ragdoll bone
+				RagdollBone ragdollBone = hit.transform.GetComponent<RagdollBone>();
+				
+                if (ragdollBone) {
+					// check if the ragdoll has a controller
+					if (ragdollBone.ragdoll.hasController) {
+						AttachToCharacter(ragdollBone.ragdoll.controller.GetComponent<Character>());
+					}
+				}
+			}
+		}
 
         void UpdateSloMo () {
 			if (Input.GetKeyDown(KeyCode.N)) {
@@ -139,7 +177,6 @@ namespace DynamicRagdoll.Demo {
 
                 cameraTargetIsAnimatedHips = !cameraTargetIsAnimatedHips;
 
-
                 Ragdoll.Bone hipBone = ragdollController.ragdoll.RootBone();
                 camFollow.target = cameraTargetIsAnimatedHips ? hipBone.followTarget.transform : hipBone.transform;
                 camFollow.updateMode = cameraTargetIsAnimatedHips ? UpdateMode.Update : UpdateMode.FixedUpdate;
@@ -155,7 +192,7 @@ namespace DynamicRagdoll.Demo {
 		}
 
 		void DrawTutorialBox () {
-			GUI.Box(new Rect(5, 5, 160, 120), "Fire = Left mouse\nB = Launch Ball\nN = Slow motion\nR = Go Ragdoll\nMove With Arrow Keys\nor WASD");
+			GUI.Box(new Rect(5, 5, 200, 140), "Left Mouse = Shoot\nB = Launch ball\nU = Drop ball from above\nRight Mouse = Control character\nP = Detach character\nN = Slow motion\nR = Go Ragdoll\nMove With Arrow Keys\nor WASD");
 		}
 
 		void DrawCrosshair () {

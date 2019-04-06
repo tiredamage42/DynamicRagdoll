@@ -4,39 +4,39 @@ namespace DynamicRagdoll {
     /*
         component scene representation of teh physical ragdoll bones
 
-        use like a rigidbody/collider
-
-        TODO:
-            add explosion force and other force add methods...
-    
+        used for collision callbacks
     */
     [RequireComponent(typeof(Rigidbody))]
     public class RagdollBone : MonoBehaviour
     {
         public HumanBodyBones bone;
-        Action<RagdollBone, Collision> broadCastCollision;
+        Action<RagdollBone, Collision> onCollisionEnter, onCollisionStay;
         public Ragdoll ragdoll;
-        public Rigidbody rb;
         public Collider col;
 
         void Awake () {
-            rb = GetComponent<Rigidbody>();
             col = GetComponent<Collider>();
         }
 
         /*
             has to be public i guess...  :/
         */
-        public void _InitializeInternal (Ragdoll ragdoll, HumanBodyBones bone, Action<RagdollBone, Collision> broadCastCollision) {
+        public void _InitializeInternal (Ragdoll ragdoll, HumanBodyBones bone, Action<RagdollBone, Collision> onCollisionEnter, Action<RagdollBone, Collision> onCollisionStay) {
             this.ragdoll = ragdoll;
             this.bone = bone;
-            this.broadCastCollision = broadCastCollision;
+            this.onCollisionEnter = onCollisionEnter;
+            this.onCollisionStay = onCollisionStay;
         }
 
         
         void OnCollisionEnter(Collision collision) {
 
-            broadCastCollision(this, collision);
+            onCollisionEnter(this, collision);
+        }
+
+        void OnCollisionStay(Collision collision) {
+
+            onCollisionStay(this, collision);
         }
     }
 }
