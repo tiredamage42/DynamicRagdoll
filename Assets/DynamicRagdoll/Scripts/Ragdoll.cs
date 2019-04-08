@@ -1,8 +1,6 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
 
-
-
 namespace DynamicRagdoll {
 	/*
 
@@ -72,11 +70,6 @@ namespace DynamicRagdoll {
 		*/
 		public class Bone {
 
-			public float defaultDepenetrationVelocity;
-			public void OverrideDepenetrationSpeed (float newSpeed) {
-				rigidbody.maxDepenetrationVelocity = newSpeed == -1 ? defaultDepenetrationVelocity : newSpeed;
-			}
-			
 			public Rigidbody rigidbody;
 			public ConfigurableJoint joint;
 			public Collider collider;
@@ -142,13 +135,13 @@ namespace DynamicRagdoll {
 					rigidbody.collisionDetectionMode = CollisionDetectionMode.Discrete;
 
 					rigidbody.isKinematic = true;
-					rigidbody.position = (transform.position);
-					rigidbody.rotation = (transform.rotation);
+
+					rigidbody.MovePosition (transform.position);
+					rigidbody.MoveRotation (transform.rotation);
+					
 					rigidbody.isKinematic = false;
 					
 					rigidbody.collisionDetectionMode = originalDetectionMode;
-										
-
 				}
 			}
 
@@ -185,7 +178,6 @@ namespace DynamicRagdoll {
 			}		
 		}
 
-
 		public RagdollProfile ragdollProfile;
 
 		// were teh ragdoll components added in the editor already ?
@@ -212,18 +204,6 @@ namespace DynamicRagdoll {
 			return false;
 		}
 
-
-		/*
-			override the depenetration speed, set to -1 to use default
-		*/
-		public void OverrideDepenetrationSpeed (float newSpeed) {
-			if (CheckForErroredRagdoll("OverrideDepenetrationSpeed"))
-				return;
-	
-			for (int i = 0; i < physicsBonesCount; i++) {	
-				allBones[i].OverrideDepenetrationSpeed(newSpeed);
-			}
-		}
 
 		/*
 			ignore collisions with other physics bones on the same ragdoll
@@ -556,9 +536,6 @@ namespace DynamicRagdoll {
 					allRenderers = GetComponentsInChildren<Renderer>();
 
 					InitializeRagdollBoneComponents();
-
-					OverrideDepenetrationSpeed(-1); //set depenetration speed as default
-
 				}
 				//display errors
 				else {
@@ -591,14 +568,12 @@ namespace DynamicRagdoll {
 			Ragdoll profile (default profile if none is supplied)
 		*/
 		public static void UpdateBonesToProfileValues (Dictionary<HumanBodyBones, Bone> bones, RagdollProfile profile, float initialHeadOffsetFromChest) {
-			if (bones == null) {
+			if (bones == null)
 				return;
-			}
 			
-			if (profile == null) {
+			if (profile == null)
 				profile = RagdollProfile.defaultProfile;
-			}
-
+			
 			Vector3 headOffset = profile.headOffset;
 
 			//clamp head offset (values too high or too low become unstable for some reason)
@@ -714,7 +689,7 @@ namespace DynamicRagdoll {
 			rigidbody.collisionDetectionMode = boneProfile.collisionDetection;
 
 			//setting thebone default so it can be changed at runtime
-			bone.defaultDepenetrationVelocity = boneProfile.maxDepenetrationVelocity;
+			rigidbody.maxDepenetrationVelocity = boneProfile.maxDepenetrationVelocity;
 		}
     }
 }

@@ -4,7 +4,7 @@ using UnityEngine;
 namespace DynamicRagdoll.Demo {
     public class DemoSceneController : MonoBehaviour
     {
-        public float gravityModifier = 2;
+        //public float gravityModifier = 2;
         public float maxRainObjects = 10;
         public Vector2 rainSizeRange = new Vector2(1, 10);
         public GameObject rainObject;
@@ -19,7 +19,7 @@ namespace DynamicRagdoll.Demo {
         float lastSpawn, lastRain;
 
         void Awake () {
-            Physics.gravity *= gravityModifier;
+            //Physics.gravity *= gravityModifier;
         }
 
         void SpawnBot () {
@@ -45,10 +45,11 @@ namespace DynamicRagdoll.Demo {
                     t.rotation = rotation;
 
                     t.localScale = Vector3.one * Random.Range(rainSizeRange.x, rainSizeRange.y);
-                    t.GetComponent<Rigidbody>().mass = t.localScale.x * 100;
                     
+                    Rigidbody rb = t.GetComponent<Rigidbody>();
+                    rb.mass = t.localScale.x * 100;
                     //fast movign object
-                    t.GetComponent<Rigidbody>().collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
+                    rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
                     
                 }
 

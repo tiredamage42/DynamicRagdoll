@@ -13,9 +13,11 @@ using System.Collections.Generic;
 		hides ragdoll while teleporting it around to fit animation
 
 		not set to kinematic, in order to save forces applied by collisions,
-		but we disable gravity, disable ragdoll self collisions, and set the depenetration velocity to 0
-		(so the colliders dont jitter around)
+		but we disable gravity, and disable ragdoll self collisions
 
+		we also ignore any collisions between the bones and any static colliders, 
+		so the colliders dont jitter around while trying to teleport partway inside
+		another collider
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -26,7 +28,7 @@ using System.Collections.Generic;
 		-	adjust all the secondary transforms (fingers, etc..) on the ragdoll to match their masters
 			(all the other transforms have been being teleported already)
 
-		-	turn on gravity and default depenetration velocity (and enable ragdoll self collisions)
+		-	turn on gravity and enable ragdoll self collisions
 		
 		-	switch the renderrs to show the ragdoll that has the velocity of the animations
 
@@ -101,9 +103,8 @@ using System.Collections.Generic;
 
 		- store the positions and rotations of the ragdolled bones
 		
-		- turn off physics for the ragdoll (no gravity, no depenetration velocity)
+		- turn off physics for the ragdoll (no gravity, no static bone collisions)
 		
-
 		- linearly interpolate the positions and rotations from their ragdolled positions
 		  to the animated positions (in late update)
 		
@@ -112,21 +113,12 @@ using System.Collections.Generic;
 		  (which should still be playing the get up animation)
 
 */
-
-
 namespace DynamicRagdoll {
 
 	//Animator must have a humanoid avatar, figure out how to check this
 	[RequireComponent(typeof(Animator))] 
 	public class RagdollController : MonoBehaviour
-	{
-		
-		public bool ragdollRenderersEnabled {
-			get {
-				return state != RagdollControllerState.Animated;
-			}
-		}
-		
+	{	
 		public Ragdoll ragdoll;
 		public RagdollControllerProfile profile;	
 
@@ -134,6 +126,7 @@ namespace DynamicRagdoll {
 		public bool disableGetUp;
 		
 		[HideInInspector] public RagdollControllerState state = RagdollControllerState.Animated;
+		public bool ragdollRenderersEnabled { get { return state != RagdollControllerState.Animated; } }
 
 		/*
 			currently returns if we just entered the animated state, 
@@ -158,16 +151,13 @@ namespace DynamicRagdoll {
 		AnimatorCullingMode originalAnimatorCullingMode;
 
 		float stateStartTime = -100;
-	
 		bool controllerInvalid { get { return profile == null || ragdoll == null; } }
 
 		float fallDecay;
 		float fallSpeed = -1;
 
 		Dictionary<HumanBodyBones, float> boneDecays = new Dictionary<HumanBodyBones, float>();
-
 		VelocityTracker[] animationVelocityTrackers;
-
 
 		/*
 			Configurable joint values for ragdoll bones
@@ -176,6 +166,14 @@ namespace DynamicRagdoll {
 		Quaternion[] startLocalRotations, localToJointSpaces;
 		float[] lastTorques;
 
+		//ignore pairs for blending bones ignorign static colliders
+        HashSet<ColliderIgnorePair> blendBonesIgnoreStaticColliders = new HashSet<ColliderIgnorePair>();
+        
+		bool teleportingBones {
+			get {
+				return state == RagdollControllerState.Animated || state == RagdollControllerState.BlendToAnimated;
+			}
+		}
 
 		/*
 			Set the fall decay speed for the next 'Ragdolling'
@@ -183,7 +181,6 @@ namespace DynamicRagdoll {
 		public void SetFallSpeed (float fallSpeed) {
 			this.fallSpeed = fallSpeed;
 		}
-
 
 		/*
 			enable or disable renderers on the master, and the ragdoll
@@ -195,13 +192,16 @@ namespace DynamicRagdoll {
 			ragdoll.EnableRenderers(ragdollEnabled);
 		}
 		
-
 		void ChangeRagdollState (RagdollControllerState newState) {
 			state = newState;
 			//store the state change time
 			stateStartTime = Time.time;
+            
+			//unignore the bones and static colliders that were ignored while blending and animating
+			if (!teleportingBones) {
+				EndStaticCollidersAndBoneCollisionIgnore();
+			}
 		}
-		
 
 		/*
 			call to start the ragdoll process
@@ -220,7 +220,6 @@ namespace DynamicRagdoll {
 			if (state == RagdollControllerState.Falling || state == RagdollControllerState.Ragdolled)
 				return;
 
-
 			/*
 				store start positions to begin calculating the velocity of the playing animation
 			*/
@@ -233,7 +232,6 @@ namespace DynamicRagdoll {
 
 			//enable physics for ragdoll 
 			ragdoll.UseGravity(true);
-			//ragdoll.OverrideDepenetrationSpeed(-1);
 			ragdoll.IgnoreSelfCollisions(false);
 			
 			//turn on ragdoll renderers, disable master renderers
@@ -246,7 +244,6 @@ namespace DynamicRagdoll {
 			//change the state
 			ChangeRagdollState(RagdollControllerState.Falling);		
 		}
-
 
 		/*
 			Transition from ragdolled to animated through the Blend state
@@ -261,9 +258,7 @@ namespace DynamicRagdoll {
 			
 			//disable physics affecting ragdoll
 			ragdoll.UseGravity(false); 
-			//ragdoll.OverrideDepenetrationSpeed(1);
 			ragdoll.IgnoreSelfCollisions(true);
-			
 
 			//save the ragdoll positions
 			ragdoll.SaveSnapshot();
@@ -338,7 +333,6 @@ namespace DynamicRagdoll {
 			ChangeRagdollState(RagdollControllerState.Animated);
 		}
 
-
 		/*
 			Wait until transition to getUp animation is done,
 			so the animation is lying down before teleporting 
@@ -347,7 +341,6 @@ namespace DynamicRagdoll {
 		bool HandleWaitForMasterTeleport () {
 			return timeSinceStateStart >= profile.orientateDelay;
 		}
-
 
 		/*
 			teleport all ragdoll (and ragdoll parents) in order to match animation
@@ -366,7 +359,6 @@ namespace DynamicRagdoll {
 			}
 			InitializeForwardCalculation();
 		
-
 			switch (state) {
 			
 			case RagdollControllerState.Animated: 
@@ -428,13 +420,14 @@ namespace DynamicRagdoll {
 			ragdoll.UseGravity(false);
 			//ragdoll.OverrideDepenetrationSpeed(-1);
 			ragdoll.IgnoreSelfCollisions(true);
-			
 
 			ResetToAnimated();
 			ResetBoneDecays();
+
+			//subscribe to receive a callback on ragdoll bone collision
+			ragdoll.AddCollisionEnterCallback (OnRagdollCollisionEnter);
 		}
-
-
+			
 		/*
 			initialize root bone forward calculation, for determining
 			when ragdoll is on it's front or back (for getting up)
@@ -483,9 +476,7 @@ namespace DynamicRagdoll {
 					Late Update to the ragdoll bones, also handle joint targets
 				*/
 				SetPhysicsVelocities(Time.fixedDeltaTime);
-
 				HandleFallLerp(Time.deltaTime);
-			
 				break;
 			}
 		}
@@ -505,7 +496,6 @@ namespace DynamicRagdoll {
 			}
 		}
 
-
 		void CheckForGetUp () {
 			//if we've spent enough time ragdolled
 			if (Time.time - stateStartTime > profile.ragdollMinTime) {
@@ -518,14 +508,11 @@ namespace DynamicRagdoll {
 
 		/*
 			called in late update normally (in order to calculate animation velocities)
-
 			in fixed update if using pd controller
 		*/
 		void UpdateLoop(float deltaTime)
 		{
-			
-			if (state == RagdollControllerState.Falling) {
-				
+			if (state == RagdollControllerState.Falling) {		
 				CalculateAnimationVelocities(deltaTime);
 			}
 		}
@@ -540,8 +527,6 @@ namespace DynamicRagdoll {
 				ChangeRagdollState(RagdollControllerState.Ragdolled);
 			}
 		}
-
-
 			
 		void InitializeVelocitySetValues () {
 
@@ -552,11 +537,8 @@ namespace DynamicRagdoll {
 				Ragdoll.Bone bone = ragdoll.GetPhysicsBone(Ragdoll.phsysicsHumanBones[i]);
 				
 				//track position (offset by ragdoll bone's rigidbody centor of mass) of the follow target
-				
 				Vector3 massCenterOffset = bone.transform.InverseTransformPoint(bone.rigidbody.worldCenterOfMass);
-
 				animationVelocityTrackers[i] = new VelocityTracker(bone.followTarget.transform, massCenterOffset);
-
 			}
 		}
 
@@ -587,7 +569,6 @@ namespace DynamicRagdoll {
 				joint.slerpDrive = jointDrive;
 			}
 		}
-		
 		
 		/*
 			store the first positions to start calculating the velocity of the master animation
@@ -632,13 +613,11 @@ namespace DynamicRagdoll {
 			boneDecays[bones] = origDecay;
 
 			if (neighborMultiplier > 0) {
-				
 				foreach (var n in profile.bones[Ragdoll.PhysicsBone2Index(bones)].neighbors) {
 					SetBoneDecay(n, decayValue * neighborMultiplier, 0);
 				}
 			}
 		}
-
 
 		/*
 			returns number with the largest magnitude
@@ -654,12 +633,10 @@ namespace DynamicRagdoll {
 		}
 		
 		/*
-			set the velocities we calculated in late update for each animated bone
-			
+			set the velocities we calculated in late update for each animated bone			
 			on the actual ragdoll
 		*/
 		void SetPhysicsVelocities (float deltaTime) {
-
 			
 			float dot = Vector3.Dot(ragdoll.RootBone().transform.up, Vector3.up);
 
@@ -680,22 +657,17 @@ namespace DynamicRagdoll {
 			
 				/*
 					calculate the force decay based on the overall fall decay and the bone profile's
-				
 					fall force decay curve
 				*/
-
 				float forceDecay = Mathf.Clamp01(profile.bones[i].fallForceDecay.Evaluate (fallDecayCurveSample));
 				
 				//subtract manual decay
 				forceDecay = Mathf.Clamp01(forceDecay - boneDecay);
 
-
 				// if we're flipped to extremely, stop trying to follow anim
 				// makes it look like it's 'gliding' forward in superman stance
-				if (dot < profile.loseFollowDot) {
+				if (dot < profile.loseFollowDot)
 					forceDecay = 0;
-				}
-
 
 				// if we're still using some force to follow
 				if (forceDecay != 0) {
@@ -705,23 +677,16 @@ namespace DynamicRagdoll {
 					/*
 						if animation velocity is below threshold magnitude, add some gravity to it
 					*/
-					float animationVelocityMag2 = animVelocity.sqrMagnitude;				
-					
-					if (animationVelocityMag2 < maxVelocityForGravityAdd2) {
-
+					if (animVelocity.sqrMagnitude < maxVelocityForGravityAdd2)
 						animVelocity.y = Physics.gravity.y * deltaTime;
-					}
 
 					/*
 						if bone decay was manually set to make room for external velocities,
-						
 						use the most extreme component of each vector as the "target animated" velocity
 					*/
-					if (boneDecay != 0) {	
+					if (boneDecay != 0)
 						animVelocity = MaxAbs(ragdollBoneVelocty, animVelocity);
-					}
 
-					//Debug.Log("set here");
 					// set the velocity on the ragdoll rigidbody (based on the force decay)
 					bone.rigidbody.velocity = Vector3.Lerp(ragdollBoneVelocty, animVelocity, forceDecay);
 				}
@@ -729,11 +694,9 @@ namespace DynamicRagdoll {
 				if (i != 0) {
 
 					/*
-						calculate the force decay based on the overall fall decay and the bone profile's
-					
+						calculate the force decay based on the overall fall decay and the bone profile's					
 						fall force decay curve
 					*/
-
 					float torqueDecay = Mathf.Clamp01(profile.bones[i].fallTorqueDecay.Evaluate (fallDecayCurveSample));
 					
 					//subtract manual decay
@@ -788,6 +751,49 @@ namespace DynamicRagdoll {
 				Quaternion targetLocalRotation = bone.followTarget.transform.localRotation;
 				bone.joint.targetRotation = localToJointSpaces[boneIndex] * Quaternion.Inverse(targetLocalRotation) * startLocalRotations[boneIndex];
 			}	
+		}
+
+
+		void EndStaticCollidersAndBoneCollisionIgnore () {
+			//unignore the bones and static colliders that were ignored while blending and animating
+
+			if (blendBonesIgnoreStaticColliders.Count > 0) {
+			
+				foreach(var p in blendBonesIgnoreStaticColliders)
+					p.EndIgnore();
+			
+				blendBonesIgnoreStaticColliders.Clear();
+			}
+		}
+
+
+
+		/*
+            when blending to animation, ignore collisons wiht static colliders that bones 
+            come in contact with (this eliminates jitters from bone teleport trying to go through
+            the static collider).  
+
+            bone rigidbodies cannot be kinematic though, or else collisions wont exert forces in time
+            (when ragdollign on collision)
+        */
+        void CheckForBlendIgnoreStaticCollision (RagdollBone bone, Collision collision) {
+            // if wee're blending or animated (teleporting bones)
+            if (teleportingBones) {
+
+                //if it's static
+                if (collision.collider.attachedRigidbody == null){   
+
+                    blendBonesIgnoreStaticColliders.Add(new ColliderIgnorePair(bone.col, collision.collider));
+                }
+            }
+        }
+
+		/*
+			callback called when ragdoll bone gets a collision
+		*/    
+		void OnRagdollCollisionEnter(RagdollBone bone, Collision collision)
+		{
+            CheckForBlendIgnoreStaticCollision(bone, collision);
 		}
 	}
 }

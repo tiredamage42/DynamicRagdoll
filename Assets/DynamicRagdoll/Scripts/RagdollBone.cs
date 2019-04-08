@@ -7,8 +7,7 @@ namespace DynamicRagdoll {
         used for collision callbacks
     */
     [RequireComponent(typeof(Rigidbody))]
-    public class RagdollBone : MonoBehaviour
-    {
+    public class RagdollBone : MonoBehaviour {
         public HumanBodyBones bone;
         Action<RagdollBone, Collision> onCollisionEnter, onCollisionStay;
         public Ragdoll ragdoll;
@@ -28,14 +27,10 @@ namespace DynamicRagdoll {
             this.onCollisionStay = onCollisionStay;
         }
 
-        
         void OnCollisionEnter(Collision collision) {
-
             onCollisionEnter(this, collision);
         }
-
         void OnCollisionStay(Collision collision) {
-
             onCollisionStay(this, collision);
         }
     }

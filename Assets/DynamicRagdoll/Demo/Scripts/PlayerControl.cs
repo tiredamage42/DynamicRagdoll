@@ -34,10 +34,9 @@ namespace DynamicRagdoll.Demo {
 
             origFixedDelta = Time.fixedDeltaTime;
             Cursor.visible = false;
-
         }
-        void Start () {
 
+        void Start () {
             AttachToCharacter(controlledCharacter);
         }
 
@@ -62,21 +61,19 @@ namespace DynamicRagdoll.Demo {
         void Update() {
 
             CheckCameraTarget();
-
             UpdateSloMo();
 
             /*
                 shoot from the clicked position
             */
-            if (Input.GetMouseButtonDown(0))
-			{
+            if (Input.GetMouseButtonDown(0)) {
                 shooting.Shoot(cam.ScreenPointToRay(Input.mousePosition));
 			}
+
             /*
                 launch the ball from the camera
             */
-            if (Input.GetKeyDown(KeyCode.B)) 
-            {
+            if (Input.GetKeyDown(KeyCode.B)) {
                 Ray ray = cam.ScreenPointToRay(Input.mousePosition);
                 cannonBall.Launch(ray.origin, ray.origin + ray.direction * 50, ballScale, ballMass, ballVelocity);
             }
@@ -84,15 +81,12 @@ namespace DynamicRagdoll.Demo {
             if (controlledCharacter) {
 
                 RagdollController ragdollController = controlledCharacter.ragdollController;
-
                 Vector3 ragRootBonePosition = ragdollController.ragdoll.RootBone().transform.position;
-
 
                 /*
                     drop teh ball on the controlled character
                 */
-                if (Input.GetKeyDown(KeyCode.U)) 
-                {
+                if (Input.GetKeyDown(KeyCode.U)) {
                     cannonBall.Launch(ragRootBonePosition + Vector3.up * 25, ragRootBonePosition, ballScale, ballMass, 0);
                 }
                 
@@ -110,14 +104,12 @@ namespace DynamicRagdoll.Demo {
                 {
                     //do turning
                     controlledCharacter.transform.Rotate(0f, Input.GetAxis("Horizontal") * turnSpeed * Time.deltaTime, 0f);
-                    
                     //set speed
                     controlledCharacter.SetMovementSpeed(Input.GetAxis("Vertical") * (Input.GetKey(KeyCode.LeftShift) ? 2 : 1));
                 }
 
                 //disable char control
                 if (Input.GetKeyDown(KeyCode.P)) {
-
                     AttachToCharacter(null);
                 }
             }
@@ -125,12 +117,9 @@ namespace DynamicRagdoll.Demo {
                 /*
                     look for character to control
                 */
-
-                if (Input.GetMouseButtonDown(1))
-                {
+                if (Input.GetMouseButtonDown(1)) {
                     StartCoroutine(CheckForCharacter(cam.ScreenPointToRay(Input.mousePosition)));
                 }
-                
             }
         }
         IEnumerator CheckForCharacter (Ray ray){
@@ -194,7 +183,7 @@ namespace DynamicRagdoll.Demo {
 		void DrawTutorialBox () {
 			GUI.Box(new Rect(5, 5, 200, 140), "Left Mouse = Shoot\nB = Launch ball\nU = Drop ball from above\nRight Mouse = Control character\nP = Detach character\nN = Slow motion\nR = Go Ragdoll\nMove With Arrow Keys\nor WASD");
 		}
-
+        
 		void DrawCrosshair () {
 			float crossHairSize = 40;
 			float halfSize = crossHairSize / 2;

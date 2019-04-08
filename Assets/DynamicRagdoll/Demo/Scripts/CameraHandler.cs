@@ -7,10 +7,15 @@ namespace DynamicRagdoll.Demo {
 	*/
 	public class CameraHandler : MonoBehaviour
 	{
-
 		public float freeMoveSpeed = 1.0f;
-
 		public float freeMoveTurn = 1;
+		public UpdateMode updateMode = UpdateMode.LateUpdate;
+
+		public float moveSpeed = 1.5f;			
+		public float turnSpeed = 7f;			
+		public float distance = 4.0f;
+		public Transform target;
+		Vector3 startDir;
  
 		void UpdateFreeCam () {
 
@@ -30,7 +35,6 @@ namespace DynamicRagdoll.Demo {
 			if (Input.GetKey(KeyCode.Q))
 				depthAxis += 1;
 
-
 			float moveAxisY = 0;
 			if (Input.GetKey(KeyCode.S))
 				moveAxisY -= 1;
@@ -42,20 +46,10 @@ namespace DynamicRagdoll.Demo {
 			if (Input.GetKey(KeyCode.D)) 
 				moveAxisX += 1;
 			
-			
-			
 			transform.position += (transform.right * moveAxisX + transform.forward * moveAxisY + transform.up * depthAxis) * freeMoveSpeed;
 			transform.eulerAngles += new Vector3(turnAxisX, turnAxisY, 0) * freeMoveTurn;
-			
 		}
-
-		public UpdateMode updateMode = UpdateMode.LateUpdate;
-
-		public float moveSpeed = 1.5f;			
-		public float turnSpeed = 7f;			
-		public float distance = 4.0f;
-		public Transform target;
-		Vector3 startDir;
+		
 		void Awake ()
 		{
 			if (!target) {
@@ -84,13 +78,10 @@ namespace DynamicRagdoll.Demo {
 			if (modeCheck != updateMode) {
 				return;
 			}
-
-			if (!target) {
-				
+			if (!target) {	
 				UpdateFreeCam();
 				return;
 			}
-
 			
 			Vector3 camPos = transform.position;
 			Quaternion camRot = transform.rotation;

@@ -18,7 +18,6 @@ namespace DynamicRagdoll.Demo {
         void Awake () {
             character = GetComponent<Character>();
         }
-
             
         void Start () {
             //maybe run, maybe walk
@@ -30,7 +29,6 @@ namespace DynamicRagdoll.Demo {
             float halfPlayArea = playArea * .5f;  
             return new Vector3(Random.Range(-halfPlayArea, halfPlayArea), 0, Random.Range(-halfPlayArea, halfPlayArea));
         }
-
 
         void Update () {
             if (!character.overrideControl) {
@@ -50,12 +48,9 @@ namespace DynamicRagdoll.Demo {
             transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(lookDir), turnSpeed * Time.deltaTime);
         }
 
-        
         void CheckForArrival () {
             if (Vector3.Distance(transform.position, destination) <= .5f) {
-
                 Start();
-                
             }
         }
     }

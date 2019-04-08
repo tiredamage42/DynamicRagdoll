@@ -42,28 +42,6 @@ namespace DynamicRagdoll.Demo {
     [RequireComponent(typeof(CharacterController))]
     public class CharacterCollisions : MonoBehaviour
     {
-        /*
-            use to temporarily ignore collisions between two colliders
-        */
-        struct ColliderIgnorePair {
-            public Collider collider1, collider2;
-            public float ignoreTime;
-            public float timeSinceIgnore { get { return Time.time - ignoreTime; } }
-
-            public ColliderIgnorePair(Collider collider1, Collider collider2) {
-                this.collider1 = collider1;
-                this.collider2 = collider2;
-                this.ignoreTime = Time.time;
-
-                Physics.IgnoreCollision(collider1, collider2, true);
-            }
-
-            public void EndIgnore () {
-                Physics.IgnoreCollision(collider1, collider2, false);
-            }
-        }
-
-
         [Header("Ragdoll Detection")]
         [Tooltip("When we run into something.\nHow fast do we have to be going to go ragdoll")]
         public float outgoingMagnitudeThreshold = 5;
@@ -104,9 +82,6 @@ namespace DynamicRagdoll.Demo {
         RagdollController ragdollController;
         CharacterController characterController;
 
-        //ignore pairs for blending bones ignorign static colliders
-        HashSet<ColliderIgnorePair> blendBonesIgnoreStaticColliders = new HashSet<ColliderIgnorePair>();
-        
         // ignore pairs for character controller ignoring rigidbodies that might hit our ragdoll bones
         List<ColliderIgnorePair> charControllerIgnorePairs = new List<ColliderIgnorePair>();
         
@@ -114,7 +89,6 @@ namespace DynamicRagdoll.Demo {
         ContactPoint[] contacts = new ContactPoint[5];
         int contactCount;
 
-        
         //calculate the character height based on the distance between the top of our head
         //and out feet
         float calculateCharHeight {
@@ -141,10 +115,8 @@ namespace DynamicRagdoll.Demo {
                 return velocity;
             }
         }
-        
 
-        void Awake () 
-		{
+        void Awake () {
             characterController = GetComponent<CharacterController>();
             ragdollController = GetComponent<RagdollController>();
 		}
@@ -186,9 +158,8 @@ namespace DynamicRagdoll.Demo {
             // check for ignore trigger only when the character controller is enabled
             inCollisionDetector.enabled = characterController.enabled;
 
-            if (characterController.enabled) {
+            if (characterController.enabled)
                 UpdateCapsules();
-            }
         }
         
         void UpdateCapsules () {
@@ -225,15 +196,13 @@ namespace DynamicRagdoll.Demo {
         void OnControllerColliderHit(ControllerColliderHit hit) {
 
             // We dont want to push objects below us
-            if (hit.moveDirection.y < -0.3) {
+            if (hit.moveDirection.y < -0.3)
                 return;
-            }
 
             //check for rigidbody            
             Rigidbody rb = hit.collider.attachedRigidbody;
-            if (rb == null || rb.isKinematic) {
+            if (rb == null || rb.isKinematic)
                 return;
-            }
             
             // Calculate push direction from move direction,
             // we only push objects to the sides never up and down
@@ -275,13 +244,9 @@ namespace DynamicRagdoll.Demo {
             float incomingThreshold = incomingMagnitudeThreshold * incomingMagnitudeThreshold;
             float outgoingThreshold = outgoingMagnitudeThreshold * outgoingMagnitudeThreshold;
 
-            if (rigidbody.velocity.sqrMagnitude < incomingThreshold 
-                && controllerVelocity.sqrMagnitude < outgoingThreshold
-                //&& rigidbody.mass < crushMass
-            )
+            if (rigidbody.velocity.sqrMagnitude < incomingThreshold && controllerVelocity.sqrMagnitude < outgoingThreshold)
                 return;
             
-
             //already ignoring
             if (ControllerIsIgnoringCollider(other))
                 return;
@@ -291,18 +256,6 @@ namespace DynamicRagdoll.Demo {
 
         void CheckForIgnoreExpires () {
 
-            //unignore the bones and static colliders that were ignored while blending
-            if (ragdollController.state != RagdollControllerState.BlendToAnimated) {
-                
-                if (blendBonesIgnoreStaticColliders.Count > 0) {
-                
-                    foreach(var p in blendBonesIgnoreStaticColliders) {
-                        p.EndIgnore();
-                    }
-                    blendBonesIgnoreStaticColliders.Clear();
-                }
-            }
-            
             // unignore the character controller with colliders that couldve ragdolled us
             for (int i = charControllerIgnorePairs.Count - 1; i >= 0; i--) {
                 ColliderIgnorePair p = charControllerIgnorePairs[i];
@@ -315,29 +268,6 @@ namespace DynamicRagdoll.Demo {
             }
         }
 
-        /*
-            when blending to animation, ignore collisons wiht static colliders that bones 
-            come in contact with (this eliminates jitters from bone teleport trying to go through
-            the static collider).  
-
-            bone rigidbodies cannot be kinematic though, or else collisions wont exert forces in time
-            (when ragdollign on collision)
-        */
-        bool CheckForBlendIgnoreStaticCollision (RagdollBone bone, Collision collision) {
-            // if wee're blending
-            if (ragdollController.state == RagdollControllerState.BlendToAnimated) {
-
-                //if it's static
-                if (collision.collider.attachedRigidbody == null){   
-
-                    blendBonesIgnoreStaticColliders.Add(new ColliderIgnorePair(bone.col, collision.collider));
-                    return true;
-                }
-            }
-            return false;
-        }
-
-
         bool CollisionIsAboveStepOffset (Collision collision, float buffer) {
             // if it's below our step offset (plus a buffer)
             // ignore it, we can just step on top of it
@@ -348,10 +278,8 @@ namespace DynamicRagdoll.Demo {
             for (int i = 0; i < contactCount; i++) {
 
                 float yOffset = contacts[i].point.y - transform.position.y;
-                
-                if (yOffset > offsetThreshold){
+                if (yOffset > offsetThreshold)
                     return true;
-                }
             }
             return false;
         }
@@ -362,10 +290,8 @@ namespace DynamicRagdoll.Demo {
                 float yOffset = contacts[i].point.y - transform.position.y;
 
                 if (charHeight - yOffset < crushMassTopOffset) {
-                    if (Vector3.Dot(Vector3.down, contacts[i].normal) > .75f) {
-
+                    if (Vector3.Dot(Vector3.down, contacts[i].normal) > .75f)
                         return true;
-                    }
                 }
             }
             return false;
@@ -376,7 +302,6 @@ namespace DynamicRagdoll.Demo {
         
         /*
 			callback called when ragdoll bone gets a collision
-
             then apply bone decay to those bones
 		*/    
 		void OnRagdollCollisionEnter(RagdollBone bone, Collision collision)
@@ -387,14 +312,11 @@ namespace DynamicRagdoll.Demo {
 			*/
             //maybe add warp to master
             bool checkForRagdoll = ragdollController.state == RagdollControllerState.Animated || ragdollController.state == RagdollControllerState.BlendToAnimated;
-            
             bool isFalling = ragdollController.state == RagdollControllerState.Falling;
+            
 			if (isFalling && !checkForRagdoll)
 				return;
 
-            if (CheckForBlendIgnoreStaticCollision(bone, collision))
-                return;
-            
             if (checkForRagdoll) {
 
                 //if we're getting up, knock us out regardless
@@ -416,21 +338,21 @@ namespace DynamicRagdoll.Demo {
             
             if (checkForRagdoll) {
 
-                string message = "incoming";
+               // string message = "incoming";
 
                 // if the collision is above our incoming threhsold, 
                 bool goRagdoll = collisionMagnitude2 >= incomingMagnitudeThreshold * incomingMagnitudeThreshold;
                 
                 // else check if we're travelling fast enough to go ragdoll
                 if (!goRagdoll){
-                    message = "outgoing";
+                    // message = "outgoing";
                     collisionMagnitude2 = controllerVelocity.sqrMagnitude;
                     goRagdoll = collisionMagnitude2 >= outgoingMagnitudeThreshold * outgoingMagnitudeThreshold;
                 }
 
                 //else check if we're being crushed
                 if (!goRagdoll) {
-                    message = "crush";
+                    // message = "crush";
                     goRagdoll = CollisionIsAboveCrushOffset(collision) && CollisionHasCrushMass(collision);
                 }
                     
@@ -446,9 +368,7 @@ namespace DynamicRagdoll.Demo {
         void HandleBoneDecayOnCollision (float collisionMagnitude2, RagdollBone bone, Collision collision) {
 
             if (CollisionIsAboveCrushOffset(collision) && CollisionHasCrushMass(collision)) {
-                
                 //Debug.LogWarning(bone + " / " + collision.transform.name + " CrUSHED");
-                
                 ragdollController.SetBoneDecay(bone.bone, 1, neighborDecayMultiplier);
             }
 
@@ -458,9 +378,7 @@ namespace DynamicRagdoll.Demo {
 
                 //linearly interpolate decay between 0 and 1 base on collision magnitude
                 float linearDecay = (magnitude - decayMagnitudeRange.x) / (decayMagnitudeRange.y -  decayMagnitudeRange.x);
-
                 //Debug.Log(bone + " / " + collision.transform.name + " mag: " + magnitude + " decay " + linearDecay);
-                
                 ragdollController.SetBoneDecay(bone.bone, linearDecay, neighborDecayMultiplier);
             }
         }

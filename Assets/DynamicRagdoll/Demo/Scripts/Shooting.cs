@@ -11,7 +11,6 @@ namespace DynamicRagdoll.Demo {
         public LayerMask shootMask;
         public float bulletForce = 25f;
 
-        
 		// needed for slo motion or forces are too small
 		public float modifiedBulletForce { get { return bulletForce / Time.timeScale; } }
 
