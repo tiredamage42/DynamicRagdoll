@@ -14,29 +14,11 @@ namespace DynamicRagdoll {
     [RequireComponent(typeof(Rigidbody))]
     public class TriggerDetector : MonoBehaviour
     {
-        CapsuleCollider _capsule;
-        public CapsuleCollider capsule {
-            get {
-                if (_capsule == null) {
-                    _capsule = GetComponent<CapsuleCollider>();
-                }
-                return _capsule;
-            }
-        }
-
-        HashSet<Action<Collider>> onTriggerCallbacks = new HashSet<Action<Collider>>();
-        
-        public void SubscribeToTrigger (System.Action<Collider> onCollision) {
-            onTriggerCallbacks.Add(onCollision);
-        }
-
-        void BroadcastTrigger (Collider collider) {
-            foreach (var cb in onTriggerCallbacks) {
-                cb(collider);
-            }
-        }
+        public event Action<Collider> onTriggerEnter;
+        [HideInInspector] public CapsuleCollider capsule;
 
         void Awake () {
+            capsule = GetComponent<CapsuleCollider>();
             capsule.isTrigger = true;
             GetComponent<Rigidbody>().isKinematic = true;
         }
@@ -49,7 +31,9 @@ namespace DynamicRagdoll {
                 return;
             }
 
-            BroadcastTrigger(other);
+            if (onTriggerEnter != null) {
+                onTriggerEnter(other);
+            }
         }        
     }
 }

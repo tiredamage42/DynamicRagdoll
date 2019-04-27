@@ -45,6 +45,7 @@ namespace DynamicRagdoll.Demo {
 						controller.GoRagdoll();					
 					}
 				}
+				
 				// shoot normally
 
 				Rigidbody rb = hit.transform.GetComponent<Rigidbody>();

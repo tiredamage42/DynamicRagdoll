@@ -142,7 +142,7 @@ namespace DynamicRagdoll.Demo
 			}
 			else {
 				/*
-					when falling or calculating velocity,
+					when falling
 					
 					use normal transform stuff (dont want the character controller collisions messing stuff up)
 					for falling /calculating fall ( we need all exterion collisions to reach ragdol bones)

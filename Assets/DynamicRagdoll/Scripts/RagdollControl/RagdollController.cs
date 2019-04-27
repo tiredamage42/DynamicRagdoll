@@ -425,7 +425,7 @@ namespace DynamicRagdoll {
 			ResetBoneDecays();
 
 			//subscribe to receive a callback on ragdoll bone collision
-			ragdoll.AddCollisionEnterCallback (OnRagdollCollisionEnter);
+			ragdoll.onCollisionEnter += OnRagdollCollisionEnter;
 		}
 			
 		/*
@@ -779,11 +779,10 @@ namespace DynamicRagdoll {
         void CheckForBlendIgnoreStaticCollision (RagdollBone bone, Collision collision) {
             // if wee're blending or animated (teleporting bones)
             if (teleportingBones) {
-
                 //if it's static
                 if (collision.collider.attachedRigidbody == null){   
 
-                    blendBonesIgnoreStaticColliders.Add(new ColliderIgnorePair(bone.col, collision.collider));
+                    blendBonesIgnoreStaticColliders.Add(new ColliderIgnorePair(bone.boneCollider, collision.collider));
                 }
             }
         }

@@ -250,34 +250,26 @@ namespace DynamicRagdoll {
 			callback must take in:
 				RagdollBone, Collision
 		*/
-		public void AddCollisionEnterCallback (System.Action<RagdollBone, Collision> callback) {
-			if (CheckForErroredRagdoll("AddCollisionEnterCallback"))
-				return;
-			
-			collisionEnterCallbacks.Add(callback);
-		}
-		public void AddCollisionStayCallback (System.Action<RagdollBone, Collision> callback) {
-			if (CheckForErroredRagdoll("AddCollisionStayCallback"))
-				return;
-			
-			collisionStayCallbacks.Add(callback);
-		}
 
-		HashSet<System.Action<RagdollBone, Collision>> collisionEnterCallbacks = new HashSet<System.Action<RagdollBone, Collision>>();
-		HashSet<System.Action<RagdollBone, Collision>> collisionStayCallbacks = new HashSet<System.Action<RagdollBone, Collision>>();
+		public event System.Action<RagdollBone, Collision> onCollisionEnter, onCollisionStay, onCollisionExit;
 
 		/*
 			send the message out that bone was collided
 			(given to ragdollbone component)
 		*/
 		void BroadcastCollisionEnter (RagdollBone bone, Collision collision) {
-			foreach (var cb in collisionEnterCallbacks) {
-				cb(bone, collision);
+			if (onCollisionEnter != null) {
+				onCollisionEnter(bone, collision);
 			}
 		}
 		void BroadcastCollisionStay (RagdollBone bone, Collision collision) {
-			foreach (var cb in collisionStayCallbacks) {
-				cb(bone, collision);
+			if (onCollisionStay != null) {
+				onCollisionStay(bone, collision);
+			}
+		}
+		void BroadcastCollisionExit (RagdollBone bone, Collision collision) {
+			if (onCollisionExit != null) {
+				onCollisionExit(bone, collision);
 			}
 		}
 

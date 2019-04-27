@@ -1,10 +1,6 @@
 ﻿using UnityEngine;
 namespace DynamicRagdoll {
-    public enum UpdateMode { 
-        Update, 
-        FixedUpdate, 
-        LateUpdate 
-    };
+    public enum UpdateMode { Update, FixedUpdate, LateUpdate };
 
     public enum RagdollControllerState { 
         Animated, 					//fully animated
@@ -18,7 +14,7 @@ namespace DynamicRagdoll {
     /*
         use to temporarily ignore collisions between two colliders
     */
-    struct ColliderIgnorePair {
+    class ColliderIgnorePair {
         public Collider collider1, collider2;
         public float ignoreTime;
         public float timeSinceIgnore { get { return Time.time - ignoreTime; } }
