@@ -52,7 +52,7 @@ namespace DynamicRagdoll.Demo {
                 //disable ai for our new controlled character
                 controlledCharacter.GetComponent<AIControl>().enabled = false;
 
-                Ragdoll.Bone hipBone = controlledCharacter.ragdollController.ragdoll.RootBone();
+                Ragdoll.Element hipBone = controlledCharacter.ragdollController.ragdoll.RootBone();
                 camFollow.target = hipBone.followTarget.transform;
                 camFollow.updateMode = UpdateMode.Update;
             }
@@ -166,7 +166,7 @@ namespace DynamicRagdoll.Demo {
 
                 cameraTargetIsAnimatedHips = !cameraTargetIsAnimatedHips;
 
-                Ragdoll.Bone hipBone = ragdollController.ragdoll.RootBone();
+                Ragdoll.Element hipBone = ragdollController.ragdoll.RootBone();
                 camFollow.target = cameraTargetIsAnimatedHips ? hipBone.followTarget.transform : hipBone.transform;
                 camFollow.updateMode = cameraTargetIsAnimatedHips ? UpdateMode.Update : UpdateMode.FixedUpdate;
             }

@@ -22,7 +22,7 @@ namespace DynamicRagdoll {
         /*
             has to be public i guess...  :/
         */
-        public void _InitializeInternal (Ragdoll ragdoll, HumanBodyBones bone, Action<RagdollBone, Collision> onCollisionEnter, Action<RagdollBone, Collision> onCollisionStay) {
+        public void _InitializeInternal (Ragdoll ragdoll, HumanBodyBones bone, Action<RagdollBone, Collision> onCollisionEnter, Action<RagdollBone, Collision> onCollisionStay, Action<RagdollBone, Collision> onCollisionExit) {
             this.ragdoll = ragdoll;
             this.bone = bone;
             this.onCollisionEnter += onCollisionEnter;

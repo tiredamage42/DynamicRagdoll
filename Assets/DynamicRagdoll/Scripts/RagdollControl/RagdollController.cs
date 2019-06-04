@@ -530,11 +530,11 @@ namespace DynamicRagdoll {
 			
 		void InitializeVelocitySetValues () {
 
-			animationVelocityTrackers = new VelocityTracker[Ragdoll.physicsBonesCount];
+			animationVelocityTrackers = new VelocityTracker[Ragdoll.bonesCount];
 
-			for (int i = 0; i < Ragdoll.physicsBonesCount; i++) {
+			for (int i = 0; i < Ragdoll.bonesCount; i++) {
 				
-				Ragdoll.Bone bone = ragdoll.GetPhysicsBone(Ragdoll.phsysicsHumanBones[i]);
+				Ragdoll.Element bone = ragdoll.GetBone(Ragdoll.humanBones[i]);
 				
 				//track position (offset by ragdoll bone's rigidbody centor of mass) of the follow target
 				Vector3 massCenterOffset = bone.transform.InverseTransformPoint(bone.rigidbody.worldCenterOfMass);
@@ -544,15 +544,15 @@ namespace DynamicRagdoll {
 
 		void InitializeJointFollowing () {
 
-			startLocalRotations = new Quaternion[Ragdoll.physicsBonesCount];
-			localToJointSpaces = new Quaternion[Ragdoll.physicsBonesCount];
-			lastTorques = new float[Ragdoll.physicsBonesCount];
+			startLocalRotations = new Quaternion[Ragdoll.bonesCount];
+			localToJointSpaces = new Quaternion[Ragdoll.bonesCount];
+			lastTorques = new float[Ragdoll.bonesCount];
 
 			//skip first (hips dont have joints)
-			for (int i = 1; i < Ragdoll.physicsBonesCount; i++) {
+			for (int i = 1; i < Ragdoll.bonesCount; i++) {
 
 				//get the ragdoll's joint
-				ConfigurableJoint joint = ragdoll.GetPhysicsBone(Ragdoll.phsysicsHumanBones[i]).joint;
+				ConfigurableJoint joint = ragdoll.GetBone(Ragdoll.humanBones[i]).joint;
 
 				// set last torque to something that'll defineyl make it change
 				lastTorques[i] = -1;
@@ -574,7 +574,7 @@ namespace DynamicRagdoll {
 			store the first positions to start calculating the velocity of the master animation
 		*/
 		void StoreAnimationStartPositions () {
-			for (int i = 0; i < Ragdoll.physicsBonesCount; i++) {	
+			for (int i = 0; i < Ragdoll.bonesCount; i++) {	
 				animationVelocityTrackers[i].Reset();
 			}
 		}
@@ -583,8 +583,8 @@ namespace DynamicRagdoll {
 			Reset bone decays back to 0 for the next ragdolling
 		*/
 		void ResetBoneDecays () {
-			for (int i = 0; i < Ragdoll.physicsBonesCount; i++) {
-				boneDecays[Ragdoll.phsysicsHumanBones[i]] = 0;
+			for (int i = 0; i < Ragdoll.bonesCount; i++) {
+				boneDecays[Ragdoll.humanBones[i]] = 0;
 			}
 		}
 		
@@ -613,7 +613,7 @@ namespace DynamicRagdoll {
 			boneDecays[bones] = origDecay;
 
 			if (neighborMultiplier > 0) {
-				foreach (var n in profile.bones[Ragdoll.PhysicsBone2Index(bones)].neighbors) {
+				foreach (var n in profile.bones[Ragdoll.Bone2Index(bones)].neighbors) {
 					SetBoneDecay(n, decayValue * neighborMultiplier, 0);
 				}
 			}
@@ -645,10 +645,10 @@ namespace DynamicRagdoll {
 			float fallDecayCurveSample = 1f - fallDecay; //set up curves backwards... whoops
 						
 			// for each physics bone...
-			for (int i = 0; i < Ragdoll.physicsBonesCount; i++) {
-				HumanBodyBones unityBone = Ragdoll.phsysicsHumanBones[i];
+			for (int i = 0; i < Ragdoll.bonesCount; i++) {
+				HumanBodyBones unityBone = Ragdoll.humanBones[i];
 				
-				Ragdoll.Bone bone = ragdoll.GetPhysicsBone(unityBone);
+				Ragdoll.Element bone = ragdoll.GetBone(unityBone);
 
 				Vector3 ragdollBoneVelocty = bone.rigidbody.velocity;
 
@@ -725,7 +725,7 @@ namespace DynamicRagdoll {
 				float reciprocalDeltaTime = 1f / deltaTime;
 				
 				// for each physics bone...
-				for (int i = 0; i < Ragdoll.physicsBonesCount; i++) {
+				for (int i = 0; i < Ragdoll.bonesCount; i++) {
 					animationVelocityTrackers[i].TrackVelocity(reciprocalDeltaTime, false);
 				}
 			}
@@ -734,7 +734,7 @@ namespace DynamicRagdoll {
 		/*
 			Set the bone's configurable joint target to the master local rotation
 		*/
-		void HandleJointFollow (Ragdoll.Bone bone, float torque, int boneIndex) {
+		void HandleJointFollow (Ragdoll.Element bone, float torque, int boneIndex) {
 			if (!bone.joint) 
 				return;
 					

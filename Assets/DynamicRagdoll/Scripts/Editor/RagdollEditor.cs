@@ -62,8 +62,12 @@ namespace DynamicRagdoll {
             if (GUILayout.Button(isBuilt ? "Clear Ragdoll" : "Pre Build Ragdoll")) {
                 if (isBuilt)
                     RagdollBuilder.EraseRagdoll(ragdoll.GetComponent<Animator>());
-                else
-                    RagdollBuilder.BuildRagdoll (ragdoll.GetComponent<Animator>(), ragdoll.ragdollProfile, true, false, out _, out _, out _);
+                else {
+
+                    System.Collections.Generic.Dictionary<HumanBodyBones, Ragdoll.Element> bones;
+                    RagdollBuilder.BuildRagdollElements (ragdoll.GetComponent<Animator>(), out _, out bones);
+                    RagdollBuilder.BuildBones(ragdoll.GetComponent<Animator>(), ragdoll.ragdollProfile, true, bones, out _);
+                }
 
                 preBuiltProp.boolValue = !isBuilt;
             }
@@ -71,7 +75,11 @@ namespace DynamicRagdoll {
             if (isBuilt) {
                 if (ragdoll.ragdollProfile) {
                     if (GUILayout.Button("Update Ragdoll To Profile")) {
-                        RagdollBuilder.BuildRagdoll(ragdoll.GetComponent<Animator>(), ragdoll.ragdollProfile, false, false, out _, out _, out _);
+                        //RagdollBuilder.BuildRagdoll(ragdoll.GetComponent<Animator>(), ragdoll.ragdollProfile, false, false, out _, out _, out _);
+                        
+                        System.Collections.Generic.Dictionary<HumanBodyBones, Ragdoll.Element> bones;
+                        RagdollBuilder.BuildRagdollElements (ragdoll.GetComponent<Animator>(), out _, out bones);
+                        RagdollBuilder.BuildBones(ragdoll.GetComponent<Animator>(), ragdoll.ragdollProfile, false, bones, out _);
                     }
                 }
             }

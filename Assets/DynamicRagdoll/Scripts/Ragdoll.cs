@@ -24,7 +24,7 @@ namespace DynamicRagdoll {
 	[RequireComponent(typeof(Animator))]
 	public class Ragdoll : MonoBehaviour {
 
-		public static int PhysicsBone2Index (HumanBodyBones bone) {
+		public static int Bone2Index (HumanBodyBones bone) {
 			switch (bone) {
 				case HumanBodyBones.Hips: return 0;
 				case HumanBodyBones.Chest:  return 1;
@@ -41,7 +41,7 @@ namespace DynamicRagdoll {
 			return -1;
 		}
 
-		public static HumanBodyBones[] phsysicsHumanBones = new HumanBodyBones[] {
+		public static HumanBodyBones[] humanBones = new HumanBodyBones[] {
 			HumanBodyBones.Hips, //HIPS NEEDS TO BE FIRST
 			
 			HumanBodyBones.Chest, 
@@ -60,42 +60,41 @@ namespace DynamicRagdoll {
 
 
 
-		public readonly static int physicsBonesCount = phsysicsHumanBones.Length;
+		public readonly static int bonesCount = humanBones.Length;
 
 		/*
-			Runtime representation of a ragdoll bone 
+			Runtime representation of a ragdoll transform child 
 			can either be physical bone, like the hips or head
-			
 			or secondary, like a finger
 		*/
-		public class Bone {
-
+		public class Element {
+			public RagdollBone bone;
 			public Rigidbody rigidbody;
 			public ConfigurableJoint joint;
 			public Collider collider;
 			public Transform transform;
 			public bool isPhysicsParent, isRoot, isPhysicsBone;
-			public Bone followTarget;
+			public Element followTarget;
 			public Vector3 snapshotPosition;
 			public Quaternion snapshotRotation;
 
 
-			public Bone (Transform transform, bool isPhysicsParent, bool isPhysicsBone, bool isRoot) {
+			public Element (Transform transform, bool isPhysicsParent, bool isPhysicsBone, bool isRoot) {
 				this.transform = transform;
 				this.isPhysicsParent = isPhysicsParent;
 				this.isRoot = isRoot;
 				this.isPhysicsBone = isPhysicsBone;
 
+				bone = transform.GetComponent<RagdollBone>();
 				rigidbody = transform.GetComponent<Rigidbody>();
-				if (rigidbody != null) {
-					collider = transform.GetComponent<Collider>();  
-					if (!isRoot) {
-						joint = transform.GetComponent<ConfigurableJoint>();
-					}
+				collider = transform.GetComponent<Collider>();  
+				if (!isRoot) {
+					joint = transform.GetComponent<ConfigurableJoint>();
 				}
+				
 			}	
 			
-			public void SetFollowTarget(Bone followTarget) {
+			public void SetFollowTarget(Element followTarget) {
 				this.followTarget = followTarget;
 			}
 
@@ -154,11 +153,11 @@ namespace DynamicRagdoll {
 
 
 			public void LoadSnapshot (float snapshotBlend, bool useFollowTarget) {
-				Bone boneToUse = useFollowTarget && followTarget != null ? followTarget : this;
+				Element element = useFollowTarget && followTarget != null ? followTarget : this;
 				
 				TeleportTo(
-					Vector3.Lerp(boneToUse.transform.position, snapshotPosition, snapshotBlend), 
-					Quaternion.Slerp(boneToUse.GetRotation(), snapshotRotation, snapshotBlend)
+					Vector3.Lerp(element.transform.position, snapshotPosition, snapshotBlend), 
+					Quaternion.Slerp(element.GetRotation(), snapshotRotation, snapshotBlend)
 				);
 			}
 
@@ -183,8 +182,9 @@ namespace DynamicRagdoll {
 		// were teh ragdoll components added in the editor already ?
 		[HideInInspector] public bool preBuilt;
 		Renderer[] allRenderers;
-		Dictionary<HumanBodyBones, Bone> physicsBones;
-		Bone[] allBones;
+		Dictionary<HumanBodyBones, Element> boneElements;
+		Element[] allElements;
+
 		bool initializedValues;
 		//initial head position from chest (used for resizing chest collider based on head offset)				
 		float initialHeadOffsetFromChest;
@@ -196,8 +196,8 @@ namespace DynamicRagdoll {
 			if (CheckForErroredRagdoll("ColliderIsPartOfRagdoll"))
 				return false;
 	
-			for (int i = 0; i < physicsBonesCount; i++) {	
-				if (allBones[i].collider == collider) {
+			for (int i = 0; i < bonesCount; i++) {	
+				if (allElements[i].collider == collider) {
 					return true;
 				}
 			}
@@ -212,12 +212,12 @@ namespace DynamicRagdoll {
 			if (CheckForErroredRagdoll("IgnoreSelfCollisions"))
 				return;
 	
-			for (int i = 0; i < physicsBonesCount; i++) {	
+			for (int i = 0; i < bonesCount; i++) {	
 			
-				Bone boneA = allBones[i];
+				Element boneA = allElements[i];
 
-				for (int x = i + 1; x < physicsBonesCount; x++) {	
-					Bone boneB = allBones[x];
+				for (int x = i + 1; x < bonesCount; x++) {	
+					Element boneB = allElements[x];
 
 					// dont handle connected joints, joint component already does
 					if (boneB.joint && boneB.joint.connectedBody == boneA.rigidbody)
@@ -238,8 +238,8 @@ namespace DynamicRagdoll {
 				return;
 			
 			ConfigurableJointMotion m = enabled ? ConfigurableJointMotion.Limited : ConfigurableJointMotion.Free;
-			for (int i = 0; i < physicsBonesCount; i++) {	
-				allBones[i].EnableJointLimits(m);
+			for (int i = 0; i < bonesCount; i++) {	
+				allElements[i].EnableJointLimits(m);
 			}	
 		}
 
@@ -277,8 +277,8 @@ namespace DynamicRagdoll {
 			Add all teh physical ragdoll components (for checking collisions)
 		*/
 		void InitializeRagdollBoneComponents () {
-			for (int i = 0; i < physicsBonesCount; i++) {	
-				allBones[i].AddComponent<RagdollBone>()._InitializeInternal(this, phsysicsHumanBones[i], BroadcastCollisionEnter, BroadcastCollisionStay);
+			for (int i = 0; i < bonesCount; i++) {	
+				allElements[i].bone._InitializeInternal(this, humanBones[i], BroadcastCollisionEnter, BroadcastCollisionStay, BroadcastCollisionExit);
 			}
 		}
 
@@ -296,8 +296,8 @@ namespace DynamicRagdoll {
 			if (CheckForErroredRagdoll("SaveSnapshot"))
 				return;
 			
-			for (int i = 0; i < physicsBonesCount; i++) {	
-				Physics.IgnoreCollision(allBones[i].collider, collider, ignore);
+			for (int i = 0; i < bonesCount; i++) {	
+				Physics.IgnoreCollision(allElements[i].collider, collider, ignore);
 			}
 		}
 
@@ -309,26 +309,22 @@ namespace DynamicRagdoll {
 				return 0;
 			
 			float m = 0;
-			for (int i =0 ; i < physicsBonesCount; i++) {
-				m += allBones[i].rigidbody.mass;
+			for (int i =0 ; i < bonesCount; i++) {
+				m += allElements[i].rigidbody.mass;
 			}
 			return m;
 		}
 
 
-
-
-
-
 		/*
-			save the positions and rotations of all the bones
+			save the positions and rotations of all the elements
 		*/
 		public void SaveSnapshot() {
 			if (CheckForErroredRagdoll("SaveSnapshot"))
 				return;
 			
-			for (int i = 0; i < allBones.Length; i++) {	
-				allBones[i].SaveSnapshot();
+			for (int i = 0; i < allElements.Length; i++) {	
+				allElements[i].SaveSnapshot();
 			}
 		}
 
@@ -344,8 +340,8 @@ namespace DynamicRagdoll {
 			if (CheckForErroredRagdoll("LoadSnapshot"))
 				return;
 			
-			for (int i = 0; i < allBones.Length; i++) {	
-				allBones[i].LoadSnapshot(snapshotBlend, useFollowTarget);
+			for (int i = 0; i < allElements.Length; i++) {	
+				allElements[i].LoadSnapshot(snapshotBlend, useFollowTarget);
 			}
 		}
 
@@ -368,8 +364,8 @@ namespace DynamicRagdoll {
 			if (CheckForErroredRagdoll("SetKinematic"))
 				return;
 			
-			for (int i = 0; i < physicsBonesCount; i++) {	
-				allBones[i].rigidbody.isKinematic = value;
+			for (int i = 0; i < bonesCount; i++) {	
+				allElements[i].rigidbody.isKinematic = value;
 			}
 		}
 		
@@ -380,8 +376,8 @@ namespace DynamicRagdoll {
 			if (CheckForErroredRagdoll("UseGravity"))
 				return;
 			
-			for (int i = 0; i < physicsBonesCount; i++) {	
-				allBones[i].rigidbody.useGravity = value;
+			for (int i = 0; i < bonesCount; i++) {	
+				allElements[i].rigidbody.useGravity = value;
 			}
 		}
 
@@ -392,25 +388,25 @@ namespace DynamicRagdoll {
 			if (CheckForErroredRagdoll("SetLayer"))
 				return;
 			
-			for (int i = 0; i < physicsBonesCount; i++) {	
-				allBones[i].transform.gameObject.layer = layer;
+			for (int i = 0; i < bonesCount; i++) {	
+				allElements[i].transform.gameObject.layer = layer;
 			}
 		}
 
-		public Bone GetPhysicsBone (HumanBodyBones bone) {
+		public Element GetBone (HumanBodyBones bone) {
 			if (CheckForErroredRagdoll("GetPhysicsBone"))
 				return null;
 			
-			Bone r;
-			if (physicsBones.TryGetValue(bone, out r)) {
+			Element r;
+			if (boneElements.TryGetValue(bone, out r)) {
 				return r;
 			}	
-			Debug.LogWarning("Cant find: " + bone + " on ragdoll:", transform);
+			Debug.LogWarning("Cant find: " + bone + " on ragdoll: " + name);
 			return null;
 		}
 
-		public Bone RootBone () {
-			return allBones[0];
+		public Element RootBone () {
+			return allElements[0];
 		}
 
 		
@@ -426,8 +422,12 @@ namespace DynamicRagdoll {
 			if (CheckForErroredRagdoll("TeleportToTarget"))
 				return;
 
-			int startIndex = teleportType == TeleportType.SecondaryNonPhysicsBones || teleportType == TeleportType.PhysicsParents ? physicsBonesCount : 0;
-			int endIndex = teleportType == TeleportType.PhysicsBones ? physicsBonesCount : allBones.Length;
+			// if we're teleporting non physics bones, start looping after their indicies
+			int startIndex = teleportType == TeleportType.SecondaryNonPhysicsBones || teleportType == TeleportType.PhysicsParents ? bonesCount : 0;
+			
+			// set the ending index for the loop
+			int endIndex = teleportType == TeleportType.PhysicsBones ? bonesCount : allElements.Length;
+			
 			for (int i = startIndex; i < endIndex; i++) {
 
 				bool teleportBone = false;
@@ -436,20 +436,20 @@ namespace DynamicRagdoll {
 						teleportBone = true;
 						break;
 					case TeleportType.PhysicsBones:
-						teleportBone = allBones[i].isPhysicsBone;
+						teleportBone = allElements[i].isPhysicsBone;
 						break;
 					case TeleportType.PhysicsParents:
-						teleportBone = allBones[i].isPhysicsParent;
+						teleportBone = allElements[i].isPhysicsParent;
 						break;
 					case TeleportType.PhysicsBonesAndParents:
-						teleportBone = allBones[i].isPhysicsBone || allBones[i].isPhysicsParent;
+						teleportBone = allElements[i].isPhysicsBone || allElements[i].isPhysicsParent;
 						break;
 					case TeleportType.SecondaryNonPhysicsBones:
-						teleportBone = !allBones[i].isPhysicsBone && !allBones[i].isPhysicsParent;
+						teleportBone = !allElements[i].isPhysicsBone && !allElements[i].isPhysicsParent;
 						break;
 				}
 				if (teleportBone) {
-					allBones[i].TeleportToTarget();
+					allElements[i].TeleportToTarget();
 				}
 			}
 		}
@@ -465,26 +465,27 @@ namespace DynamicRagdoll {
 			if (CheckForErroredRagdoll("SetFollowTarget"))
 				return;
 
-			// generate Ragdoll bones for the follow target
+			// generate Ragdoll elements for the follow target
 			// set as non physics, so no profile or adding of components needed, 
 			
-			Bone[] allFollowBones;
-			RagdollBuilder.BuildRagdoll(followAnimator, null, false, true, out _, out allFollowBones, out _);
-            
+			Element[] followElements;
+			
 			// if there was an error return...
-			if (allFollowBones == null) {
-                return;
+			//if (!RagdollBuilder.BuildRagdoll(followAnimator, null, false, true, out _, out followElements, out _)) {
+            if (!RagdollBuilder.BuildRagdollElements(followAnimator, out followElements, out _)) {
+            
+			    return;
             }
 			
-			int l = allFollowBones.Length;
-			if (l != allBones.Length) {
+			int l = followElements.Length;
+			if (l != allElements.Length) {
 				Debug.LogError("children list different sizes for ragdoll: "+name+", and follow target: " + followAnimator.name);
 				return;
 			}
 
 			//set follow targets on our bones as these new master bones
 			for (int i = 0; i < l; i++) {
-				allBones[i].SetFollowTarget(allFollowBones[i]);
+				allElements[i].SetFollowTarget(followElements[i]);
 			}
 		}
 
@@ -495,7 +496,7 @@ namespace DynamicRagdoll {
 			if (!initializedValues) {
 				Awake();
 			}
-			if (physicsBones == null) {
+			if (boneElements == null) {
 				Debug.LogError("Ragdoll is in error state, maybe it's not humanoid? (" + msg + ")", transform);
 				return true;
 			}
@@ -514,12 +515,17 @@ namespace DynamicRagdoll {
 		*/
 		void Awake () {
 			if (!initializedValues) {
-				initializedValues = true;				
-				
-				RagdollBuilder.BuildRagdoll(GetComponent<Animator>(), ragdollProfile, !preBuilt, false, out initialHeadOffsetFromChest, out allBones, out physicsBones);
+				initializedValues = true;	
+
+
+				Animator myAnimator = GetComponent<Animator>();			
 				
 				//if there werent any errros
-				if (physicsBones != null) {
+				//if (RagdollBuilder.BuildRagdoll(myAnimator, ragdollProfile, !preBuilt, false, out initialHeadOffsetFromChest, out allElements, out boneElements)) {
+				if (RagdollBuilder.BuildRagdollElements(myAnimator, out allElements, out boneElements)) {
+					
+					RagdollBuilder.BuildBones(myAnimator, ragdollProfile, !preBuilt, boneElements, out initialHeadOffsetFromChest);
+					
 
 					//set the bones to the ragdoll layer
 					SetLayer(LayerMask.NameToLayer("Ragdoll"));
@@ -547,8 +553,8 @@ namespace DynamicRagdoll {
 				if (ragdollProfile) {
 					
 					//if no errors
-					if (physicsBones!= null) {
-						UpdateBonesToProfileValues(physicsBones, ragdollProfile, initialHeadOffsetFromChest);
+					if (boneElements!= null) {
+						UpdateBonesToProfileValues(boneElements, ragdollProfile, initialHeadOffsetFromChest);
 					}
 				}
 			}
@@ -559,7 +565,7 @@ namespace DynamicRagdoll {
 			Adjust Ragdoll component values per bone to reflect the supplied
 			Ragdoll profile (default profile if none is supplied)
 		*/
-		public static void UpdateBonesToProfileValues (Dictionary<HumanBodyBones, Bone> bones, RagdollProfile profile, float initialHeadOffsetFromChest) {
+		public static void UpdateBonesToProfileValues (Dictionary<HumanBodyBones, Element> bones, RagdollProfile profile, float initialHeadOffsetFromChest) {
 			if (bones == null)
 				return;
 			
@@ -573,10 +579,10 @@ namespace DynamicRagdoll {
 			
 			for (int i = 0; i < profile.bones.Length; i++) {
 				RagdollProfile.BoneProfile boneProfile = profile.bones[i];
-				Bone bone = bones[boneProfile.bone];
+				Element bone = bones[boneProfile.bone];
 
 				//set rigidbody values for bone
-				UpdateRigidbodyToProfile(bone, bone.rigidbody, boneProfile);
+				UpdateRigidbodyToProfile(bone.rigidbody, boneProfile);
 				
 				//adjust collider values for bone
 				UpdateColliderToProfile (bone.collider, boneProfile, headOffset, initialHeadOffsetFromChest);
@@ -669,9 +675,9 @@ namespace DynamicRagdoll {
 			l.limit = boneProfile.forceOff ? 0 : boneProfile.angularZLimit;
 			joint.angularZLimit = l;
 		}
-		static void UpdateRigidbodyToProfile (Ragdoll.Bone bone, Rigidbody rigidbody, RagdollProfile.BoneProfile boneProfile) {
-			//set rigidbody values for bone
+		static void UpdateRigidbodyToProfile (Rigidbody rigidbody, RagdollProfile.BoneProfile boneProfile) {
 			
+			//set rigidbody values for bone
 			rigidbody.maxAngularVelocity = boneProfile.maxAngularVelocity;
 			rigidbody.angularDrag = boneProfile.angularDrag;
 			rigidbody.angularDrag = boneProfile.drag;

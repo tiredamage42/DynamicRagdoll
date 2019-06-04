@@ -5,7 +5,7 @@ namespace DynamicRagdoll {
 
     [CustomEditor(typeof(RagdollControllerProfile))]
     public class RagdollControllerProfileEditor : Editor {
-        static bool[] showBones = new bool[Ragdoll.physicsBonesCount];
+        static bool[] showBones = new bool[Ragdoll.bonesCount];
         static void DrawPropertiesBlock(SerializedProperty baseProp, string[] names) {
             EditorGUI.indentLevel++;
             for (int i = 0; i < names.Length; i++) {
@@ -125,8 +125,8 @@ namespace DynamicRagdoll {
                 };
 
                 GenericMenu menu = new GenericMenu();
-                for (int i = 0; i < Ragdoll.physicsBonesCount; i++) {
-                    HumanBodyBones hb = Ragdoll.phsysicsHumanBones[i];
+                for (int i = 0; i < Ragdoll.bonesCount; i++) {
+                    HumanBodyBones hb = Ragdoll.humanBones[i];
                     if (hb == baseBone) {
                         continue;
                     }

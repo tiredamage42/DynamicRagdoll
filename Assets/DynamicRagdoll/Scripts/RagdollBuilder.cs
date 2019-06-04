@@ -27,14 +27,16 @@ namespace DynamicRagdoll {
         public static void EraseRagdoll (Animator animator) {
             //check for null animator
             if (animator == null) {
-                Debug.Log("No animator found... (EraseRagdoll)");
+                Debug.LogError("No animator found... (EraseRagdoll)");
                 return;
             }
             
-            GameObject c = animator.GetBoneTransform(HumanBodyBones.Hips).gameObject;
-            DestroyComponents<ConfigurableJoint>(c);
-            DestroyComponents<Rigidbody>(c);
-            DestroyComponents<Collider>(c);
+            GameObject gameObject = animator.GetBoneTransform(HumanBodyBones.Hips).gameObject;
+            DestroyComponents<ConfigurableJoint>(gameObject);
+            DestroyComponents<Rigidbody>(gameObject);
+            DestroyComponents<Collider>(gameObject);
+            DestroyComponents<RagdollBone>(gameObject);
+            
 		}	
 
         /*
@@ -47,40 +49,45 @@ namespace DynamicRagdoll {
             if non physics is set to true, we just build the references but dont check for (or add)
             Rigidbodies, joints, and colliders...
         */
-        public static void BuildRagdoll (Animator animator, RagdollProfile profile, bool addComponents, bool nonPhysics, out float initialHeadOffsetFromChest, out Ragdoll.Bone[] allBones, out Dictionary<HumanBodyBones, Ragdoll.Bone> physicsBones) {
-			initialHeadOffsetFromChest = -1;
-            allBones = null;
-            physicsBones = null;
+        //public static bool BuildRagdoll (Animator animator, RagdollProfile profile, bool addComponents, bool nonPhysics, out float initialHeadOffsetFromChest, out Ragdoll.Element[] allBones, out Dictionary<HumanBodyBones, Ragdoll.Element> physicsBones) {
+		public static bool BuildRagdollElements (Animator animator, out Ragdoll.Element[] allElements, out Dictionary<HumanBodyBones, Ragdoll.Element> boneElements) {
+		
+        	// initialHeadOffsetFromChest = -1;
+            allElements = null;
+            boneElements = null;
             
             //check for null animator
             if (animator == null) {
-                Debug.Log("No animator found...(BuildRagdollFromPrebuilt");
-                return;// null;
+                Debug.LogError("No animator found...(BuildRagdollFromPrebuilt");
+                return false;// null;
             }
 
-
-            List<Ragdoll.Bone> allBonesList = new List<Ragdoll.Bone>();
+            List<Ragdoll.Element> allBonesList = new List<Ragdoll.Element>();
             
+            // instance ids of the bone transforms so we dont re-add them when checking all children bones below
             HashSet<int> usedPhysicsTransforms = new HashSet<int>();
             
             //build bones list that use physics
-			physicsBones = new Dictionary<HumanBodyBones, Ragdoll.Bone>();
-            for (int i = 0; i < Ragdoll.physicsBonesCount; i++) {
-				Transform boneT = animator.GetBoneTransform(Ragdoll.phsysicsHumanBones[i]);
+			boneElements = new Dictionary<HumanBodyBones, Ragdoll.Element>();
+
+            for (int i = 0; i < Ragdoll.bonesCount; i++) {
+                HumanBodyBones humanBodyBone = Ragdoll.humanBones[i];
+
+				Transform boneT = animator.GetBoneTransform(humanBodyBone);
+
 				if (boneT == null) {
-					Debug.LogError("Cant find physics bone: " + Ragdoll.phsysicsHumanBones[i] + " on ragdoll:", animator);
-                    physicsBones = null;
+					Debug.LogError("Cant find physics bone: " + humanBodyBone + " on ragdoll: " + animator.name);
+                    boneElements = null;
                     usedPhysicsTransforms = null;
-                    return;
+                    return false;
 				}
+
                 usedPhysicsTransforms.Add(boneT.GetInstanceID());
 
+                Ragdoll.Element ragdollBone = new Ragdoll.Element(boneT, false, true, i == 0);
 
-
-                Ragdoll.Bone newPhysicsBone = new Ragdoll.Bone(boneT, false, true, i == 0);
-
-				physicsBones.Add(Ragdoll.phsysicsHumanBones[i], newPhysicsBone);	
-                allBonesList.Add(newPhysicsBone);
+				boneElements.Add(humanBodyBone, ragdollBone);	
+                allBonesList.Add(ragdollBone);
 			}
 
             //build other non physics bones
@@ -90,40 +97,71 @@ namespace DynamicRagdoll {
 
 			for (int i = 0; i < allChildren.Length; i++) {
                 Transform child = allChildren[i];
-
                 //if its not a physics bone
                 if (!usedPhysicsTransforms.Contains(child.GetInstanceID())) {
-
-					allBonesList.Add(new Ragdoll.Bone(child, child.GetComponentInChildren<Rigidbody>() != null, false, false));
+                    bool isPhysicsParent = child.GetComponentInChildren<Rigidbody>() != null;
+					allBonesList.Add(new Ragdoll.Element(child, isPhysicsParent, false, false));
                 }
 			}
-			allBones = allBonesList.ToArray();
+			allElements = allBonesList.ToArray();
 
+            // if (!nonPhysics) {
 
-            if (!nonPhysics) {
+            //     if (addComponents) {
 
-                if (addComponents) {
+            //         EraseRagdoll(animator);
 
-                    EraseRagdoll(animator);
+            //         //add capsules
+            //         BuildCapsules(physicsBones);
+            //         AddBreastColliders(physicsBones);
+            //         AddHeadCollider(physicsBones);
 
-                    //add capsules
-                    BuildCapsules(physicsBones);
-                    AddBreastColliders(physicsBones);
-                    AddHeadCollider(physicsBones);
+            //         //add rigidbodies
+            //         BuildRigidodies(physicsBones);
 
-                    //add rigidbodies
-                    BuildBodies(physicsBones);
+            //         //add joints
+            //         BuildJoints(physicsBones);
                     
-                    //add joints
-                    BuildJoints(physicsBones);
-                }
+            //         //add bone components
+            //         BuildBones(physicsBones);
+            //     }
             
-                //initial head position from chest (used for resizing chest collider based on head offset)				
-                initialHeadOffsetFromChest = physicsBones[HumanBodyBones.Chest].transform.InverseTransformPoint(physicsBones[HumanBodyBones.Head].transform.position).y;
+            //     //initial head position from chest (used for resizing chest collider based on head offset)				
+            //     initialHeadOffsetFromChest = physicsBones[HumanBodyBones.Chest].transform.InverseTransformPoint(physicsBones[HumanBodyBones.Head].transform.position).y;
 
-                Ragdoll.UpdateBonesToProfileValues(physicsBones, profile, initialHeadOffsetFromChest);
-            }
+            //     // update the ragdoll to reflect it's profile values
+            //     Ragdoll.UpdateBonesToProfileValues(physicsBones, profile, initialHeadOffsetFromChest);
+            // }
+            return true;
 		}
+
+        public static void BuildBones (Animator animator, RagdollProfile profile, bool addComponents, Dictionary<HumanBodyBones, Ragdoll.Element> boneElements, out float initialHeadOffsetFromChest) {
+            if (addComponents) {
+
+                EraseRagdoll(animator);
+
+                //add capsules
+                BuildCapsules(boneElements);
+                AddBreastColliders(boneElements);
+                AddHeadCollider(boneElements);
+
+                //add rigidbodies
+                BuildRigidodies(boneElements);
+
+                //add joints
+                BuildJoints(boneElements);
+                
+                //add bone components
+                BuildBones(boneElements);
+            }
+            
+            //initial head position from chest (used for resizing chest collider based on head offset)				
+            initialHeadOffsetFromChest = boneElements[HumanBodyBones.Chest].transform.InverseTransformPoint(boneElements[HumanBodyBones.Head].transform.position).y;
+
+            // update the ragdoll to reflect it's profile values
+            Ragdoll.UpdateBonesToProfileValues(boneElements, profile, initialHeadOffsetFromChest);
+    
+        }
         
         
 
@@ -162,11 +200,11 @@ namespace DynamicRagdoll {
             HumanBodyBones.LeftUpperLeg, HumanBodyBones.RightUpperLeg,
         };
 			
-        static void BuildCapsules(Dictionary<HumanBodyBones, Ragdoll.Bone> bones)
+        static void BuildCapsules(Dictionary<HumanBodyBones, Ragdoll.Element> bones)
         {   
             foreach (var k in capsuleBones)
             {
-				Ragdoll.Bone bone = bones[k];
+				Ragdoll.Element bone = bones[k];
                 
 				int direction = k.ToString().Contains("Arm") ? 0 : 1;
                 
@@ -205,7 +243,7 @@ namespace DynamicRagdoll {
         }
         
 
-        static Bounds GetBoxBounds(Ragdoll.Bone bone, Ragdoll.Bone topCutoff, Ragdoll.Bone[] encapsulate, bool adjustMin)
+        static Bounds GetBoxBounds(Ragdoll.Element bone, Ragdoll.Element topCutoff, Ragdoll.Element[] encapsulate, bool adjustMin)
         {
             Bounds bounds = new Bounds();
 
@@ -227,43 +265,49 @@ namespace DynamicRagdoll {
         }
         
 
-        static void AddBreastColliders(Dictionary<HumanBodyBones, Ragdoll.Bone> bones)
+        static void AddBreastColliders(Dictionary<HumanBodyBones, Ragdoll.Element> bones)
         {
-            Ragdoll.Bone[] encapsulate = new Ragdoll.Bone[] { 
+            Ragdoll.Element[] encapsulate = new Ragdoll.Element[] { 
                 bones[HumanBodyBones.LeftUpperArm], bones[HumanBodyBones.RightUpperArm], 
                 bones[HumanBodyBones.LeftUpperLeg], bones[HumanBodyBones.RightUpperLeg], 
             };
-            Ragdoll.Bone hips = bones[HumanBodyBones.Hips];
-            Ragdoll.Bone chest = bones[HumanBodyBones.Chest];
-			Ragdoll.Bone head = bones[HumanBodyBones.Head];
+            Ragdoll.Element hips = bones[HumanBodyBones.Hips];
+            Ragdoll.Element chest = bones[HumanBodyBones.Chest];
+			Ragdoll.Element head = bones[HumanBodyBones.Head];
             hips.collider = AddBoxCollider(hips, GetBoxBounds(hips, chest, encapsulate, false));
             chest.collider = AddBoxCollider(chest, GetBoxBounds(chest, head, encapsulate, true));
         }
 		
-        static Collider AddBoxCollider(Ragdoll.Bone bone, Bounds bounds) {
+        static Collider AddBoxCollider(Ragdoll.Element bone, Bounds bounds) {
             BoxCollider box = bone.AddComponent<BoxCollider>();
             box.center = bounds.center;
             box.size = bounds.size;
 			return box;
         }
 
-        static void AddHeadCollider(Dictionary<HumanBodyBones, Ragdoll.Bone> bones) {
+        static void AddHeadCollider(Dictionary<HumanBodyBones, Ragdoll.Element> bones) {
             bones[HumanBodyBones.Head].collider = bones[HumanBodyBones.Head].AddComponent<SphereCollider>();
         }
 
-        static void BuildBodies(Dictionary<HumanBodyBones, Ragdoll.Bone> bones)
+        static void BuildRigidodies(Dictionary<HumanBodyBones, Ragdoll.Element> bones)
         {
             foreach (var k in bones.Keys)
                 bones[k].rigidbody = bones[k].AddComponent<Rigidbody>();
         }
+        static void BuildBones(Dictionary<HumanBodyBones, Ragdoll.Element> bones)
+        {
+            foreach (var k in bones.Keys)
+                bones[k].bone = bones[k].AddComponent<RagdollBone>();
+        }
+        
 
-        static void BuildJoints(Dictionary<HumanBodyBones, Ragdoll.Bone> bones)
+        static void BuildJoints(Dictionary<HumanBodyBones, Ragdoll.Element> bones)
         {
             foreach (var k in bones.Keys)
             {
 				if (k == HumanBodyBones.Hips) continue;
                 
-				Ragdoll.Bone bone = bones[k];
+				Ragdoll.Element bone = bones[k];
                 
                 bone.joint = bone.AddComponent<ConfigurableJoint>();
 				
