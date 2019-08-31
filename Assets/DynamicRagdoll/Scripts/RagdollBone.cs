@@ -1,6 +1,17 @@
 ﻿using UnityEngine;
 using System;
 namespace DynamicRagdoll {
+
+    /*
+        damageable:
+            on damage receive ()
+
+            sendDamage
+    
+    */
+    
+    
+    
     /*
         component scene representation of teh physical ragdoll bones
 

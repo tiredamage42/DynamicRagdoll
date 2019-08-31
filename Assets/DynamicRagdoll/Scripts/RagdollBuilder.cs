@@ -32,22 +32,22 @@ namespace DynamicRagdoll {
             }
             
             GameObject gameObject = animator.GetBoneTransform(HumanBodyBones.Hips).gameObject;
+            DestroyComponents<RagdollBone>(gameObject);
             DestroyComponents<ConfigurableJoint>(gameObject);
             DestroyComponents<Rigidbody>(gameObject);
             DestroyComponents<Collider>(gameObject);
-            DestroyComponents<RagdollBone>(gameObject);
-            
 		}	
+            
 
         /*
             call to get the ragdoll bone references
 
             animator component must be humanoid
 
-            set 'addComponents' to true to add the ragdoll components
+            // set 'addComponents' to true to add the ragdoll components
 
-            if non physics is set to true, we just build the references but dont check for (or add)
-            Rigidbodies, joints, and colliders...
+            // if non physics is set to true, we just build the references but dont check for (or add)
+            // Rigidbodies, joints, and colliders...
         */
         //public static bool BuildRagdoll (Animator animator, RagdollProfile profile, bool addComponents, bool nonPhysics, out float initialHeadOffsetFromChest, out Ragdoll.Element[] allBones, out Dictionary<HumanBodyBones, Ragdoll.Element> physicsBones) {
 		public static bool BuildRagdollElements (Animator animator, out Ragdoll.Element[] allElements, out Dictionary<HumanBodyBones, Ragdoll.Element> boneElements) {
@@ -134,6 +134,10 @@ namespace DynamicRagdoll {
             // }
             return true;
 		}
+
+        /*
+            actually add the rigidbody, collider, joint components that make up the ragdoll
+        */
 
         public static void BuildBones (Animator animator, RagdollProfile profile, bool addComponents, Dictionary<HumanBodyBones, Ragdoll.Element> boneElements, out float initialHeadOffsetFromChest) {
             if (addComponents) {
