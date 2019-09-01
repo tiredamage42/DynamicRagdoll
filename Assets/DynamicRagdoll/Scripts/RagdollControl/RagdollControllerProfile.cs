@@ -1,6 +1,21 @@
 ﻿using UnityEngine;
+using System.Collections.Generic;
+
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 namespace DynamicRagdoll {
+    [System.Serializable] public class RagdollControllerProfileBoneDataElement : BoneDataElement<RagdollControllerProfile.BoneProfile> { }
+    [System.Serializable] public class RagdollControllerProfileBoneData : BoneData<RagdollControllerProfileBoneDataElement, RagdollControllerProfile.BoneProfile> {
+        public RagdollControllerProfileBoneData () : base() { }
+        public RagdollControllerProfileBoneData ( Dictionary<HumanBodyBones, RagdollControllerProfile.BoneProfile> template ) :  base (template) { }
+        public RagdollControllerProfileBoneData ( RagdollControllerProfile.BoneProfile template ) :  base (template) { }
+    }
+
+
+
+
     /*
         object for holding controller values (makes it easier to set during runtime)
     */
@@ -9,7 +24,6 @@ namespace DynamicRagdoll {
     {
         // per bone options
         [System.Serializable] public class BoneProfile {
-            public HumanBodyBones bone;
 
             /*
                 Normal velocity set method
@@ -23,8 +37,10 @@ namespace DynamicRagdoll {
             public HumanBodyBones[] neighbors;
 
 
-            public BoneProfile(HumanBodyBones bone, HumanBodyBones[] neighbors) {
-                this.bone = bone;
+            public int boneIndex;
+
+            public BoneProfile(int boneIndex, HumanBodyBones[] neighbors) {
+                this.boneIndex = boneIndex;
                 
                 fallForceDecay = new AnimationCurve(new Keyframe[] { new Keyframe(0, 1), new Keyframe(1, 0) });
                 fallTorqueDecay = new AnimationCurve(new Keyframe[] { new Keyframe(0, 1), new Keyframe(1, 0) });
@@ -33,66 +49,88 @@ namespace DynamicRagdoll {
             }
         }
 
-        public BoneProfile[] bones = new BoneProfile[] {
-            new BoneProfile(HumanBodyBones.Hips,
-                new HumanBodyBones[] { 
-                    HumanBodyBones.Chest, 
-                    HumanBodyBones.LeftUpperLeg, 
-                    HumanBodyBones.RightUpperLeg,
-                }),
-            new BoneProfile(HumanBodyBones.Chest,
-                new HumanBodyBones[] { 
-                    HumanBodyBones.Head, 
-                    HumanBodyBones.LeftUpperArm, 
-                    HumanBodyBones.RightUpperArm
-                }), 
-            new BoneProfile(HumanBodyBones.Head,
-                new HumanBodyBones[] { 
-                    HumanBodyBones.Chest, 
-                    HumanBodyBones.LeftUpperArm, 
-                    HumanBodyBones.RightUpperArm 
-                }), 
+        [BoneData] public RagdollControllerProfileBoneData boneData = new RagdollControllerProfileBoneData(
+            new Dictionary<HumanBodyBones, BoneProfile> () {
+                { HumanBodyBones.Hips,          
+                    new BoneProfile(0, 
+                        new HumanBodyBones[] { 
+                            HumanBodyBones.Chest, 
+                            HumanBodyBones.LeftUpperLeg, 
+                            HumanBodyBones.RightUpperLeg,
+                        }) },
+                
+                { HumanBodyBones.Chest,         
+                    new BoneProfile(1, 
+                        new HumanBodyBones[] { 
+                            HumanBodyBones.Head, 
+                            HumanBodyBones.LeftUpperArm, 
+                            HumanBodyBones.RightUpperArm
+                        }) }, 
+                
+                { HumanBodyBones.Head,          
+                    new BoneProfile(2, 
+                        new HumanBodyBones[] { 
+                            HumanBodyBones.Chest, 
+                            HumanBodyBones.LeftUpperArm, 
+                            HumanBodyBones.RightUpperArm 
+                        }) }, 
+                
+                { HumanBodyBones.RightLowerLeg, 
+                    new BoneProfile(3, 
+                        new HumanBodyBones[] { 
+                            HumanBodyBones.RightUpperLeg, HumanBodyBones.Hips ,
+                        }) }, 
+                
+                { HumanBodyBones.LeftLowerLeg,  
+                    new BoneProfile(4, 
+                        new HumanBodyBones[] { 
+                            HumanBodyBones.LeftUpperLeg, HumanBodyBones.Hips 
+                        }) }, 
+                
+                { HumanBodyBones.RightUpperLeg, 
+                    new BoneProfile(5, 
+                        new HumanBodyBones[] { 
+                            HumanBodyBones.Hips, HumanBodyBones.RightLowerLeg ,
+                        }) }, 
+                
+                { HumanBodyBones.LeftUpperLeg,  
+                    new BoneProfile(6, 
+                        new HumanBodyBones[] { 
+                            HumanBodyBones.Hips, HumanBodyBones.LeftLowerLeg ,
+                        }) }, 
+                
+                { HumanBodyBones.RightLowerArm, 
+                    new BoneProfile(7, 
+                        new HumanBodyBones[] { 
+                            HumanBodyBones.RightUpperArm, HumanBodyBones.Chest 
+                        }) }, 
+                
+                { HumanBodyBones.LeftLowerArm,  
+                    new BoneProfile(8, 
+                        new HumanBodyBones[] { 
+                            HumanBodyBones.LeftUpperArm, HumanBodyBones.Chest 
+                        }) }, 
             
-            new BoneProfile(HumanBodyBones.RightLowerLeg,
-                new HumanBodyBones[] { 
-                    HumanBodyBones.RightUpperLeg, HumanBodyBones.Hips ,
-                }), 
-            new BoneProfile(HumanBodyBones.LeftLowerLeg, 
-                new HumanBodyBones[] { 
-                    HumanBodyBones.LeftUpperLeg, HumanBodyBones.Hips 
-                }), 
+                { HumanBodyBones.RightUpperArm, 
+                    new BoneProfile(9, 
+                        new HumanBodyBones[] { 
+                            HumanBodyBones.Chest, HumanBodyBones.RightLowerArm,
+                            HumanBodyBones.LeftUpperArm, 
+                            HumanBodyBones.Head,
+                        }) }, 
+                
+                { HumanBodyBones.LeftUpperArm,  
+                    new BoneProfile(10, 
+                        new HumanBodyBones[] { 
+                            HumanBodyBones.Chest, HumanBodyBones.LeftLowerArm ,
+                            HumanBodyBones.RightUpperArm, 
+                            HumanBodyBones.Head,
+                        }) }, 
+                
+            }
+        );
             
-            new BoneProfile(HumanBodyBones.RightUpperLeg, 
-                new HumanBodyBones[] { 
-                    HumanBodyBones.Hips, HumanBodyBones.RightLowerLeg ,
-                }), 
-            new BoneProfile(HumanBodyBones.LeftUpperLeg, 
-                new HumanBodyBones[] { 
-                    HumanBodyBones.Hips, HumanBodyBones.LeftLowerLeg ,
-                }), 
-            
-            new BoneProfile(HumanBodyBones.RightLowerArm, 
-                new HumanBodyBones[] { 
-                    HumanBodyBones.RightUpperArm, HumanBodyBones.Chest 
-                }), 
-            new BoneProfile(HumanBodyBones.LeftLowerArm, 
-                new HumanBodyBones[] { 
-                    HumanBodyBones.LeftUpperArm, HumanBodyBones.Chest 
-                }), 
-
-            new BoneProfile(HumanBodyBones.RightUpperArm, 
-                new HumanBodyBones[] { 
-                    HumanBodyBones.Chest, HumanBodyBones.RightLowerArm,
-                    HumanBodyBones.LeftUpperArm, 
-                    HumanBodyBones.Head,
-                }), 
-            new BoneProfile(HumanBodyBones.LeftUpperArm,
-                new HumanBodyBones[] { 
-                    HumanBodyBones.Chest, HumanBodyBones.LeftLowerArm ,
-                    HumanBodyBones.RightUpperArm, 
-                    HumanBodyBones.Head,
-                }), 
-        };
+        
 
 
         /*
@@ -124,4 +162,114 @@ namespace DynamicRagdoll {
 		public float blendTime = 1f;
 		
     }
+
+
+    
+    
+#if UNITY_EDITOR
+    [CustomPropertyDrawer(typeof(RagdollControllerProfile.BoneProfile))] public class RagdollControllerProfileBoneProfileDrawer : PropertyDrawer
+    {
+
+        
+
+        const int buttonWidth = 20;
+        public static float DrawIndent (int level, float startX) {
+            return startX + buttonWidth * level;
+        }       
+
+
+        static void DrawPropertiesBlock(SerializedProperty property, Rect position, float _x, ref float y, string[] names){
+            
+            EditorGUI.indentLevel++;
+            for (int i = 0; i < names.Length; i++) {
+                EditorGUI.PropertyField(new Rect(_x, y, position.width, EditorGUIUtility.singleLineHeight), property.FindPropertyRelative(names[i]));   
+                y += EditorGUIUtility.singleLineHeight;
+            }
+            EditorGUI.indentLevel--;   
+        }
+                
+
+        static void DrawBoneProfileNeighbors (SerializedProperty neighborsProp, Rect position, HumanBodyBones baseBone) {
+            
+
+            if (GUI.Button(position, new GUIContent("Neighbors", "Define which bones count as neighbors for other bones (for the bone decay system)"), EditorStyles.miniButton)) {
+                int neighborsLength = neighborsProp.arraySize;
+                System.Func<HumanBodyBones, bool> containsBone = (b) => {
+                    int bi = (int)b;
+                    for (int i = 0; i < neighborsLength; i++) {
+                        if (neighborsProp.GetArrayElementAtIndex(i).enumValueIndex == bi) {
+                            return true;
+                        }
+                    }
+                    return false;
+                };
+                System.Func<HumanBodyBones, int> indexOf = (b) => {
+                    int bi = (int)b;
+                    for (int i = 0; i < neighborsLength; i++) {
+                        if (neighborsProp.GetArrayElementAtIndex(i).enumValueIndex == bi) {
+                            return i;
+                        }
+                    }
+                    return -1;
+                };
+
+                System.Action<HumanBodyBones> removeBone = (b) => {
+                    neighborsProp.DeleteArrayElementAtIndex(indexOf(b));
+                };
+            
+                System.Action<HumanBodyBones> addBone = (b) => {
+                    neighborsProp.InsertArrayElementAtIndex(neighborsLength);
+                    neighborsProp.GetArrayElementAtIndex(neighborsLength).enumValueIndex = (int)b;
+                };
+
+                GenericMenu menu = new GenericMenu();
+                for (int i = 0; i < Ragdoll.bonesCount; i++) {
+                    HumanBodyBones hb = Ragdoll.humanBones[i];
+                    if (hb == baseBone) {
+                        continue;
+                    }
+
+
+                    menu.AddItem(new GUIContent(hb.ToString()), containsBone(hb), 
+                        (b) => {
+                        HumanBodyBones hb2 = (HumanBodyBones)b;
+                        if (containsBone(hb2)) {
+                            removeBone(hb2);
+                        }
+                        else {
+                            addBone(hb2);
+                        }
+
+                    }, hb);
+                }
+                
+                // display the menu
+                menu.ShowAsContext();
+            }
+        }
+
+        static string[] hipsPropsNames = new string[] { "fallForceDecay" };
+        static string[] propsNames = new string[] { "fallForceDecay", "fallTorqueDecay" };
+        public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
+        {
+            EditorGUI.BeginProperty(position, label, property);
+
+            float _x = DrawIndent(EditorGUI.indentLevel, position.x);
+            float y = position.y;
+        
+            int boneIndex = property.FindPropertyRelative("boneIndex").intValue;
+
+            DrawPropertiesBlock(property, position, _x, ref y, boneIndex == 0 ? hipsPropsNames : propsNames);
+            
+            DrawBoneProfileNeighbors(property.FindPropertyRelative("neighbors"), new Rect(_x, y, position.width, EditorGUIUtility.singleLineHeight), Ragdoll.humanBones[boneIndex]);
+            
+            EditorGUI.EndProperty();
+        }
+        
+        public override float GetPropertyHeight(SerializedProperty prop, GUIContent label)
+        {
+            return EditorGUIUtility.singleLineHeight * (prop.FindPropertyRelative("boneIndex").intValue == 0 ? 2 : 3);
+        }
+    }
+#endif
 }

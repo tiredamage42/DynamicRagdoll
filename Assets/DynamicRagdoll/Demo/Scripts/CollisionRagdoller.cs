@@ -323,7 +323,9 @@ namespace DynamicRagdoll.Demo {
                 float magnitude = Mathf.Sqrt(collisionMagnitude2);
 
                 //linearly interpolate decay between 0 and 1 base on collision magnitude
+                
                 float linearDecay = (magnitude - decayMagnitudeRange.x) / (decayMagnitudeRange.y -  decayMagnitudeRange.x);
+                
                 //Debug.Log(bone + " / " + collision.transform.name + " mag: " + magnitude + " decay " + linearDecay);
                 ragdollController.SetBoneDecay(bone.bone, linearDecay, neighborDecayMultiplier);
             }

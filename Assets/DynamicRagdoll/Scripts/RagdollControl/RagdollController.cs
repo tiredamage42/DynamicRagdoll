@@ -228,7 +228,7 @@ namespace DynamicRagdoll {
 			fallDecay = 1;
 
 			//teleport the whole ragdoll to fit the master
-			ragdoll.TeleportToTarget(Ragdoll.TeleportType.SecondaryNonPhysicsBones);
+			ragdoll.TeleportToTarget(Ragdoll.TeleportType.NonBones);
 
 			//enable physics for ragdoll 
 			ragdoll.UseGravity(true);
@@ -349,7 +349,7 @@ namespace DynamicRagdoll {
 			this way we can still 'shoot' or collide with the ragdoll
 		*/
 		void SimpleTeleportRagdollToMasterWhileAnimated () {
-			ragdoll.TeleportToTarget(Ragdoll.TeleportType.PhysicsBonesAndParents);
+			ragdoll.TeleportToTarget(Ragdoll.TeleportType.BonesAndBoneParents);
 		}
 
 		void LateUpdate()
@@ -534,7 +534,7 @@ namespace DynamicRagdoll {
 
 			for (int i = 0; i < Ragdoll.bonesCount; i++) {
 				
-				Ragdoll.Element bone = ragdoll.GetBone(Ragdoll.humanBones[i]);
+				RagdollTransform bone = ragdoll.GetBone(Ragdoll.humanBones[i]);
 				
 				//track position (offset by ragdoll bone's rigidbody centor of mass) of the follow target
 				Vector3 massCenterOffset = bone.transform.InverseTransformPoint(bone.rigidbody.worldCenterOfMass);
@@ -613,7 +613,9 @@ namespace DynamicRagdoll {
 			boneDecays[bones] = origDecay;
 
 			if (neighborMultiplier > 0) {
-				foreach (var n in profile.bones[Ragdoll.Bone2Index(bones)].neighbors) {
+				foreach (var n in profile.boneData[(bones)].neighbors) {
+				// foreach (var n in profile.bones[Ragdoll.Bone2Index(bones)].neighbors) {
+				
 					SetBoneDecay(n, decayValue * neighborMultiplier, 0);
 				}
 			}
@@ -648,7 +650,7 @@ namespace DynamicRagdoll {
 			for (int i = 0; i < Ragdoll.bonesCount; i++) {
 				HumanBodyBones unityBone = Ragdoll.humanBones[i];
 				
-				Ragdoll.Element bone = ragdoll.GetBone(unityBone);
+				RagdollTransform bone = ragdoll.GetBone(unityBone);
 
 				Vector3 ragdollBoneVelocty = bone.rigidbody.velocity;
 
@@ -659,7 +661,8 @@ namespace DynamicRagdoll {
 					calculate the force decay based on the overall fall decay and the bone profile's
 					fall force decay curve
 				*/
-				float forceDecay = Mathf.Clamp01(profile.bones[i].fallForceDecay.Evaluate (fallDecayCurveSample));
+				// float forceDecay = Mathf.Clamp01(profile.bones[i].fallForceDecay.Evaluate (fallDecayCurveSample));
+				float forceDecay = Mathf.Clamp01(profile.boneData[unityBone].fallForceDecay.Evaluate (fallDecayCurveSample));
 				
 				//subtract manual decay
 				forceDecay = Mathf.Clamp01(forceDecay - boneDecay);
@@ -697,7 +700,8 @@ namespace DynamicRagdoll {
 						calculate the force decay based on the overall fall decay and the bone profile's					
 						fall force decay curve
 					*/
-					float torqueDecay = Mathf.Clamp01(profile.bones[i].fallTorqueDecay.Evaluate (fallDecayCurveSample));
+					// float torqueDecay = Mathf.Clamp01(profile.bones[i].fallTorqueDecay.Evaluate (fallDecayCurveSample));
+					float torqueDecay = Mathf.Clamp01(profile.boneData[unityBone].fallTorqueDecay.Evaluate (fallDecayCurveSample));
 					
 					//subtract manual decay
 					torqueDecay = Mathf.Clamp01(torqueDecay - boneDecay);
@@ -734,7 +738,7 @@ namespace DynamicRagdoll {
 		/*
 			Set the bone's configurable joint target to the master local rotation
 		*/
-		void HandleJointFollow (Ragdoll.Element bone, float torque, int boneIndex) {
+		void HandleJointFollow (RagdollTransform bone, float torque, int boneIndex) {
 			if (!bone.joint) 
 				return;
 					

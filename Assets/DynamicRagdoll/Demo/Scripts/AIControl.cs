@@ -31,7 +31,7 @@ namespace DynamicRagdoll.Demo {
         }
 
         void Update () {
-            if (!character.overrideControl) {
+            if (!character.disableExternalMovement) {
                 CheckForArrival();
                 TurnToDestination();
 

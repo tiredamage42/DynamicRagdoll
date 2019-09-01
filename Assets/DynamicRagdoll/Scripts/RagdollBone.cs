@@ -2,15 +2,6 @@
 using System;
 namespace DynamicRagdoll {
 
-    /*
-        damageable:
-            on damage receive ()
-
-            sendDamage
-    
-    */
-    
-    
     
     /*
         component scene representation of teh physical ragdoll bones
@@ -21,9 +12,7 @@ namespace DynamicRagdoll {
     public class RagdollBone : MonoBehaviour {
         public HumanBodyBones bone;
 
-
         public event Action<RagdollBone, Collision> onCollisionEnter, onCollisionStay, onCollisionExit;
-        public Ragdoll ragdoll;
         public Collider boneCollider;
 
         void Awake () {
@@ -33,8 +22,7 @@ namespace DynamicRagdoll {
         /*
             has to be public i guess...  :/
         */
-        public void _InitializeInternal (Ragdoll ragdoll, HumanBodyBones bone, Action<RagdollBone, Collision> onCollisionEnter, Action<RagdollBone, Collision> onCollisionStay, Action<RagdollBone, Collision> onCollisionExit) {
-            this.ragdoll = ragdoll;
+        public void _InitializeInternal (HumanBodyBones bone, Action<RagdollBone, Collision> onCollisionEnter, Action<RagdollBone, Collision> onCollisionStay, Action<RagdollBone, Collision> onCollisionExit) {
             this.bone = bone;
             this.onCollisionEnter += onCollisionEnter;
             this.onCollisionStay += onCollisionStay;

@@ -1,11 +1,7 @@
 ﻿using System.Collections;
 using UnityEngine;
 
-namespace DynamicRagdoll.Demo {
-
-	/*
-		script for showing how to "shoot" the ragdolls
-	*/
+namespace Game.Combat {
     public class Shooting : MonoBehaviour
     {
         public LayerMask shootMask;
@@ -25,31 +21,12 @@ namespace DynamicRagdoll.Demo {
 			
 			if (Physics.Raycast(ray, out hit, 100f, shootMask, QueryTriggerInteraction.Ignore))
             {
-				//check if we hit a ragdoll bone
-				RagdollBone ragdollBone = hit.transform.GetComponent<RagdollBone>();
-				
-                if (ragdollBone) {
-					
-					// check if the ragdoll has a controller
-					if (ragdollBone.ragdoll.hasController) {
-						RagdollController controller = ragdollBone.ragdoll.controller;
-
-						// set bone decay for the hit bone, so the physics will affect it
-						// slightly lower for neighbor bones
-
-						float mainDecay = 1;
-						float neighborMultiplier = .75f;
-						controller.SetBoneDecay(ragdollBone.bone, mainDecay, neighborMultiplier);
-						
-						//make it go ragdoll
-						controller.GoRagdoll();					
-					}
+				Damageable damageable = hit.transform.GetComponent<Damageable>();
+				if (damageable) {
+					damageable.SendDamage(new DamageMessage(gameObject, 50f));
 				}
 				
-				// shoot normally
-
 				Rigidbody rb = hit.transform.GetComponent<Rigidbody>();
-				
 				if (rb) {
 					rb.AddForceAtPosition(ray.direction.normalized * modifiedBulletForce, hit.point, ForceMode.VelocityChange);
 				}

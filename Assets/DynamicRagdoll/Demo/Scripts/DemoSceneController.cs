@@ -2,6 +2,11 @@
 using UnityEngine;
 
 namespace DynamicRagdoll.Demo {
+
+    /*
+        spawns the characters in teh scene
+        and rains cubes on top of them...
+    */
     public class DemoSceneController : MonoBehaviour
     {
         //public float gravityModifier = 2;

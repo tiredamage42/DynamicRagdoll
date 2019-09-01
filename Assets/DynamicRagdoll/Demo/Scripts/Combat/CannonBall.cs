@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 
-namespace DynamicRagdoll.Demo {
+namespace Game.Combat {
 	public class CannonBall : MonoBehaviour {
 		Rigidbody rb;
 
@@ -20,7 +20,7 @@ namespace DynamicRagdoll.Demo {
 			GetComponent<SphereCollider>().radius = scale * .5f;
 			transform.GetChild(0).localScale = Vector3.one * scale;
 			rb.mass = mass;
-			//rb.useGravity = false;
+			rb.useGravity = false;
 			// Hurl ball towards hit transform
 			rb.velocity = (position - rb.position).normalized * velocity; 
 		}
@@ -31,7 +31,7 @@ namespace DynamicRagdoll.Demo {
 		void OnCollisionEnter (Collision collision)
 		{
 			// Turn gravity on for the ball after the ball has hit something.
-			//rb.useGravity = true; 
+			rb.useGravity = true; 
 		}
 	}
 }

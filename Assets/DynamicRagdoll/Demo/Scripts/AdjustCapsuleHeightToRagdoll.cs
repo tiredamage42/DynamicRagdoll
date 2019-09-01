@@ -21,7 +21,7 @@ namespace DynamicRagdoll.Demo {
         float calculateCharHeight {
             get {
                 //get head bone (should be teleporting to master anyways)
-                Ragdoll.Element headBone = ragdollController.ragdoll.GetBone(HumanBodyBones.Head);
+                RagdollTransform headBone = ragdollController.ragdoll.GetBone(HumanBodyBones.Head);
                 
                 //get its shpere collider
                 SphereCollider sphere = (SphereCollider)headBone.collider;
