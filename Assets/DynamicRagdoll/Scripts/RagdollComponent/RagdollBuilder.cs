@@ -138,30 +138,7 @@ namespace DynamicRagdoll {
         
         
 
-        static HumanBodyBones GetParentBone (HumanBodyBones bone) {
-            switch (bone) {
-                case HumanBodyBones.Chest:          return HumanBodyBones.Hips;
-                case HumanBodyBones.Head:           return HumanBodyBones.Chest;
-                case HumanBodyBones.RightLowerLeg:  return HumanBodyBones.RightUpperLeg;
-                case HumanBodyBones.LeftLowerLeg:   return HumanBodyBones.LeftUpperLeg;
-                case HumanBodyBones.RightUpperLeg:  return HumanBodyBones.Hips;
-                case HumanBodyBones.LeftUpperLeg:   return HumanBodyBones.Hips;
-                case HumanBodyBones.RightLowerArm:  return HumanBodyBones.RightUpperArm;
-                case HumanBodyBones.LeftLowerArm:   return HumanBodyBones.LeftUpperArm;
-                case HumanBodyBones.RightUpperArm:  return HumanBodyBones.Chest;
-                case HumanBodyBones.LeftUpperArm:   return HumanBodyBones.Chest;
-            }
-            return HumanBodyBones.Hips;
-        }
-        static HumanBodyBones GetChildBone (HumanBodyBones bone) {
-            switch (bone) {
-                case HumanBodyBones.RightUpperLeg:  return HumanBodyBones.RightLowerLeg;
-                case HumanBodyBones.LeftUpperLeg:   return HumanBodyBones.LeftLowerLeg;
-                case HumanBodyBones.RightUpperArm:  return HumanBodyBones.RightLowerArm;
-                case HumanBodyBones.LeftUpperArm:   return HumanBodyBones.LeftLowerArm;
-            }
-            return HumanBodyBones.Hips;
-        }
+        
         static HashSet<HumanBodyBones> capsuleBones = new HashSet<HumanBodyBones>() {
             HumanBodyBones.RightUpperLeg, HumanBodyBones.RightLowerLeg,
             HumanBodyBones.LeftUpperLeg, HumanBodyBones.LeftLowerLeg,
@@ -183,11 +160,11 @@ namespace DynamicRagdoll {
                 
                 float distance;
                 if (upperCapsuleBones.Contains(k)) {
-					distance = bone.transform.InverseTransformPoint(bones[GetChildBone(k)].transform.position)[direction];
+					distance = bone.transform.InverseTransformPoint(bones[Ragdoll.GetChildBone(k)].transform.position)[direction];
                 }
                 else
                 {
-                    Vector3 endPoint = (bone.transform.position - bones[GetParentBone(k)].transform.position) + bone.transform.position;
+                    Vector3 endPoint = (bone.transform.position - bones[Ragdoll.GetParentBone(k)].transform.position) + bone.transform.position;
 					distance = bone.transform.InverseTransformPoint(endPoint)[direction];
 
                     if (bone.transform.GetComponentsInChildren(typeof(Transform)).Length > 1)
@@ -292,7 +269,7 @@ namespace DynamicRagdoll {
                 bone.joint.enablePreprocessing = false; 
                 
                 bone.joint.anchor = Vector3.zero;
-                bone.joint.connectedBody = bones[GetParentBone(k)].rigidbody;
+                bone.joint.connectedBody = bones[Ragdoll.GetParentBone(k)].rigidbody;
                 
                 // Setup limits
                 SoftJointLimit limit = new SoftJointLimit();

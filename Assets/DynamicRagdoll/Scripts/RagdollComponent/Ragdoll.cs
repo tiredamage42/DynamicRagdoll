@@ -35,6 +35,8 @@ namespace DynamicRagdoll {
 	[RequireComponent(typeof(Animator))]
 	public partial class Ragdoll : MonoBehaviour {
 
+		public static int layer { get { return LayerMask.NameToLayer("Ragdoll"); } }
+
 		public static int Bone2Index (HumanBodyBones bone) {
 			switch (bone) {
 				case HumanBodyBones.Hips: return 0;
@@ -68,6 +70,31 @@ namespace DynamicRagdoll {
 			HumanBodyBones.RightUpperArm, 
 			HumanBodyBones.LeftUpperArm, 
 		};
+
+		public static HumanBodyBones GetParentBone (HumanBodyBones bone) {
+            switch (bone) {
+                case HumanBodyBones.Chest:          return HumanBodyBones.Hips;
+                case HumanBodyBones.Head:           return HumanBodyBones.Chest;
+                case HumanBodyBones.RightLowerLeg:  return HumanBodyBones.RightUpperLeg;
+                case HumanBodyBones.LeftLowerLeg:   return HumanBodyBones.LeftUpperLeg;
+                case HumanBodyBones.RightUpperLeg:  return HumanBodyBones.Hips;
+                case HumanBodyBones.LeftUpperLeg:   return HumanBodyBones.Hips;
+                case HumanBodyBones.RightLowerArm:  return HumanBodyBones.RightUpperArm;
+                case HumanBodyBones.LeftLowerArm:   return HumanBodyBones.LeftUpperArm;
+                case HumanBodyBones.RightUpperArm:  return HumanBodyBones.Chest;
+                case HumanBodyBones.LeftUpperArm:   return HumanBodyBones.Chest;
+            }
+            return HumanBodyBones.Hips;
+        }
+        public static HumanBodyBones GetChildBone (HumanBodyBones bone) {
+            switch (bone) {
+                case HumanBodyBones.RightUpperLeg:  return HumanBodyBones.RightLowerLeg;
+                case HumanBodyBones.LeftUpperLeg:   return HumanBodyBones.LeftLowerLeg;
+                case HumanBodyBones.RightUpperArm:  return HumanBodyBones.RightLowerArm;
+                case HumanBodyBones.LeftUpperArm:   return HumanBodyBones.LeftLowerArm;
+            }
+            return HumanBodyBones.Hips;
+        }
 
 
 
@@ -244,6 +271,10 @@ namespace DynamicRagdoll {
 			if (!initializedValues) {
 				Awake();
 			}
+			if (ragdollProfile == null) {
+				Debug.LogError("Ragdoll is in error state, no profile assigned!!! (" + msg + ")", transform);
+				return true;
+			}
 			if (boneElements == null) {
 				Debug.LogError("Ragdoll is in error state, maybe it's not humanoid? (" + msg + ")", transform);
 				return true;
@@ -294,15 +325,18 @@ namespace DynamicRagdoll {
 		[Header("Editor Only")] public bool setValuesUpdate = true;
 		void Update () {
 			if (setValuesUpdate) {
+				if (CheckForErroredRagdoll("Update")) {
+					return;
+				}
 
-				// if we're using a custom profile
-				if (ragdollProfile) {
+				// // if we're using a custom profile
+				// if (ragdollProfile) {
 					
 					//if no errors
-					if (boneElements!= null) {
+					// if (boneElements!= null) {
 						UpdateBonesToProfileValues(boneElements, ragdollProfile, initialHeadOffsetFromChest);
-					}
-				}
+					// }
+				// }
 			}
 		}
 		#endif

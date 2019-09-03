@@ -10,10 +10,11 @@ namespace DynamicRagdoll {
     */
     [RequireComponent(typeof(Rigidbody))]
     public class RagdollBone : MonoBehaviour {
-        public HumanBodyBones bone;
+        [HideInInspector] public HumanBodyBones bone;
+        [HideInInspector] public Collider boneCollider;
+        [HideInInspector] public Ragdoll ragdoll;
 
         public event Action<RagdollBone, Collision> onCollisionEnter, onCollisionStay, onCollisionExit;
-        public Collider boneCollider;
 
         void Awake () {
             boneCollider = GetComponent<Collider>();
@@ -22,8 +23,9 @@ namespace DynamicRagdoll {
         /*
             has to be public i guess...  :/
         */
-        public void _InitializeInternal (HumanBodyBones bone, Action<RagdollBone, Collision> onCollisionEnter, Action<RagdollBone, Collision> onCollisionStay, Action<RagdollBone, Collision> onCollisionExit) {
+        public void _InitializeInternal (HumanBodyBones bone, Ragdoll ragdoll, Action<RagdollBone, Collision> onCollisionEnter, Action<RagdollBone, Collision> onCollisionStay, Action<RagdollBone, Collision> onCollisionExit) {
             this.bone = bone;
+            this.ragdoll = ragdoll;
             this.onCollisionEnter += onCollisionEnter;
             this.onCollisionStay += onCollisionStay;
             this.onCollisionExit += onCollisionExit;   

@@ -12,9 +12,7 @@ namespace DynamicRagdoll {
         static GUIStyle _labelStyle;
         public static GUIStyle labelStyle {
             get {
-                
-                if (_labelStyle == null)
-                    _labelStyle = InitializeStyle(EditorStyles.label);
+                if (_labelStyle == null) _labelStyle = InitializeStyle(EditorStyles.label);
                 return _labelStyle;       
             }
         }
@@ -41,42 +39,55 @@ namespace DynamicRagdoll {
             
             bool isBuilt = preBuiltProp.boolValue;
             
-            if (GUILayout.Button(isBuilt ? "Clear Ragdoll" : "Pre Build Ragdoll")) {
-                if (isBuilt)
-                    RagdollBuilder.EraseRagdoll(ragdoll.GetComponent<Animator>());
-                else {
+            if (isBuilt) {
 
+                if (GUILayout.Button(isBuilt ? "Clear Ragdoll" : "Pre Build Ragdoll")) {
+                    RagdollBuilder.EraseRagdoll(ragdoll.GetComponent<Animator>());
+                    preBuiltProp.boolValue = !isBuilt;
+                }
+
+            }
+            else {
+
+                GUI.enabled = ragdoll.ragdollProfile != null;
+                if (GUILayout.Button(isBuilt ? "Clear Ragdoll" : "Pre Build Ragdoll")) {
                     System.Collections.Generic.Dictionary<HumanBodyBones, RagdollTransform> bones;
                     RagdollBuilder.BuildRagdollElements (ragdoll.GetComponent<Animator>(), out _, out bones);
                     RagdollBuilder.BuildBones(ragdoll.GetComponent<Animator>(), ragdoll.ragdollProfile, true, bones, out _);
+                    preBuiltProp.boolValue = !isBuilt;
+    
                 }
-
-                preBuiltProp.boolValue = !isBuilt;
+                GUI.enabled = true;
             }
+            
+            
 
             if (isBuilt) {
-                if (ragdoll.ragdollProfile) {
+                GUI.enabled = ragdoll.ragdollProfile != null;
+                // if (ragdoll.ragdollProfile) {
+
                     if (GUILayout.Button("Update Ragdoll To Profile")) {
                         System.Collections.Generic.Dictionary<HumanBodyBones, RagdollTransform> bones;
                         RagdollBuilder.BuildRagdollElements (ragdoll.GetComponent<Animator>(), out _, out bones);
                         RagdollBuilder.BuildBones(ragdoll.GetComponent<Animator>(), ragdoll.ragdollProfile, false, bones, out _);
                     }
-                }
+                GUI.enabled = true;
+                // }
             }
             EditorGUILayout.EndHorizontal();
         }
 
         public override void OnInspectorGUI() {
             if (ragdoll.ragdollProfile == null){
-                EditorGUILayout.HelpBox("\nAdd a Ragdoll Profile to adjust ragdoll properties.\n\nOtherwise defualts will be used\n", MessageType.Info);
+                EditorGUILayout.HelpBox("Ragdoll doesnt have a Ragdoll Profile assigned...", MessageType.Error);
+                // EditorGUILayout.HelpBox("\nAdd a Ragdoll Profile to adjust ragdoll properties.\n\nOtherwise defualts will be used\n", MessageType.Info);
             }
             
+            
             base.OnInspectorGUI();   
-            
+               
             DrawBuildOptions();
-            
             serializedObject.ApplyModifiedProperties();
-            // EditorUtility.SetDirty(serializedObject.targetObject);
         }
     }
 }

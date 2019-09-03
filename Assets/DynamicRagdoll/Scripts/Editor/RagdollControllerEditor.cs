@@ -8,7 +8,6 @@ namespace DynamicRagdoll {
             controller = target as RagdollController;
         }
         public override void OnInspectorGUI() {
-            base.OnInspectorGUI();
             if (!controller.ragdoll) {
                 EditorGUILayout.HelpBox("Controller doesnt have a Ragdoll to control...", MessageType.Error);
             }
@@ -17,6 +16,11 @@ namespace DynamicRagdoll {
                     EditorGUILayout.HelpBox("Controller doesnt have a Ragdoll Controller Profile assigned...", MessageType.Error);
                 }
             }
+            base.OnInspectorGUI();
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("ragdollOnCollision.enabled"), new GUIContent("Ragdoll On Collisions"));
+
+            serializedObject.ApplyModifiedProperties();
+
         }
     }
 }

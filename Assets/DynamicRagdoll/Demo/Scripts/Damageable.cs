@@ -1,13 +1,19 @@
 ﻿using UnityEngine;
 
 namespace Game.Combat {
+    public interface IDamager
+    {
+        void DamageDealtCallback (Actor actor, float damageDone, float newHealth);
+        void DamageDeathCallback (Actor actor);
+    }
+        
     public class DamageMessage {
 
-        public GameObject damageGiver;
+        public IDamager damager;
         public float baseDamage;
 
-        public DamageMessage(GameObject damageGiver, float baseDamage) {
-            this.damageGiver = damageGiver;
+        public DamageMessage(IDamager damager, float baseDamage) {
+            this.damager = damager;
             this.baseDamage = baseDamage;
         }
     }

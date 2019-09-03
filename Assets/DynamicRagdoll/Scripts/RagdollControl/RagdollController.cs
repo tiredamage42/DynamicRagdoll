@@ -42,7 +42,7 @@ using System.Collections.Generic;
 	after initiateing ragdoll we continue following the animated (but now invisible) master
 	character, by setting the animated velocities, 
 	
-	we degenerate the following at a defined speed (which can be set at runtime)
+	we degenerate the following at a defined speed (which can be set at runtime):
 
 		ragdollController.SetFallSpeed (running ? 2 : 5);
 		ragdollController.GoRagdoll ();
@@ -61,7 +61,7 @@ using System.Collections.Generic;
 		0 means it follows the animation fully (normal decay)
 		1 means it ignores the animation completely and goes by the bones normal velocity
 
-		bone decay for the bone's neighbors (which can be edited below) can be set as well.
+		bone decay for the bone's neighbors (which can be edited in the control profile) can be set as well.
 
 		Example:
 
@@ -70,30 +70,28 @@ using System.Collections.Generic;
 			{
 				//check if we hit a ragdoll bone
 				RagdollBone bone = hit.transform.GetComponent<RagdollBone>();
-				if (bone) {
+			
+				// check if the ragdoll has a controller
+				if (bone.ragdoll.hasController) {
+					RagdollController controller = bone.ragdoll.controller;
 
-					// check if the ragdoll has a controller
-					if (bone.ragdoll.hasController) {
-						RagdollController controller = bone.ragdoll.controller;
+					float mainDecay = 1f;
+					float neighborDecayMultiplier = .75f;
 
-						float mainDecay = 1f;
-						float neighborDecayMultiplier = .75f;
+					// set bone decay for the hit bone, so the physics will affect it
+					// slightly lower for neighbor bones
+					controller.SetBoneDecay(bone.bone, mainDecay, neighborDecayMultiplier);
 
-						// set bone decay for the hit bone, so the physics will affect it
-						// slightly lower for neighbor bones
-						controller.SetBoneDecay(bone.bone, mainDecay, neighborDecayMultiplier);
-
-						//make it go ragdoll
-						controller.GoRagdoll();					
-					}
-
-					//add force to it's rigidbody
-					bone.rigidbody.AddForceAtPosition(ray.direction.normalized * bulletForce / Time.timeScale, hit.point, ForceMode.VelocityChange);
+					//make it go ragdoll
+					controller.GoRagdoll();					
 				}
+
+				//add force to it's rigidbody
+				bone.rigidbody.AddForceAtPosition(ray.direction.normalized * bulletForce / Time.timeScale, hit.point, ForceMode.VelocityChange);
 			}
 
 
-		Note: bone decay for collisions is implemented in CharacterCollisions.cs
+		Note: bone decay for collisions is already implemented in CollisionRagdoller.cs
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -119,14 +117,25 @@ namespace DynamicRagdoll {
 	[RequireComponent(typeof(Animator))] 
 	public class RagdollController : MonoBehaviour
 	{	
-		public Ragdoll ragdoll;
-		public RagdollControllerProfile profile;	
+		#region GETUP_ANIMATION
+		/*
+			extracted this out so you can easily switch out the animation aspect of the controller
+		*/
+		void PlayGetUpAnimation (bool onBack) {
+			// play get up animation
+			animator.SetTrigger(onBack ? "BackTrigger" : "FrontTrigger");
 
-		[Tooltip("Don't get up anymore... 'dead'")]
-		public bool disableGetUp;
-		
-		[HideInInspector] public RagdollControllerState state = RagdollControllerState.Animated;
-		public bool ragdollRenderersEnabled { get { return state != RagdollControllerState.Animated; } }
+			getUpPlaying = true;
+		}
+
+		void CheckEndPlay () {
+			if (getUpPlaying) {
+				if (state == RagdollControllerState.Animated && timeSinceStateStart >= getupTime) {
+
+					getUpPlaying = false;
+				}
+			}
+		}
 
 		/*
 			currently returns if we just entered the animated state, 
@@ -134,11 +143,30 @@ namespace DynamicRagdoll {
 		
 			... or set up system to callback when animation is done
 		*/
-		public bool isGettingUp { get { return state == RagdollControllerState.Animated && timeSinceStateStart < getupTime; } }
 		const float getupTime = 2.5f;
+
+		bool getUpPlaying;
+		public bool isGettingUp { get { return getUpPlaying; } }// && state == RagdollControllerState.Animated && timeSinceStateStart < getupTime; } }
+		#endregion
+		
+		public Ragdoll ragdoll;
+		public RagdollControllerProfile profile;	
+		
+		[Tooltip("Don't get up anymore... 'dead'")]
+		public bool disableGetUp;
+
+		[Header("Character values")]
+		public float charHeight = 1;
+        public float charStepOffset = .1f;
+
+
+		public CollisionRagdoller ragdollOnCollision;
+		
+		
+		[HideInInspector] public RagdollControllerState state = RagdollControllerState.Animated;
+		public bool ragdollRenderersEnabled { get { return state != RagdollControllerState.Animated; } }
 		float timeSinceStateStart { get { return Time.time - stateStartTime; } }
 
-		
 		Animator animator;
 		Transform masterHips;				
 		
@@ -151,8 +179,7 @@ namespace DynamicRagdoll {
 		AnimatorCullingMode originalAnimatorCullingMode;
 
 		float stateStartTime = -100;
-		bool controllerInvalid { get { return profile == null || ragdoll == null; } }
-
+		
 		float fallDecay;
 		float fallSpeed = -1;
 
@@ -169,11 +196,7 @@ namespace DynamicRagdoll {
 		//ignore pairs for blending bones ignorign static colliders
         HashSet<ColliderIgnorePair> blendBonesIgnoreStaticColliders = new HashSet<ColliderIgnorePair>();
         
-		bool teleportingBones {
-			get {
-				return state == RagdollControllerState.Animated || state == RagdollControllerState.BlendToAnimated;
-			}
-		}
+		bool teleportingBones { get { return state == RagdollControllerState.Animated || state == RagdollControllerState.BlendToAnimated; } }
 
 		/*
 			Set the fall decay speed for the next 'Ragdolling'
@@ -196,29 +219,42 @@ namespace DynamicRagdoll {
 			state = newState;
 			//store the state change time
 			stateStartTime = Time.time;
-            
+			
 			//unignore the bones and static colliders that were ignored while blending and animating
 			if (!teleportingBones) {
 				EndStaticCollidersAndBoneCollisionIgnore();
 			}
 		}
 
-		/*
-			call to start the ragdoll process
-		*/
-		public void GoRagdoll (){
-
+		bool CheckForControllerError () {
 			if (!profile) {
 				Debug.LogWarning("No Controller Profile on " + name);
-				return;
+				return true;
 			}
 			if (!ragdoll) {
 				Debug.LogWarning("No Ragdoll for " + name + " to control...");
-				return;
+				return true;
 			}
+			return false;
+		}
+
+
+		/*
+			call to start the ragdoll process
+		*/
+		public void GoRagdoll (string reason){
+			if (CheckForControllerError()) 
+				return;
+
+
+			
 			
 			if (state == RagdollControllerState.Falling || state == RagdollControllerState.Ragdolled)
 				return;
+
+			// Debug.LogError("Ragdoll:: " + reason);
+			// Debug.Break();
+
 
 			/*
 				store start positions to begin calculating the velocity of the playing animation
@@ -253,9 +289,6 @@ namespace DynamicRagdoll {
 			//reset bone fall decay modifiers			
 			ResetBoneDecays();
 
-			//set fall speed to use default
-			SetFallSpeed(-1);
-			
 			//disable physics affecting ragdoll
 			ragdoll.UseGravity(false); 
 			ragdoll.IgnoreSelfCollisions(true);
@@ -268,8 +301,9 @@ namespace DynamicRagdoll {
 			// Check if ragdoll is lying on its back or front
 			bool onBack = Vector3.Dot(ragdollHipsFwd, Vector3.down) < 0f; 
 			
-			// play get up animation
-			animator.SetTrigger(onBack ? "BackTrigger" : "FrontTrigger");
+			PlayGetUpAnimation(onBack);
+			// // play get up animation
+			// animator.SetTrigger(onBack ? "BackTrigger" : "FrontTrigger");
 
 			ChangeRagdollState(RagdollControllerState.TeleportMasterToRagdoll);
 		}
@@ -278,6 +312,9 @@ namespace DynamicRagdoll {
 			Here the master (this transform) gets reorientated to the ragdolls position
 			which could have ended its fall in any direction and position
 		*/
+
+	
+		
 		void TeleportMasterToRagdoll () {		
 			Transform ragdollHips = ragdoll.RootBone().transform;
 
@@ -290,18 +327,18 @@ namespace DynamicRagdoll {
 
 			//calculate the position for the master root object (this)		
 			Vector3 position = transform.position + (ragdollHips.position - masterHips.position);
+			position.y = ragdollHips.position.y;
 			
 			//Now cast a ray from the computed position downwards and find the floor
 			RaycastHit hit;
-			if (Physics.Raycast(new Ray(position + Vector3.up, Vector3.down), out hit, 5, profile.checkGroundMask)) {
-				position.y = hit.point.y;
+			if (Physics.Raycast(new Ray(position + Vector3.up, Vector3.down), out hit, 100, profile.checkGroundMask)) {
+				position.y = hit.point.y;// + .01f;
 			}
 						
 			//set the position and rotation
 			transform.rotation = rotation;
 			transform.position = position;
 
-			ChangeRagdollState(RagdollControllerState.BlendToAnimated);
 		}
 
 		/*
@@ -323,6 +360,8 @@ namespace DynamicRagdoll {
 		}
 		
 		void ResetToAnimated () {
+
+
 			// reset culling mode to original
 			animator.cullingMode = originalAnimatorCullingMode;
 			
@@ -331,17 +370,10 @@ namespace DynamicRagdoll {
 
 			//change state to animated
 			ChangeRagdollState(RagdollControllerState.Animated);
+			
 		}
 
-		/*
-			Wait until transition to getUp animation is done,
-			so the animation is lying down before teleporting 
-			the master to the ragdoll rotation and position
-		*/
-		bool HandleWaitForMasterTeleport () {
-			return timeSinceStateStart >= profile.orientateDelay;
-		}
-
+		
 		/*
 			teleport all ragdoll (and ragdoll parents) in order to match animation
 			no need for secondary transforms since the ragdoll isnt being shown
@@ -354,9 +386,10 @@ namespace DynamicRagdoll {
 
 		void LateUpdate()
 		{
-			if (controllerInvalid) {
-				return;	
-			}
+			if (CheckForControllerError()) 
+				return;
+
+
 			InitializeForwardCalculation();
 		
 			switch (state) {
@@ -369,8 +402,15 @@ namespace DynamicRagdoll {
 				//SimpleTeleportRagdollToMasterWhileAnimated();
 				break;
 			case RagdollControllerState.TeleportMasterToRagdoll:
-				if (HandleWaitForMasterTeleport()) {
+				/*
+					Wait until transition to getUp animation is done,
+					so the animation is lying down before teleporting 
+					the master to the ragdoll rotation and position
+				*/
+				
+				if (timeSinceStateStart >= profile.orientateDelay) {
 					TeleportMasterToRagdoll();
+					ChangeRagdollState(RagdollControllerState.BlendToAnimated);
 				}
 				break;
 			case RagdollControllerState.BlendToAnimated:
@@ -384,18 +424,18 @@ namespace DynamicRagdoll {
 		}
 
 
+
+
 		void Awake () 
 		{
-			if (!profile) {
-				Debug.LogWarning("No Controller Profile on " + name);
+
+			if (CheckForControllerError()) 
 				return;
-			}
-			if (!ragdoll) {
-				Debug.LogWarning("No Ragdoll for " + name + " to control...");
-				return;
-			}
-			
+
+			ragdollOnCollision.InitializeRagdollOnCollisions(this);
+
 			animator = GetComponent<Animator>();
+			// characterController = GetComponent<CharacterController>();
 		
 			// store original culling mode
 			originalAnimatorCullingMode = animator.cullingMode;
@@ -415,18 +455,29 @@ namespace DynamicRagdoll {
 			// initialize animation following
 			InitializeJointFollowing();
 			InitializeVelocitySetValues();
-			
-			// disable physics
-			ragdoll.UseGravity(false);
-			//ragdoll.OverrideDepenetrationSpeed(-1);
-			ragdoll.IgnoreSelfCollisions(true);
-
-			ResetToAnimated();
-			ResetBoneDecays();
+						
+			GetUpImmediate(false);
 
 			//subscribe to receive a callback on ragdoll bone collision
 			ragdoll.onCollisionEnter += OnRagdollCollisionEnter;
 		}
+
+		public void GetUpImmediate (bool teleportMaster=true) {
+			//reset bone fall decay modifiers			
+			ResetBoneDecays();
+
+			//disable physics affecting ragdoll
+			ragdoll.UseGravity(false); 
+			
+			//ragdoll.OverrideDepenetrationSpeed(-1);
+			ragdoll.IgnoreSelfCollisions(true);
+
+			if (teleportMaster) {
+				TeleportMasterToRagdoll();
+			}
+			ResetToAnimated();
+		}
+
 			
 		/*
 			initialize root bone forward calculation, for determining
@@ -445,12 +496,14 @@ namespace DynamicRagdoll {
 				i++;
 			}
 		}
-	
+		
+		void Update () {
+			CheckEndPlay();
+		}
 		void FixedUpdate ()		
 		{
-			if (controllerInvalid) {
-				return;	
-			}
+			if (CheckForControllerError()) 
+				return;
 
 			switch (state) {
 			
@@ -498,7 +551,7 @@ namespace DynamicRagdoll {
 
 		void CheckForGetUp () {
 			//if we've spent enough time ragdolled
-			if (Time.time - stateStartTime > profile.ragdollMinTime) {
+			if (timeSinceStateStart > profile.ragdollMinTime) {
 				//if we're settled start get up
 				if (ragdoll.RootBone().rigidbody.velocity.sqrMagnitude < profile.settledSpeed * profile.settledSpeed) {
 					StartGetUp();
@@ -614,8 +667,6 @@ namespace DynamicRagdoll {
 
 			if (neighborMultiplier > 0) {
 				foreach (var n in profile.boneData[(bones)].neighbors) {
-				// foreach (var n in profile.bones[Ragdoll.Bone2Index(bones)].neighbors) {
-				
 					SetBoneDecay(n, decayValue * neighborMultiplier, 0);
 				}
 			}
@@ -648,9 +699,17 @@ namespace DynamicRagdoll {
 						
 			// for each physics bone...
 			for (int i = 0; i < Ragdoll.bonesCount; i++) {
+
 				HumanBodyBones unityBone = Ragdoll.humanBones[i];
 				
 				RagdollTransform bone = ragdoll.GetBone(unityBone);
+
+				if (ragdoll.BoneDismembered (bone))
+					continue;
+
+				if (bone.rigidbody.isKinematic)
+					continue;
+
 
 				Vector3 ragdollBoneVelocty = bone.rigidbody.velocity;
 
@@ -661,7 +720,6 @@ namespace DynamicRagdoll {
 					calculate the force decay based on the overall fall decay and the bone profile's
 					fall force decay curve
 				*/
-				// float forceDecay = Mathf.Clamp01(profile.bones[i].fallForceDecay.Evaluate (fallDecayCurveSample));
 				float forceDecay = Mathf.Clamp01(profile.boneData[unityBone].fallForceDecay.Evaluate (fallDecayCurveSample));
 				
 				//subtract manual decay
@@ -700,7 +758,6 @@ namespace DynamicRagdoll {
 						calculate the force decay based on the overall fall decay and the bone profile's					
 						fall force decay curve
 					*/
-					// float torqueDecay = Mathf.Clamp01(profile.bones[i].fallTorqueDecay.Evaluate (fallDecayCurveSample));
 					float torqueDecay = Mathf.Clamp01(profile.boneData[unityBone].fallTorqueDecay.Evaluate (fallDecayCurveSample));
 					
 					//subtract manual decay
@@ -740,6 +797,9 @@ namespace DynamicRagdoll {
 		*/
 		void HandleJointFollow (RagdollTransform bone, float torque, int boneIndex) {
 			if (!bone.joint) 
+				return;
+
+			if (bone.joint.angularXMotion == ConfigurableJointMotion.Locked)
 				return;
 					
 			//setting joint torque every frame was slow, so check here if its changed

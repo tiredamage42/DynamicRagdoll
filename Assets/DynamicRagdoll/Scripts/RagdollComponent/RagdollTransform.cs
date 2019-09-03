@@ -9,7 +9,7 @@ namespace DynamicRagdoll {
     */
     public class RagdollTransform {
         public RagdollBone bone;
-        public Rigidbody rigidbody;
+        public Rigidbody rigidbody, connectedBody;
         public ConfigurableJoint joint;
         public Collider collider;
         public Transform transform;
@@ -19,18 +19,31 @@ namespace DynamicRagdoll {
         Vector3 snapshotPosition;
         Quaternion snapshotRotation;
 
+        public Quaternion originalRotation;
+        public Vector3 originalPosition;
+
 
         public RagdollTransform (Transform transform, bool isBoneParent, bool isBone, bool isRoot) {
             this.transform = transform;
+
+            originalRotation = transform.localRotation;
+            originalPosition = transform.localPosition;
+
             this.isBoneParent = isBoneParent;
             this.isRoot = isRoot;
             this.isBone = isBone;
 
             bone = transform.GetComponent<RagdollBone>();
             rigidbody = transform.GetComponent<Rigidbody>();
+            if (rigidbody != null) {
+                collisionDetectionModeBeforeKinematic = rigidbody.collisionDetectionMode;
+            }
             collider = transform.GetComponent<Collider>();  
             if (!isRoot) {
                 joint = transform.GetComponent<ConfigurableJoint>();
+                if (joint != null) {
+                    connectedBody = joint.connectedBody;
+                }
             }
             
         }	
@@ -55,6 +68,33 @@ namespace DynamicRagdoll {
             }
         }
 
+
+
+        public void SetCollisionDetectionMode (CollisionDetectionMode detectionMode) {
+            collisionDetectionModeBeforeKinematic = detectionMode;
+            rigidbody.collisionDetectionMode = detectionMode;
+        }
+
+
+        CollisionDetectionMode collisionDetectionModeBeforeKinematic;
+        public void SetKinematic (bool kinematic) {
+            if (rigidbody == null)
+                return;
+
+            if (kinematic) {
+                collisionDetectionModeBeforeKinematic = rigidbody.collisionDetectionMode;
+
+                //need to set the collision detection mode as discrete to set kinematic and 
+                //teleport rigidbody (or unity throws an error)
+                rigidbody.collisionDetectionMode = CollisionDetectionMode.Discrete;
+                rigidbody.isKinematic = true;
+            }
+            else {
+                rigidbody.isKinematic = false;
+                rigidbody.collisionDetectionMode = collisionDetectionModeBeforeKinematic;
+            }
+        }
+
         public void TeleportTo (Vector3 position, Quaternion rotation) {
             if (isRoot) {
                 transform.position = position;
@@ -68,20 +108,26 @@ namespace DynamicRagdoll {
                 through raycasts/collisions
             */
             if (rigidbody != null) {
+
                 CollisionDetectionMode originalDetectionMode = rigidbody.collisionDetectionMode;
 
-                //need to set the collision detection mode as discrete to set kinematic and 
-                //teleport rigidbody (or unity throws an error)
-                rigidbody.collisionDetectionMode = CollisionDetectionMode.Discrete;
+                bool rbWasKinematic = rigidbody.isKinematic;
+                if (!rbWasKinematic) {
+                    //need to set the collision detection mode as discrete to set kinematic and 
+                    //teleport rigidbody (or unity throws an error)
+                    rigidbody.collisionDetectionMode = CollisionDetectionMode.Discrete;
 
-                rigidbody.isKinematic = true;
+                    rigidbody.isKinematic = true;
+                }
 
                 rigidbody.MovePosition (transform.position);
                 rigidbody.MoveRotation (transform.rotation);
                 
-                rigidbody.isKinematic = false;
-                
-                rigidbody.collisionDetectionMode = originalDetectionMode;
+
+                if (!rbWasKinematic) {
+                    rigidbody.isKinematic = false;
+                    rigidbody.collisionDetectionMode = originalDetectionMode;
+                }
             }
         }
 

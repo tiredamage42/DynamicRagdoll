@@ -9,7 +9,8 @@ namespace DynamicRagdoll.Demo {
     */
     public class DemoSceneController : MonoBehaviour
     {
-        //public float gravityModifier = 2;
+
+
         public float maxRainObjects = 10;
         public Vector2 rainSizeRange = new Vector2(1, 10);
         public GameObject rainObject;
@@ -18,25 +19,20 @@ namespace DynamicRagdoll.Demo {
 
         public GameObject spawn;
         public int maxSpawn = 5;
-        public float playArea = 50;
+        public float playRadius = 50;
         public float spawnFrequency = 3;
         int currentSpawned;
         float lastSpawn, lastRain;
 
-        void Awake () {
-            //Physics.gravity *= gravityModifier;
-        }
-
         void SpawnBot () {
             GameObject g = Instantiate(spawn, Vector3.zero, Quaternion.identity);
-            g.GetComponentInChildren<AIControl>().playArea = playArea;
+            g.GetComponentInChildren<AIControl>().playRadius = playRadius;
             currentSpawned++;
         }
 
         void Rain () {
 
-            float halfPlayArea = playArea * .5f;  
-            Vector3 position = new Vector3(Random.Range(-halfPlayArea, halfPlayArea), Random.Range(20, 40), Random.Range(-halfPlayArea, halfPlayArea));
+            Vector3 position = new Vector3(Random.Range(-playRadius, playRadius), Random.Range(20, 40), Random.Range(-playRadius, playRadius));
             Quaternion rotation = Quaternion.Euler(Random.value * 360f, Random.value * 360f, Random.value * 360f);
             
             if (currentRain.Count < maxRainObjects) {

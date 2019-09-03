@@ -30,4 +30,32 @@ namespace DynamicRagdoll {
             Physics.IgnoreCollision(collider1, collider2, false);
         }
     }
+
+
+    public static class RagdollPhysics {
+        public static void HangRigidbody (Rigidbody rb, Rigidbody parent) {
+            HangRigidbody(rb, parent, parent.transform.InverseTransformPoint(rb.transform.position));
+        }
+
+
+        public static void HangRigidbody (Rigidbody rb, Rigidbody parent, Vector3 connectedAnchorOffset) {
+            FixedJoint fj = rb.GetComponent<FixedJoint>();
+            if (fj != null) {
+                Debug.LogError(rb.name + " is already hanging");
+                return;
+            }
+            fj = rb.gameObject.AddComponent<FixedJoint>();
+            fj.autoConfigureConnectedAnchor = false;
+            fj.connectedAnchor = connectedAnchorOffset;
+            fj.anchor = Vector3.zero;
+            fj.connectedBody = parent;
+            fj.enablePreprocessing = false;
+        }
+
+        public static void DetachRigidbody (Rigidbody rb) {
+            FixedJoint fj = rb.GetComponent<FixedJoint>();
+            if (fj != null) MonoBehaviour.Destroy(fj);
+        }
+
+    }
 }

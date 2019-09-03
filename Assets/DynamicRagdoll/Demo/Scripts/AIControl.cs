@@ -5,40 +5,32 @@
 */
 namespace DynamicRagdoll.Demo {
 
-    [RequireComponent(typeof(Character))]
+    [RequireComponent(typeof(CharacterMovement))]
     public class AIControl : MonoBehaviour
     {
-        public float playArea = 500;
-
+        public float playRadius = 500;
         public float turnSpeed = 5f;
-        const float minTravelDistance = 5f;
         Vector3 destination;
-        Character character;
+        CharacterMovement characterMovement;
 
         void Awake () {
-            character = GetComponent<Character>();
+            characterMovement = GetComponent<CharacterMovement>();
         }
             
         void Start () {
             //maybe run, maybe walk
-            character.SetMovementSpeed (Random.value < .5f ? 1 : 2);
-            destination = GetRandomPoint();
-        }
-
-        Vector3 GetRandomPoint() {
-            float halfPlayArea = playArea * .5f;  
-            return new Vector3(Random.Range(-halfPlayArea, halfPlayArea), 0, Random.Range(-halfPlayArea, halfPlayArea));
+            characterMovement.SetMovementSpeed (Random.value < .5f ? 1 : 2);
+            destination = new Vector3(Random.Range(-playRadius, playRadius), 0, Random.Range(-playRadius, playRadius));
         }
 
         void Update () {
-            if (!character.disableExternalMovement) {
+            if (!characterMovement.disableExternalMovement) {
+                if (characterMovement.currentSpeed == 0) {
+                    Start();
+                }
+                
                 CheckForArrival();
                 TurnToDestination();
-
-                if (character.currentSpeed == 0) {
-                    //maybe run, maybe walk
-                    character.SetMovementSpeed (Random.value < .5f ? 1 : 2);
-                }
             }
         }
 
@@ -49,7 +41,7 @@ namespace DynamicRagdoll.Demo {
         }
 
         void CheckForArrival () {
-            if (Vector3.Distance(transform.position, destination) <= .5f) {
+            if (Vector3.SqrMagnitude(transform.position - destination) <= .25f) {
                 Start();
             }
         }

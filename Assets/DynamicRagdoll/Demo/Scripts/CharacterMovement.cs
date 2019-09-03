@@ -8,9 +8,8 @@ namespace DynamicRagdoll.Demo
 		moves the character around using the animator
 	*/
 
-	public class Character : MonoBehaviour
+	public class CharacterMovement : MonoBehaviour
 	{
-
 		public bool preventUpwardsGroundedMotion;
 		
 		// dont accept any movement changes from player input, or ai input
@@ -57,33 +56,25 @@ namespace DynamicRagdoll.Demo
 			// }
 		}
 
-		void Awake ()
-		{
+		void Awake () {
 			anim = GetComponent<Animator>();
 			characterController = GetComponent<CharacterController>();
 		}
 
-		void OnAnimatorMove ()
-		{
+		void OnAnimatorMove () {
 			animDelta = anim.deltaPosition;
 		}
 
-		void Update () 
-		{
+		void Update ()  {
 			ApplyMovement(UpdateMode.Update);
 		}
-
 		void FixedUpdate () {
-
 			CheckPhysics(out freeFalling);
-
 			ApplyMovement(UpdateMode.FixedUpdate);
 		}
 		void LateUpdate(){
 			ApplyMovement(UpdateMode.LateUpdate);
 		}		
-
-
 
 		void ApplyMovement (UpdateMode checkMode) {
 			if (moveUpdate != checkMode)
@@ -204,5 +195,27 @@ namespace DynamicRagdoll.Demo
 			if (currentGravity < maxGravity)
 				currentGravity = maxGravity;
 		}		
+
+		/*
+            let character controller move rigidbodies
+        */
+        void OnControllerColliderHit(ControllerColliderHit hit) {
+
+            // We dont want to push objects below us
+            if (hit.moveDirection.y < -0.3)
+                return;
+
+            //check for rigidbody            
+            Rigidbody rb = hit.collider.attachedRigidbody;
+            if (rb == null || rb.isKinematic)
+                return;
+            
+            // Calculate push direction from move direction,
+            // we only push objects to the sides never up and down
+            Vector3 pushDir = new Vector3(hit.moveDirection.x, 0, hit.moveDirection.z);
+
+            // Apply the push
+            rb.velocity = pushDir * hit.controller.velocity.magnitude;
+        }
 	}
 }

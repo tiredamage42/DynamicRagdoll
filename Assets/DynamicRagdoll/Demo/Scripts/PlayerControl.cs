@@ -4,11 +4,11 @@ using System.Collections;
 using Game.Combat;
 
 namespace DynamicRagdoll.Demo {
-    public class PlayerControl : MonoBehaviour {
+    public class PlayerControl : MonoBehaviour, IDamager {
 
 
         /*
-			switch camera to follow ragdoll	or animated hips based on ragdoll state
+			switch camera to follow ragdoll	or animated hips based on whichever model is active
 		*/
 		void CheckCameraTarget () {
 
@@ -31,7 +31,7 @@ namespace DynamicRagdoll.Demo {
 
 
 
-        public Character controlledCharacter;
+        public CharacterMovement controlledCharacter;
         public float turnSpeed = 500f;
 		
         [Header("Slow Time")]
@@ -48,13 +48,13 @@ namespace DynamicRagdoll.Demo {
         float origFixedDelta;
         bool slomo, cameraTargetIsAnimatedHips;
 		
-        Shooting shooting;
+        // Shooting shooting;
         CameraHandler camFollow;
         Camera cam;
         CannonBall cannonBall;
 
         void Awake () {
-            shooting = GetComponent<Shooting>();
+            // shooting = GetComponent<Shooting>();
             camFollow = GetComponent<CameraHandler>();
             cam = GetComponent<Camera>();
 
@@ -70,7 +70,7 @@ namespace DynamicRagdoll.Demo {
 
         RagdollController ragdollController;
 
-        void AttachToCharacter (Character character) {
+        void AttachToCharacter (CharacterMovement character) {
             if (controlledCharacter != null) {
                 //enable ai for the last controlled character
                 controlledCharacter.GetComponent<AIControl>().enabled = true;    
@@ -92,14 +92,18 @@ namespace DynamicRagdoll.Demo {
         }
         
         void Update() {
+            UpdateRagdollGrabberPosition();
 
             CheckCameraTarget();
             UpdateSloMo();
 
             /* shoot from the clicked position */
             if (Input.GetMouseButtonDown(0)) {
-                shooting.Shoot(cam.ScreenPointToRay(Input.mousePosition));
+                Shoot(cam.ScreenPointToRay(Input.mousePosition));
 			}
+            if (Input.GetMouseButtonDown(1)) {
+                StartCoroutine(CheckForRagdollGrab(cam.ScreenPointToRay(Input.mousePosition)));
+            }
 
             /* launch the ball from the camera */
             if (Input.GetKeyDown(KeyCode.B)) {
@@ -108,6 +112,8 @@ namespace DynamicRagdoll.Demo {
             }
 
             if (controlledCharacter) {
+                
+                
                 /* drop teh ball on the controlled character */
                 if (Input.GetKeyDown(KeyCode.U)) {
                     Vector3 ragRootBonePosition = ragdollController.ragdoll.RootBone().transform.position;
@@ -116,7 +122,7 @@ namespace DynamicRagdoll.Demo {
                 
                 /* manually ragdoll the controlled character */
                 if (Input.GetKeyDown(KeyCode.R)) {
-                    ragdollController.GoRagdoll();
+                    ragdollController.GoRagdoll("manual");
                 }
 
                 /* moved the controlled character */
@@ -135,9 +141,69 @@ namespace DynamicRagdoll.Demo {
             }
             else {
                 /* look for character to control */
-                if (Input.GetMouseButtonDown(1)) {
+                // if (Input.GetMouseButtonDown(1)) {
+                if (Input.GetKeyDown(KeyCode.P)) {
+                
                     StartCoroutine(CheckForCharacter(cam.ScreenPointToRay(Input.mousePosition)));
                 }
+            }
+        }
+
+        RagdollBone grabbedBone;
+
+        Rigidbody _ragdollGrabberAnchor;
+        Rigidbody ragdollGrabberAnchor {
+            get {
+                if (_ragdollGrabberAnchor == null) {
+                    _ragdollGrabberAnchor = new GameObject("ragdollGrabber").AddComponent<Rigidbody>();
+                    _ragdollGrabberAnchor.isKinematic = true;
+                }
+                return _ragdollGrabberAnchor;
+            }
+        }
+
+
+        
+        void UpdateRagdollGrabberPosition () {
+            Ray ray = cam.ScreenPointToRay(Input.mousePosition);
+            ragdollGrabberAnchor.transform.position = ray.origin + ray.direction * 5;
+        }
+
+
+
+
+        IEnumerator CheckForRagdollGrab (Ray ray){
+            if (grabbedBone) {
+                if (grabbedBone.ragdoll.hasController) {
+                    grabbedBone.ragdoll.controller.disableGetUp = false;
+                }
+                
+                RagdollPhysics.DetachRigidbody(grabbedBone.GetComponent<Rigidbody>());
+                grabbedBone = null;
+            }
+            else {
+                yield return new WaitForFixedUpdate();
+
+                RaycastHit hit;
+                
+                if (Physics.Raycast(ray, out hit, 100f, shootMask, QueryTriggerInteraction.Ignore))
+                {
+                    grabbedBone = hit.transform.GetComponent<RagdollBone>();
+                    if (grabbedBone) {
+
+                        if (grabbedBone.ragdoll.hasController) {
+                            if (grabbedBone.ragdoll.controller == ragdollController) {
+                                yield break;    
+                            }
+                            grabbedBone.ragdoll.controller.GoRagdoll("from grab");
+                            grabbedBone.ragdoll.controller.disableGetUp = true;
+                        }
+                        RagdollPhysics.HangRigidbody(grabbedBone.GetComponent<Rigidbody>(), ragdollGrabberAnchor);
+
+                    }				
+                }
+                
+
             }
         }
         IEnumerator CheckForCharacter (Ray ray){
@@ -145,11 +211,11 @@ namespace DynamicRagdoll.Demo {
 
             RaycastHit hit;
 			
-			if (Physics.Raycast(ray, out hit, 100f, shooting.shootMask, QueryTriggerInteraction.Ignore))
+			if (Physics.Raycast(ray, out hit, 100f, shootMask, QueryTriggerInteraction.Ignore))
             {
 				Damageable damageable = hit.transform.GetComponent<Damageable>();
 				if (damageable) {
-                    AttachToCharacter(damageable.damageableRoot.GetComponent<Character>());
+                    AttachToCharacter(damageable.damageableRoot.GetComponent<CharacterMovement>());
 				}				
 			}
 		}
@@ -162,25 +228,82 @@ namespace DynamicRagdoll.Demo {
 			}
 		}
 
-        
+        public LayerMask shootMask;
+        public float bulletForce = 25f;
+
+		// needed for slo motion or forces are too small
+		public float modifiedBulletForce { get { return bulletForce / Time.timeScale; } }
+
+        public void Shoot (Ray ray) {
+            StartCoroutine(ShootBullet(ray));
+        }
+
+		IEnumerator ShootBullet (Ray ray){
+			yield return new WaitForFixedUpdate();
+			
+			RaycastHit hit;
+			
+			if (Physics.Raycast(ray, out hit, 100f, shootMask, QueryTriggerInteraction.Ignore))
+            {
+				Damageable damageable = hit.transform.GetComponent<Damageable>();
+				if (damageable) {
+					damageable.SendDamage(new DamageMessage(this, 50f));
+				}
+				
+				Rigidbody rb = hit.transform.GetComponent<Rigidbody>();
+				if (rb) {
+					rb.AddForceAtPosition(ray.direction.normalized * modifiedBulletForce, hit.point, ForceMode.VelocityChange);
+				}
+			}
+		}
+
+
+        public void DamageDealtCallback (Actor actor, float damageDone, float newHealth) {
+            damageShowTime = Time.time;
+            damageShowAmount = damageDone;
+        }
+        public void DamageDeathCallback (Actor actor) {
+            xpShowTime = Time.time;
+        }
+
 
         /*
 			GUI STUFF
 		*/
 		void OnGUI () {
-			DrawCrosshair();
+			DrawCrosshair(Input.mousePosition);
+            DrawDamageCounter(Input.mousePosition);
+            DrawXPCounter();
 			DrawTutorialBox();
 		}
 
 		void DrawTutorialBox () {
-			GUI.Box(new Rect(5, 5, 200, 140), "Left Mouse = Shoot\nB = Launch ball\nU = Drop ball from above\nRight Mouse = Control character\nP = Detach character\nN = Slow motion\nR = Go Ragdoll\nMove With Arrow Keys\nor WASD");
+			GUI.Box(new Rect(5, 5, 200, 140), "Left Mouse = Shoot\nB = Launch ball\nU = Drop ball from above\nRight Mouse = Grab Ragdoll\nP = FreeCam / Character toggle\nN = Slow motion\nR = Go Ragdoll\nMove With Arrow Keys\nor WASD");
 		}
-        
-		void DrawCrosshair () {
-			float crossHairSize = 40;
-			float halfSize = crossHairSize / 2;
-			Vector2 mousePos = Input.mousePosition;
-			Rect crosshairRect = new Rect(mousePos.x - halfSize, Screen.height - mousePos.y - halfSize, crossHairSize, crossHairSize);
+
+        const float xpShowDuration = 2;
+        float xpShowTime;
+        void DrawXPCounter () {
+            if (Time.time - xpShowTime <= xpShowDuration) {
+    			GUI.Box(new Rect(5, Screen.height * .5f, 100, 32), "XP +10");
+            }
+        }
+
+        const float damageShowDuration = 1f;
+
+        float damageShowTime;
+        float damageShowAmount;
+        void DrawDamageCounter(Vector2 mousePos) {
+            if (Time.time - damageShowTime <= damageShowDuration) {
+
+                Rect crosshairRect = new Rect(mousePos.x, (Screen.height - mousePos.y) - crossHairSize, 100, 32);
+    			GUI.Box(crosshairRect, "-"+damageShowAmount);
+            }
+        }
+
+        const float crossHairSize = 40;
+		void DrawCrosshair (Vector2 mousePos) {
+			Rect crosshairRect = new Rect(mousePos.x - crossHairSize * .5f, (Screen.height - mousePos.y) - crossHairSize * .5f, crossHairSize, crossHairSize);
 			GUI.DrawTexture(crosshairRect, crosshairTexture, ScaleMode.ScaleToFit, true);
 		}
     }

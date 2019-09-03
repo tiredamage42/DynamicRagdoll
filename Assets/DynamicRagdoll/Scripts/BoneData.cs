@@ -27,8 +27,9 @@ namespace DynamicRagdoll {
 
         for example useage see RagdollProfile.cs or RagdollControllerProfile.cs
 
-    */
+        or ActorRagdollLink.cs in the demo scripts
 
+    */
 
     public class BoneDataAttribute : PropertyAttribute { }
     
@@ -146,8 +147,9 @@ namespace DynamicRagdoll {
 
                 if (shown.boolValue) {
                     SerializedProperty boneData = p.FindPropertyRelative("boneData");
+                    EditorGUI.indentLevel++;
                     EditorGUI.PropertyField(new Rect(position.x + buttonWidth + 5, y + singleLine, position.width, singleLine), boneData, includeChildren:true);
-                    
+                    EditorGUI.indentLevel--;
                     float hght = EditorGUI.GetPropertyHeight(boneData, true) + singleLine;
                     y += hght;
                     boxHeights[boxHeightsIndex] += hght;

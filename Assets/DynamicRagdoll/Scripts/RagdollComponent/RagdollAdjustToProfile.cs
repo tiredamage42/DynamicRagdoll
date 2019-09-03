@@ -11,9 +11,12 @@ namespace DynamicRagdoll {
 		public static void UpdateBonesToProfileValues (Dictionary<HumanBodyBones, RagdollTransform> bones, RagdollProfile profile, float initialHeadOffsetFromChest) {
 			if (bones == null)
 				return;
-			
+
 			if (profile == null)
-				profile = RagdollProfile.defaultProfile;
+				return;
+			
+			// if (profile == null)
+			// 	profile = RagdollProfile.defaultProfile;
 			
 			Vector3 headOffset = profile.headOffset;
 

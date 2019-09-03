@@ -9,7 +9,7 @@ namespace DynamicRagdoll {
 		*/
 		void InitializeRagdollBoneComponents () {
 			for (int i = 0; i < bonesCount; i++) {	
-				allElements[i].bone._InitializeInternal(humanBones[i], BroadcastCollisionEnter, BroadcastCollisionStay, BroadcastCollisionExit);
+				allElements[i].bone._InitializeInternal(humanBones[i], this, BroadcastCollisionEnter, BroadcastCollisionStay, BroadcastCollisionExit);
 			}
 		}
 
@@ -39,15 +39,16 @@ namespace DynamicRagdoll {
 		}
 
 
-        public bool Transform2HumanBone (Transform transform, out HumanBodyBones bone) {
-            bone = HumanBodyBones.Jaw;
+        public bool Transform2HumanBone (Transform transform, out RagdollTransform bone) {
+            bone = null;//HumanBodyBones.Jaw;
+			
             
 			if (CheckForErroredRagdoll("Transform2HumanBone"))
 				return false;
 	
 			for (int i = 0; i < bonesCount; i++) {	
 				if (allElements[i].transform == transform) {
-                    bone = allElements[i].bone.bone;
+                    bone = allElements[i];//.bone.bone;
                     return true;
 				}
 			}

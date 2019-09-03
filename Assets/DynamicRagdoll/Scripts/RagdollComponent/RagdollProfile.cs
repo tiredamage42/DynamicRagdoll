@@ -85,27 +85,29 @@ namespace DynamicRagdoll {
         }
 
         
-        public Vector3 headOffset = defaultHeadOffset;
-        [BoneData] public RagdollProfileBoneData boneData = defaultBoneData;
+        public Vector3 headOffset = new Vector3(0, -.05f, 0);
+        // [BoneData] public RagdollProfileBoneData boneData = defaultBoneData;
 
-        static RagdollProfile _defaultProfile;
-        public static RagdollProfile defaultProfile {
-            get {
-                if (_defaultProfile == null || !Application.isPlaying) {
-                    _defaultProfile = ScriptableObject.CreateInstance<RagdollProfile>();
-                    _defaultProfile.headOffset = defaultHeadOffset;
-                    _defaultProfile.boneData = defaultBoneData;
-                }
-                return _defaultProfile;
-            }
-        }
+        // static RagdollProfile _defaultProfile;
+        // public static RagdollProfile defaultProfile {
+        //     get {
+        //         if (_defaultProfile == null || !Application.isPlaying) {
+        //             _defaultProfile = ScriptableObject.CreateInstance<RagdollProfile>();
+        //             _defaultProfile.headOffset = defaultHeadOffset;
+        //             _defaultProfile.boneData = defaultBoneData;
+        //         }
+        //         return _defaultProfile;
+        //     }
+        // }
         
-        static Vector3 defaultHeadOffset { get { return new Vector3(0, -.05f, 0); } }
+        // static Vector3 defaultHeadOffset { get { return new Vector3(0, -.05f, 0); } }
 
 
-        static RagdollProfileBoneData defaultBoneData {
-            get {
-                return new RagdollProfileBoneData(
+        [BoneData] public RagdollProfileBoneData boneData = //defaultBoneData;
+        // static RagdollProfileBoneData defaultBoneData {
+        //     get {
+        //         return 
+                new RagdollProfileBoneData(
                     new Dictionary<HumanBodyBones, BoneProfile> () {
                         { HumanBodyBones.Hips,          new BoneProfile(0,  new Vector2(0, 0), 0, 0, Vector3.right, Vector3.forward, 2.5f, 0, 0, .3f) },
                         { HumanBodyBones.Chest,         new BoneProfile(1,  new Vector2(-45, 15), 15, 15, Vector3.right, Vector3.forward, 2.5f, 0, 0, .3f) },
@@ -120,8 +122,8 @@ namespace DynamicRagdoll {
                         { HumanBodyBones.LeftUpperArm,  new BoneProfile(10, new Vector2(-90, 45), 85, 25, Vector3.forward, Vector3.up, 1.0f, .075f, 0, .2f) },
                     }
                 );
-            }
-        }
+        //     }
+        // }
     }
 
 
@@ -129,7 +131,6 @@ namespace DynamicRagdoll {
 #if UNITY_EDITOR
     [CustomPropertyDrawer(typeof(RagdollProfile.BoneProfile))] public class RagdollProfileBoneProfileDrawer : PropertyDrawer
     {
-
         static GUIStyle _foldoutStyle;
         static GUIStyle foldoutStyle {
             get {

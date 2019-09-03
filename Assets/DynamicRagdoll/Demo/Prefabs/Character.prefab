@@ -18,31 +18,6 @@ CharacterController:
   m_SkinWidth: 0.01
   m_MinMoveDistance: 0.001
   m_Center: {x: 0, y: 1, z: 0}
---- !u!114 &1312498779
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3374815457249370184}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 408a889246ccf4bdc9fa29075458d51e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  minHeight: 0.25
---- !u!114 &1312498780
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3374815457249370184}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f5642e48dcc094c55aec1caf62bee167, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!114 &1033016898854781843
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -55,67 +30,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a3a223e8b73224d1eb49f428d7646226, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  boneMultip:
-    boneDatas:
-    - editorShown: 0
-      bone: 0
-      boneData:
-        damageMultiplier: 1
-        chanceDismember: 0.5
-    - editorShown: 0
-      bone: 8
-      boneData:
-        damageMultiplier: 1
-        chanceDismember: 0.5
-    - editorShown: 0
-      bone: 10
-      boneData:
-        damageMultiplier: 1
-        chanceDismember: 0.5
-    - editorShown: 0
-      bone: 4
-      boneData:
-        damageMultiplier: 1
-        chanceDismember: 0.5
-    - editorShown: 0
-      bone: 3
-      boneData:
-        damageMultiplier: 1
-        chanceDismember: 0.5
-    - editorShown: 0
-      bone: 2
-      boneData:
-        damageMultiplier: 1
-        chanceDismember: 0.5
-    - editorShown: 0
-      bone: 1
-      boneData:
-        damageMultiplier: 1
-        chanceDismember: 0.5
-    - editorShown: 0
-      bone: 16
-      boneData:
-        damageMultiplier: 1
-        chanceDismember: 0.5
-    - editorShown: 0
-      bone: 15
-      boneData:
-        damageMultiplier: 1
-        chanceDismember: 0.5
-    - editorShown: 0
-      bone: 14
-      boneData:
-        damageMultiplier: 1
-        chanceDismember: 0.5
-    - editorShown: 0
-      bone: 13
-      boneData:
-        damageMultiplier: 1
-        chanceDismember: 0.5
+  adjustCapsuleHeightToModel: 1
+  minCapsuleHeight: 0.25
   fallDecaySpeeds:
   - 5
   - 2
   - 2
+  incomingCheckOffset: 0.5
+  characterControllerIgnoreTime: 2
 --- !u!114 &3374815456780745493
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -131,6 +53,10 @@ MonoBehaviour:
   ragdoll: {fileID: 3374815457191334729}
   profile: {fileID: 11400000, guid: f1f48623e355a4f7588096c4f41770a2, type: 2}
   disableGetUp: 0
+  charHeight: 1
+  charStepOffset: 0.1
+  ragdollOnCollision:
+    enabled: 1
   state: 0
 --- !u!114 &3374815456780745496
 MonoBehaviour:
@@ -144,7 +70,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fe5c63a844999428d94aae02164787fe, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  playArea: 500
+  playRadius: 500
   turnSpeed: 5
 --- !u!114 &3374815456780745498
 MonoBehaviour:
@@ -172,7 +98,7 @@ MonoBehaviour:
   freeFallDelayTime: 0.2
   currentSpeed: 0
   freeFalling: 0
---- !u!114 &3374815456780745499
+--- !u!114 &7357166435608880089
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -181,17 +107,66 @@ MonoBehaviour:
   m_GameObject: {fileID: 3374815457249370184}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a0d11e378dc99404db3551e8678ef451, type: 3}
+  m_Script: {fileID: 11500000, guid: 8270a0032806d4bf3913e68705b41d9a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  outgoingMagnitudeThreshold: 5
-  incomingMagnitudeThreshold: 5
-  incomingCheckOffset: 0.5
-  characterControllerIgnoreTime: 2
-  crushMass: 20
-  crushMassTopOffset: 0.25
-  decayMagnitudeRange: {x: 10, y: 50}
-  neighborDecayMultiplier: 0.75
+  boneData:
+    boneDatas:
+    - editorShown: 1
+      bone: 0
+      boneData:
+        damageMultiplier: 0.1
+        chanceDismember: 0
+    - editorShown: 1
+      bone: 8
+      boneData:
+        damageMultiplier: 0.1
+        chanceDismember: 0
+    - editorShown: 1
+      bone: 10
+      boneData:
+        damageMultiplier: 10
+        chanceDismember: 0.75
+    - editorShown: 1
+      bone: 4
+      boneData:
+        damageMultiplier: 0.2
+        chanceDismember: 0.75
+    - editorShown: 1
+      bone: 3
+      boneData:
+        damageMultiplier: 0.2
+        chanceDismember: 0.75
+    - editorShown: 1
+      bone: 2
+      boneData:
+        damageMultiplier: 0.25
+        chanceDismember: 0.75
+    - editorShown: 1
+      bone: 1
+      boneData:
+        damageMultiplier: 0.25
+        chanceDismember: 0.75
+    - editorShown: 1
+      bone: 16
+      boneData:
+        damageMultiplier: 0.4
+        chanceDismember: 0.75
+    - editorShown: 1
+      bone: 15
+      boneData:
+        damageMultiplier: 0.4
+        chanceDismember: 0.75
+    - editorShown: 1
+      bone: 14
+      boneData:
+        damageMultiplier: 0.5
+        chanceDismember: 0.75
+    - editorShown: 1
+      bone: 13
+      boneData:
+        damageMultiplier: 0.5
+        chanceDismember: 0.75
 --- !u!114 &8699397787118837698
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -204,6 +179,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 890532633ccbe4883a722453bacf7145, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  debugReviveTime: 5
   health: 100
 --- !u!1 &3374815457856484176
 GameObject:
@@ -237,20 +213,6 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!136 &3621363155955437161
-CapsuleCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3374815458842032833}
-  m_Material: {fileID: 0}
-  m_IsTrigger: 0
-  m_Enabled: 1
-  m_Radius: 0.075
-  m_Height: 0.5253997
-  m_Direction: 1
-  m_Center: {x: 0, y: -0.26269984, z: 0}
 --- !u!54 &3484087134327488560
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -267,6 +229,20 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 2
+--- !u!136 &3621363155955437161
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3374815458842032833}
+  m_Material: {fileID: 0}
+  m_IsTrigger: 0
+  m_Enabled: 1
+  m_Radius: 0.075
+  m_Height: 0.5253997
+  m_Direction: 1
+  m_Center: {x: 0, y: -0.26269984, z: 0}
 --- !u!153 &3977574383913940058
 ConfigurableJoint:
   m_ObjectHideFlags: 0
@@ -375,8 +351,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   bone: 0
-  ragdoll: {fileID: 0}
   boneCollider: {fileID: 0}
+  ragdoll: {fileID: 0}
 --- !u!114 &3374815457191334729
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -389,24 +365,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8e6cd7bce92e34e1097117a19a244de6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  ragdollProfile: {fileID: 0}
+  ragdollProfile: {fileID: 11400000, guid: f54a0726c18764e7db0bca4ced6409a1, type: 2}
   preBuilt: 1
   controller: {fileID: 0}
   setValuesUpdate: 0
---- !u!136 &6359315378522277746
-CapsuleCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3374815458842032889}
-  m_Material: {fileID: 0}
-  m_IsTrigger: 0
-  m_Enabled: 1
-  m_Radius: 0.1
-  m_Height: 0.4059544
-  m_Direction: 1
-  m_Center: {x: 0, y: -0.2029772, z: 0}
 --- !u!54 &2767861319211900768
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -518,6 +480,20 @@ ConfigurableJoint:
   m_EnablePreprocessing: 0
   m_MassScale: 1
   m_ConnectedMassScale: 1
+--- !u!136 &6359315378522277746
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3374815458842032889}
+  m_Material: {fileID: 0}
+  m_IsTrigger: 0
+  m_Enabled: 1
+  m_Radius: 0.1
+  m_Height: 0.4059544
+  m_Direction: 1
+  m_Center: {x: 0, y: -0.2029772, z: 0}
 --- !u!114 &8469178697310343337
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -531,21 +507,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   bone: 0
-  ragdoll: {fileID: 0}
   boneCollider: {fileID: 0}
---- !u!65 &8017341251637405746
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3374815458842032893}
-  m_Material: {fileID: 0}
-  m_IsTrigger: 0
-  m_Enabled: 1
-  serializedVersion: 2
-  m_Size: {x: 0.37521595, y: 0.33714518, z: 0.3}
-  m_Center: {x: -0.0000015348196, y: 0.16857259, z: 0}
+  ragdoll: {fileID: 0}
 --- !u!54 &1340311233049676954
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -657,6 +620,19 @@ ConfigurableJoint:
   m_EnablePreprocessing: 0
   m_MassScale: 1
   m_ConnectedMassScale: 1
+--- !u!65 &8017341251637405746
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3374815458842032893}
+  m_Material: {fileID: 0}
+  m_IsTrigger: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Size: {x: 0.37521595, y: 0.33714518, z: 0.3}
+  m_Center: {x: -0.0000015348196, y: 0.16857259, z: 0}
 --- !u!114 &5272128845349046371
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -670,22 +646,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   bone: 0
-  ragdoll: {fileID: 0}
   boneCollider: {fileID: 0}
---- !u!136 &466523182107349874
-CapsuleCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3374815458842032903}
-  m_Material: {fileID: 0}
-  m_IsTrigger: 0
-  m_Enabled: 1
-  m_Radius: 0.075
-  m_Height: 0.5253974
-  m_Direction: 1
-  m_Center: {x: 0, y: -0.2626987, z: 0}
+  ragdoll: {fileID: 0}
 --- !u!54 &6879139528575979434
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -702,6 +664,20 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 2
+--- !u!136 &466523182107349874
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3374815458842032903}
+  m_Material: {fileID: 0}
+  m_IsTrigger: 0
+  m_Enabled: 1
+  m_Radius: 0.075
+  m_Height: 0.5253974
+  m_Direction: 1
+  m_Center: {x: 0, y: -0.2626987, z: 0}
 --- !u!153 &8378981574944470881
 ConfigurableJoint:
   m_ObjectHideFlags: 0
@@ -810,22 +786,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   bone: 0
-  ragdoll: {fileID: 0}
   boneCollider: {fileID: 0}
---- !u!136 &24855894751177450
-CapsuleCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3374815458842032947}
-  m_Material: {fileID: 0}
-  m_IsTrigger: 0
-  m_Enabled: 1
-  m_Radius: 0.075
-  m_Height: 0.27404684
-  m_Direction: 0
-  m_Center: {x: 0.13702342, y: 0, z: 0}
+  ragdoll: {fileID: 0}
 --- !u!54 &9018572303570066415
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -842,6 +804,20 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 2
+--- !u!136 &24855894751177450
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3374815458842032947}
+  m_Material: {fileID: 0}
+  m_IsTrigger: 0
+  m_Enabled: 1
+  m_Radius: 0.075
+  m_Height: 0.27404684
+  m_Direction: 0
+  m_Center: {x: 0.13702342, y: 0, z: 0}
 --- !u!153 &400925283285636489
 ConfigurableJoint:
   m_ObjectHideFlags: 0
@@ -950,22 +926,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   bone: 0
-  ragdoll: {fileID: 0}
   boneCollider: {fileID: 0}
---- !u!136 &9174914319731527496
-CapsuleCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3374815458842032949}
-  m_Material: {fileID: 0}
-  m_IsTrigger: 0
-  m_Enabled: 1
-  m_Radius: 0.075
-  m_Height: 0.511439
-  m_Direction: 0
-  m_Center: {x: 0.2557195, y: 0, z: 0}
+  ragdoll: {fileID: 0}
 --- !u!54 &2074122042194958154
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -1077,6 +1039,20 @@ ConfigurableJoint:
   m_EnablePreprocessing: 0
   m_MassScale: 1
   m_ConnectedMassScale: 1
+--- !u!136 &9174914319731527496
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3374815458842032949}
+  m_Material: {fileID: 0}
+  m_IsTrigger: 0
+  m_Enabled: 1
+  m_Radius: 0.075
+  m_Height: 0.511439
+  m_Direction: 0
+  m_Center: {x: 0.2557195, y: 0, z: 0}
 --- !u!114 &6551919631478339808
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1090,22 +1066,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   bone: 0
-  ragdoll: {fileID: 0}
   boneCollider: {fileID: 0}
---- !u!136 &9108515077689507260
-CapsuleCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3374815458842032959}
-  m_Material: {fileID: 0}
-  m_IsTrigger: 0
-  m_Enabled: 1
-  m_Radius: 0.1
-  m_Height: 0.40595406
-  m_Direction: 1
-  m_Center: {x: 0, y: -0.20297703, z: 0}
+  ragdoll: {fileID: 0}
 --- !u!54 &7245779750905714426
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -1217,6 +1179,20 @@ ConfigurableJoint:
   m_EnablePreprocessing: 0
   m_MassScale: 1
   m_ConnectedMassScale: 1
+--- !u!136 &9108515077689507260
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3374815458842032959}
+  m_Material: {fileID: 0}
+  m_IsTrigger: 0
+  m_Enabled: 1
+  m_Radius: 0.1
+  m_Height: 0.40595406
+  m_Direction: 1
+  m_Center: {x: 0, y: -0.20297703, z: 0}
 --- !u!114 &8807956602204336039
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1230,22 +1206,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   bone: 0
-  ragdoll: {fileID: 0}
   boneCollider: {fileID: 0}
---- !u!136 &2319115679248602059
-CapsuleCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3374815458842033003}
-  m_Material: {fileID: 0}
-  m_IsTrigger: 0
-  m_Enabled: 1
-  m_Radius: 0.075
-  m_Height: 0.5114391
-  m_Direction: 0
-  m_Center: {x: -0.25571954, y: 0, z: 0}
+  ragdoll: {fileID: 0}
 --- !u!54 &8691004312787461207
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -1262,6 +1224,20 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 2
+--- !u!136 &2319115679248602059
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3374815458842033003}
+  m_Material: {fileID: 0}
+  m_IsTrigger: 0
+  m_Enabled: 1
+  m_Radius: 0.075
+  m_Height: 0.5114391
+  m_Direction: 0
+  m_Center: {x: -0.25571954, y: 0, z: 0}
 --- !u!153 &8960179593530593045
 ConfigurableJoint:
   m_ObjectHideFlags: 0
@@ -1370,22 +1346,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   bone: 0
-  ragdoll: {fileID: 0}
   boneCollider: {fileID: 0}
---- !u!136 &5895717055650237720
-CapsuleCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3374815458842033009}
-  m_Material: {fileID: 0}
-  m_IsTrigger: 0
-  m_Enabled: 1
-  m_Radius: 0.075
-  m_Height: 0.27404684
-  m_Direction: 0
-  m_Center: {x: -0.13702342, y: 0, z: 0}
+  ragdoll: {fileID: 0}
 --- !u!54 &5036444687447334605
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -1497,6 +1459,20 @@ ConfigurableJoint:
   m_EnablePreprocessing: 0
   m_MassScale: 1
   m_ConnectedMassScale: 1
+--- !u!136 &5895717055650237720
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3374815458842033009}
+  m_Material: {fileID: 0}
+  m_IsTrigger: 0
+  m_Enabled: 1
+  m_Radius: 0.075
+  m_Height: 0.27404684
+  m_Direction: 0
+  m_Center: {x: -0.13702342, y: 0, z: 0}
 --- !u!114 &6218354048229913085
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1510,21 +1486,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   bone: 0
-  ragdoll: {fileID: 0}
   boneCollider: {fileID: 0}
---- !u!65 &1222407244871532940
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3374815458842033011}
-  m_Material: {fileID: 0}
-  m_IsTrigger: 0
-  m_Enabled: 1
-  serializedVersion: 2
-  m_Size: {x: 0.37521595, y: 0.282253, z: 0.3}
-  m_Center: {x: -0.00000044703484, y: 0.074562505, z: 0}
+  ragdoll: {fileID: 0}
 --- !u!54 &6631507619469766113
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -1541,6 +1504,19 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 2
+--- !u!65 &1222407244871532940
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3374815458842033011}
+  m_Material: {fileID: 0}
+  m_IsTrigger: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Size: {x: 0.37521595, y: 0.282253, z: 0.3}
+  m_Center: {x: -0.00000044703484, y: 0.074562505, z: 0}
 --- !u!114 &5331458652220600119
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1554,21 +1530,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   bone: 0
-  ragdoll: {fileID: 0}
   boneCollider: {fileID: 0}
---- !u!135 &3091925453306211198
-SphereCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3374815458842033023}
-  m_Material: {fileID: 0}
-  m_IsTrigger: 0
-  m_Enabled: 1
-  serializedVersion: 2
-  m_Radius: 0.15
-  m_Center: {x: 0, y: 0.10000001, z: 0}
+  ragdoll: {fileID: 0}
 --- !u!54 &2854710834809210402
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -1585,6 +1548,19 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 2
+--- !u!135 &3091925453306211198
+SphereCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3374815458842033023}
+  m_Material: {fileID: 0}
+  m_IsTrigger: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Radius: 0.15
+  m_Center: {x: 0, y: 0.10000001, z: 0}
 --- !u!153 &8253429517604012702
 ConfigurableJoint:
   m_ObjectHideFlags: 0
@@ -1693,8 +1669,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   bone: 0
-  ragdoll: {fileID: 0}
   boneCollider: {fileID: 0}
+  ragdoll: {fileID: 0}
 --- !u!1001 &3374815457249404770
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1835,6 +1811,12 @@ GameObject:
     type: 3}
   m_PrefabInstance: {fileID: 3374815458842066395}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &3374815458842032947 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 100072, guid: 9c070831ea7c445e29cf73df0bff7dc6,
+    type: 3}
+  m_PrefabInstance: {fileID: 3374815458842066395}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &3374815458842033009 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 100010, guid: 9c070831ea7c445e29cf73df0bff7dc6,
@@ -1844,12 +1826,6 @@ GameObject:
 --- !u!1 &3374815458842033023 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 100004, guid: 9c070831ea7c445e29cf73df0bff7dc6,
-    type: 3}
-  m_PrefabInstance: {fileID: 3374815458842066395}
-  m_PrefabAsset: {fileID: 0}
---- !u!1 &3374815458842032947 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 100072, guid: 9c070831ea7c445e29cf73df0bff7dc6,
     type: 3}
   m_PrefabInstance: {fileID: 3374815458842066395}
   m_PrefabAsset: {fileID: 0}
@@ -1865,15 +1841,15 @@ GameObject:
     type: 3}
   m_PrefabInstance: {fileID: 3374815458842066395}
   m_PrefabAsset: {fileID: 0}
---- !u!1 &3374815458842032889 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 100130, guid: 9c070831ea7c445e29cf73df0bff7dc6,
-    type: 3}
-  m_PrefabInstance: {fileID: 3374815458842066395}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1 &3374815458842032949 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 100078, guid: 9c070831ea7c445e29cf73df0bff7dc6,
+    type: 3}
+  m_PrefabInstance: {fileID: 3374815458842066395}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &3374815458842032889 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 100130, guid: 9c070831ea7c445e29cf73df0bff7dc6,
     type: 3}
   m_PrefabInstance: {fileID: 3374815458842066395}
   m_PrefabAsset: {fileID: 0}
