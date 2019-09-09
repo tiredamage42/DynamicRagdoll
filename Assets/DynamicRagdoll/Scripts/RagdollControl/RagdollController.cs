@@ -112,6 +112,15 @@ using System.Collections.Generic;
 
 */
 namespace DynamicRagdoll {
+	public enum RagdollControllerState { 
+        Animated, 					//fully animated
+        Falling,					//decaying fall
+        Ragdolled, 					//complete ragdoll
+        TeleportMasterToRagdoll, 	//waiting for get up animation transition, to reorient invisible master
+        BlendToAnimated, 			//blend into animated position
+    };
+
+
 
 	//Animator must have a humanoid avatar, figure out how to check this
 	[RequireComponent(typeof(Animator))] 
@@ -128,7 +137,7 @@ namespace DynamicRagdoll {
 			getUpPlaying = true;
 		}
 
-		void CheckEndPlay () {
+		void CheckForGetupEnd () {
 			if (getUpPlaying) {
 				if (state == RagdollControllerState.Animated && timeSinceStateStart >= getupTime) {
 
@@ -238,6 +247,19 @@ namespace DynamicRagdoll {
 			return false;
 		}
 
+		/*
+			recuperates bone decay back to 0 if it's not, while we're animated
+		*/
+		void UpdateBoneDecay (float deltaTime) {
+			if (state == RagdollControllerState.Animated) {
+
+				float addDecay = -(deltaTime/profile.decayRecuperateTime);
+				for (int i = 0; i < Ragdoll.bonesCount; i++) {
+					AddBoneDecay(Ragdoll.humanBones[i], addDecay, 0);
+				}
+			}
+		}
+
 
 		/*
 			call to start the ragdoll process
@@ -302,9 +324,7 @@ namespace DynamicRagdoll {
 			bool onBack = Vector3.Dot(ragdollHipsFwd, Vector3.down) < 0f; 
 			
 			PlayGetUpAnimation(onBack);
-			// // play get up animation
-			// animator.SetTrigger(onBack ? "BackTrigger" : "FrontTrigger");
-
+			
 			ChangeRagdollState(RagdollControllerState.TeleportMasterToRagdoll);
 		}
 
@@ -424,8 +444,6 @@ namespace DynamicRagdoll {
 		}
 
 
-
-
 		void Awake () 
 		{
 
@@ -435,8 +453,7 @@ namespace DynamicRagdoll {
 			ragdollOnCollision.InitializeRagdollOnCollisions(this);
 
 			animator = GetComponent<Animator>();
-			// characterController = GetComponent<CharacterController>();
-		
+			
 			// store original culling mode
 			originalAnimatorCullingMode = animator.cullingMode;
 
@@ -498,8 +515,11 @@ namespace DynamicRagdoll {
 		}
 		
 		void Update () {
-			CheckEndPlay();
+			CheckForGetupEnd();
+
+			UpdateBoneDecay (Time.deltaTime);
 		}
+
 		void FixedUpdate ()		
 		{
 			if (CheckForControllerError()) 
@@ -552,9 +572,14 @@ namespace DynamicRagdoll {
 		void CheckForGetUp () {
 			//if we've spent enough time ragdolled
 			if (timeSinceStateStart > profile.ragdollMinTime) {
-				//if we're settled start get up
-				if (ragdoll.RootBone().rigidbody.velocity.sqrMagnitude < profile.settledSpeed * profile.settledSpeed) {
-					StartGetUp();
+				
+				// if we're not beign grabbed
+				if (!ragdoll.RigidbodyGrabbed()) {
+                
+					//if we're settled start get up
+					if (ragdoll.RootBone().rigidbody.velocity.sqrMagnitude < profile.settledSpeed * profile.settledSpeed) {
+						StartGetUp();
+					}
 				}
 			}
 		}
@@ -640,6 +665,12 @@ namespace DynamicRagdoll {
 				boneDecays[Ragdoll.humanBones[i]] = 0;
 			}
 		}
+
+		public void AddBoneDecay (float decayValue) {
+			for (int i = 0; i < Ragdoll.bonesCount; i++) {
+				AddBoneDecay (Ragdoll.humanBones[i], decayValue, 0);
+			}
+		}
 		
 		
 		/*
@@ -647,7 +678,7 @@ namespace DynamicRagdoll {
 			0 = follow animation normally
 			1 = dont follow animation at all
 		*/
-		public void SetBoneDecay (HumanBodyBones bones, float decayValue, float neighborMultiplier) {
+		public void AddBoneDecay (HumanBodyBones bones, float decayValue, float neighborMultiplier) {
 			
 			if (!boneDecays.ContainsKey(bones)) {
 				Debug.LogError(bones + " is not a physics bone, cant set bone decay");
@@ -660,14 +691,16 @@ namespace DynamicRagdoll {
 			float origDecay = boneDecays[bones];
 			origDecay += decayValue;
 			
-			if (origDecay > 1)
-				origDecay = 1;
+
+			origDecay = Mathf.Clamp01(origDecay);
+			// if (origDecay > 1)
+			// 	origDecay = 1;
 			
 			boneDecays[bones] = origDecay;
 
 			if (neighborMultiplier > 0) {
-				foreach (var n in profile.boneData[(bones)].neighbors) {
-					SetBoneDecay(n, decayValue * neighborMultiplier, 0);
+				foreach (var n in profile.boneData[bones].neighbors) {
+					AddBoneDecay(n, decayValue * neighborMultiplier, 0);
 				}
 			}
 		}

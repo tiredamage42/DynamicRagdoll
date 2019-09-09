@@ -11,10 +11,13 @@ namespace Game.Combat {
 
         public IDamager damager;
         public float baseDamage;
+        public int severity;
 
-        public DamageMessage(IDamager damager, float baseDamage) {
+
+        public DamageMessage(IDamager damager, float baseDamage, int severity) {
             this.damager = damager;
             this.baseDamage = baseDamage;
+            this.severity = severity;
         }
     }
     

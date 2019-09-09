@@ -67,14 +67,17 @@ namespace DynamicRagdoll {
             Normal velocity set values
         */
         [Header("Falling")]
+
+        [Tooltip("When animated, bone decay recuperates to 0 in this time")]
+        public float decayRecuperateTime = .1f;
         [Range(0f, 10000f)] public float maxTorque = 250f;
 
         [Tooltip("Default for how fast the character loses control after ragdolling")]
         [Range(.5f, 4.5f)] public float fallDecaySpeed = 1.5f;				
         [Tooltip("Calculated animation velocities will have gravity added to them\nif their magnitude is under this value.\n\nRaise if ragdoll hangs in the air too much")]
 		[Range(0f, 1f)] public float maxGravityAddVelocity = 1f;
-
         [Range(0,1)] public float loseFollowDot = .5f;
+
 
         
         [Header("Get Up")]
@@ -90,6 +93,8 @@ namespace DynamicRagdoll {
 
 		[Tooltip("How long do we blend when transitioning from ragdolled to animated")]
 		public float blendTime = 1f;
+
+        
 		
 
 

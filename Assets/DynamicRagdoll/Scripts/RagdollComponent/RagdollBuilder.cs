@@ -136,9 +136,6 @@ namespace DynamicRagdoll {
     
         }
         
-        
-
-        
         static HashSet<HumanBodyBones> capsuleBones = new HashSet<HumanBodyBones>() {
             HumanBodyBones.RightUpperLeg, HumanBodyBones.RightLowerLeg,
             HumanBodyBones.LeftUpperLeg, HumanBodyBones.LeftLowerLeg,
@@ -250,7 +247,6 @@ namespace DynamicRagdoll {
                 bones[k].bone = bones[k].AddComponent<RagdollBone>();
         }
         
-
         static void BuildJoints(Dictionary<HumanBodyBones, RagdollTransform> bones)
         {
             foreach (var k in bones.Keys)

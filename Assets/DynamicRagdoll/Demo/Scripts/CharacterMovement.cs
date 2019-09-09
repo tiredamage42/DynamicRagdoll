@@ -1,4 +1,6 @@
 using UnityEngine;
+
+
 namespace DynamicRagdoll.Demo
 {
 	/*
@@ -36,7 +38,7 @@ namespace DynamicRagdoll.Demo
 		[Tooltip("How much time to wait until initiating Free Fall status after not being grounded and falling from high enough")]
 		public float freeFallDelayTime = .2f;
 
-		[HideInInspector] public float currentSpeed;
+		[HideInInspector] public float currentSpeed = 0;
 		bool grounded, inCoyoteHang;
 		float floorY, currentGravity, lastGroundHitTime, lastGroundTime;
 		Animator anim;		
@@ -59,6 +61,7 @@ namespace DynamicRagdoll.Demo
 		void Awake () {
 			anim = GetComponent<Animator>();
 			characterController = GetComponent<CharacterController>();
+			currentSpeed = 0;
 		}
 
 		void OnAnimatorMove () {

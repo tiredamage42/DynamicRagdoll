@@ -28,9 +28,6 @@ namespace DynamicRagdoll.Demo {
             }
 		}
 
-
-
-
         public CharacterMovement controlledCharacter;
         public float turnSpeed = 500f;
 		
@@ -40,31 +37,19 @@ namespace DynamicRagdoll.Demo {
         [Header("Shooting")]
         public Texture crosshairTexture;
         
-        [Header("Cannon Ball")]
-        public float ballVelocity = 20f;
-		public float ballMass = 40f;
-		public float ballScale = .4f;
+		bool cameraTargetIsAnimatedHips;
 		
-        float origFixedDelta;
-        bool slomo, cameraTargetIsAnimatedHips;
-		
-        // Shooting shooting;
         CameraHandler camFollow;
         Camera cam;
-        CannonBall cannonBall;
-
+        
         void Awake () {
-            // shooting = GetComponent<Shooting>();
             camFollow = GetComponent<CameraHandler>();
             cam = GetComponent<Camera>();
 
-            cannonBall = GameObject.FindObjectOfType<CannonBall>();			
-
-            origFixedDelta = Time.fixedDeltaTime;
-            Cursor.visible = false;
         }
 
         void Start () {
+            Cursor.visible = false;
             AttachToCharacter(controlledCharacter);
         }
 
@@ -84,12 +69,31 @@ namespace DynamicRagdoll.Demo {
 
                 ragdollController = controlledCharacter.GetComponent<RagdollController>();
 
-
                 RagdollTransform hipBone = ragdollController.ragdoll.RootBone();
                 camFollow.target = hipBone.followTarget.transform;
                 camFollow.updateMode = UpdateMode.Update;
             }
         }
+
+        public AmmoType[] ammoTypes;
+        public int ammotypeIndex;
+
+        void ToggleAmmoType () {
+            ammotypeIndex ++;
+            if (ammotypeIndex >= ammoTypes.Length) {
+                ammotypeIndex = 0;
+            }
+
+        }
+        AmmoType currentAmmoType {
+            get {
+                if (ammotypeIndex >= 0 && ammotypeIndex < ammoTypes.Length) {
+                    return ammoTypes[ammotypeIndex];
+                }
+                return null;
+            }
+        }
+
         
         void Update() {
             UpdateRagdollGrabberPosition();
@@ -99,7 +103,9 @@ namespace DynamicRagdoll.Demo {
 
             /* shoot from the clicked position */
             if (Input.GetMouseButtonDown(0)) {
-                Shoot(cam.ScreenPointToRay(Input.mousePosition));
+                if (currentAmmoType != null) {
+                    currentAmmoType.FireAmmo(this, cam.ScreenPointToRay(Input.mousePosition), shootMask, 1);
+                }
 			}
             if (Input.GetMouseButtonDown(1)) {
                 StartCoroutine(CheckForRagdollGrab(cam.ScreenPointToRay(Input.mousePosition)));
@@ -107,18 +113,14 @@ namespace DynamicRagdoll.Demo {
 
             /* launch the ball from the camera */
             if (Input.GetKeyDown(KeyCode.B)) {
-                Ray ray = cam.ScreenPointToRay(Input.mousePosition);
-                cannonBall.Launch(ray.origin, ray.origin + ray.direction * 50, ballScale, ballMass, ballVelocity);
+                GameObject.FindObjectOfType<DemoSceneController>().SwitchActiveScene();
+            }
+            /* drop teh ball on the controlled character */
+            if (Input.GetKeyDown(KeyCode.E)) {
+                ToggleAmmoType();
             }
 
             if (controlledCharacter) {
-                
-                
-                /* drop teh ball on the controlled character */
-                if (Input.GetKeyDown(KeyCode.U)) {
-                    Vector3 ragRootBonePosition = ragdollController.ragdoll.RootBone().transform.position;
-                    cannonBall.Launch(ragRootBonePosition + Vector3.up * 25, ragRootBonePosition, ballScale, ballMass, 0);
-                }
                 
                 /* manually ragdoll the controlled character */
                 if (Input.GetKeyDown(KeyCode.R)) {
@@ -141,7 +143,6 @@ namespace DynamicRagdoll.Demo {
             }
             else {
                 /* look for character to control */
-                // if (Input.GetMouseButtonDown(1)) {
                 if (Input.GetKeyDown(KeyCode.P)) {
                 
                     StartCoroutine(CheckForCharacter(cam.ScreenPointToRay(Input.mousePosition)));
@@ -151,12 +152,17 @@ namespace DynamicRagdoll.Demo {
 
         RagdollBone grabbedBone;
 
-        Rigidbody _ragdollGrabberAnchor;
-        Rigidbody ragdollGrabberAnchor {
+        GrabPoint _ragdollGrabberAnchor;
+        GrabPoint ragdollGrabberAnchor {
             get {
                 if (_ragdollGrabberAnchor == null) {
-                    _ragdollGrabberAnchor = new GameObject("ragdollGrabber").AddComponent<Rigidbody>();
-                    _ragdollGrabberAnchor.isKinematic = true;
+                    _ragdollGrabberAnchor = GrabPoint.GetGrabPoint();
+                    
+                    GameObject sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                    Destroy(sphere.GetComponent<Collider>());
+                    sphere.transform.localScale = Vector3.one * .2f;
+                    sphere.transform.SetParent(_ragdollGrabberAnchor.transform);
+                    sphere.transform.localPosition = Vector3.zero;
                 }
                 return _ragdollGrabberAnchor;
             }
@@ -174,11 +180,7 @@ namespace DynamicRagdoll.Demo {
 
         IEnumerator CheckForRagdollGrab (Ray ray){
             if (grabbedBone) {
-                if (grabbedBone.ragdoll.hasController) {
-                    grabbedBone.ragdoll.controller.disableGetUp = false;
-                }
-                
-                RagdollPhysics.DetachRigidbody(grabbedBone.GetComponent<Rigidbody>());
+                RagdollPhysics.DetachRigidbody(grabbedBone.GetComponent<Rigidbody>(), hangJoint, false);
                 grabbedBone = null;
             }
             else {
@@ -190,22 +192,14 @@ namespace DynamicRagdoll.Demo {
                 {
                     grabbedBone = hit.transform.GetComponent<RagdollBone>();
                     if (grabbedBone) {
-
-                        if (grabbedBone.ragdoll.hasController) {
-                            if (grabbedBone.ragdoll.controller == ragdollController) {
-                                yield break;    
-                            }
-                            grabbedBone.ragdoll.controller.GoRagdoll("from grab");
-                            grabbedBone.ragdoll.controller.disableGetUp = true;
-                        }
-                        RagdollPhysics.HangRigidbody(grabbedBone.GetComponent<Rigidbody>(), ragdollGrabberAnchor);
-
+                        ragdollGrabberAnchor.transform.position = hit.point;
+                        hangJoint = RagdollPhysics.GrabRigidbody(grabbedBone.rb, ragdollGrabberAnchor.childRigidbody, true);
                     }				
                 }
-                
-
             }
         }
+
+        Joint hangJoint;
         IEnumerator CheckForCharacter (Ray ray){
 			yield return new WaitForFixedUpdate();
 
@@ -222,42 +216,20 @@ namespace DynamicRagdoll.Demo {
 
         void UpdateSloMo () {
 			if (Input.GetKeyDown(KeyCode.N)) {
-				Time.timeScale = slomo ? 1 : slowTime;
-				Time.fixedDeltaTime = origFixedDelta * Time.timeScale;
-				slomo = !slomo;
+                if (GameTime.timeDilated) {
+                    GameTime.ResetTimeDilation(.1f);
+                }
+                else {
+                    GameTime.SetTimeDilation(slowTime, .1f, -1, 0);
+                }
+				// Time.timeScale = slomo ? 1 : slowTime;
+				// Time.fixedDeltaTime = origFixedDelta * Time.timeScale;
+				// slomo = !slomo;
 			}
 		}
 
         public LayerMask shootMask;
-        public float bulletForce = 25f;
-
-		// needed for slo motion or forces are too small
-		public float modifiedBulletForce { get { return bulletForce / Time.timeScale; } }
-
-        public void Shoot (Ray ray) {
-            StartCoroutine(ShootBullet(ray));
-        }
-
-		IEnumerator ShootBullet (Ray ray){
-			yield return new WaitForFixedUpdate();
-			
-			RaycastHit hit;
-			
-			if (Physics.Raycast(ray, out hit, 100f, shootMask, QueryTriggerInteraction.Ignore))
-            {
-				Damageable damageable = hit.transform.GetComponent<Damageable>();
-				if (damageable) {
-					damageable.SendDamage(new DamageMessage(this, 50f));
-				}
-				
-				Rigidbody rb = hit.transform.GetComponent<Rigidbody>();
-				if (rb) {
-					rb.AddForceAtPosition(ray.direction.normalized * modifiedBulletForce, hit.point, ForceMode.VelocityChange);
-				}
-			}
-		}
-
-
+        
         public void DamageDealtCallback (Actor actor, float damageDone, float newHealth) {
             damageShowTime = Time.time;
             damageShowAmount = damageDone;
@@ -278,7 +250,10 @@ namespace DynamicRagdoll.Demo {
 		}
 
 		void DrawTutorialBox () {
-			GUI.Box(new Rect(5, 5, 200, 140), "Left Mouse = Shoot\nB = Launch ball\nU = Drop ball from above\nRight Mouse = Grab Ragdoll\nP = FreeCam / Character toggle\nN = Slow motion\nR = Go Ragdoll\nMove With Arrow Keys\nor WASD");
+			// GUI.Box(new Rect(5, 5, 200, 140), "Left Mouse = Shoot\nB = Launch ball\nU = Drop ball from above\nRight Mouse = Grab Ragdoll\nP = FreeCam / Character toggle\nN = Slow motion\nR = Go Ragdoll\nMove With Arrow Keys\nor WASD");
+            
+            string currentAmmoTypeName = currentAmmoType != null ? currentAmmoType.name : "None";
+            GUI.Box(new Rect(5, 5, 200, 140), "Left Mouse = Shoot\nE = Toggle Ammo (Current: " + currentAmmoTypeName + "\nRight Mouse = Grab Ragdoll\nB = Toggle Active Scene\nP = FreeCam / Character toggle\nN = Slow motion\nR = Go Ragdoll\nMove With Arrow Keys\nor WASD");
 		}
 
         const float xpShowDuration = 2;
@@ -295,7 +270,6 @@ namespace DynamicRagdoll.Demo {
         float damageShowAmount;
         void DrawDamageCounter(Vector2 mousePos) {
             if (Time.time - damageShowTime <= damageShowDuration) {
-
                 Rect crosshairRect = new Rect(mousePos.x, (Screen.height - mousePos.y) - crossHairSize, 100, 32);
     			GUI.Box(crosshairRect, "-"+damageShowAmount);
             }

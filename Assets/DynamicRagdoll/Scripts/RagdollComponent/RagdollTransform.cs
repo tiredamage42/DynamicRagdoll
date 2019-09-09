@@ -23,11 +23,34 @@ namespace DynamicRagdoll {
         public Vector3 originalPosition;
 
 
+        /*
+            Keeps the joints together at high velocities....
+        */
+        public void PerformJointFix (float jointFixMagnitude2) {
+            if (joint != null) {
+                if (!RigidbodyGrabbed()) {
+                    if (transform.localPosition.sqrMagnitude >= jointFixMagnitude2) {
+                        transform.localPosition = originalPosition;
+                        rigidbody.position = transform.position;
+                    }
+                }
+            }
+        }
+        public bool RigidbodyGrabbed () {
+            return RagdollPhysics.RigidbodyGrabbed(rigidbody);
+        }
+
+
+        public void OnStart () {
+            originalRotation = transform.localRotation;
+            originalPosition = transform.localPosition;
+        }
+
         public RagdollTransform (Transform transform, bool isBoneParent, bool isBone, bool isRoot) {
             this.transform = transform;
 
-            originalRotation = transform.localRotation;
-            originalPosition = transform.localPosition;
+            // originalRotation = transform.localRotation;
+            // originalPosition = transform.localPosition;
 
             this.isBoneParent = isBoneParent;
             this.isRoot = isRoot;
@@ -161,6 +184,11 @@ namespace DynamicRagdoll {
 
         public T AddComponent<T> () where T : Component {
             return transform.gameObject.AddComponent<T>();
-        }		
+        }	
+
+
+        public void IgnoreCollisions(Collider collider, bool ignore) {
+			Physics.IgnoreCollision(this.collider, collider, ignore);
+		}	
     }
 }

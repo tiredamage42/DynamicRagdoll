@@ -179,7 +179,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 890532633ccbe4883a722453bacf7145, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  debugReviveTime: 5
+  debugReviveTime: 10
   health: 100
 --- !u!1 &3374815457856484176
 GameObject:
@@ -254,7 +254,7 @@ ConfigurableJoint:
   m_Anchor: {x: 0, y: 0, z: 0}
   m_Axis: {x: 1, y: 0, z: 0}
   m_AutoConfigureConnectedAnchor: 1
-  m_ConnectedAnchor: {x: 0.0024468026, y: -0.4059544, z: -0.0051452797}
+  m_ConnectedAnchor: {x: 0.0024468175, y: -0.4059544, z: -0.005145282}
   serializedVersion: 2
   m_SecondaryAxis: {x: 0, y: 0, z: 1}
   m_XMotion: 0
@@ -353,6 +353,7 @@ MonoBehaviour:
   bone: 0
   boneCollider: {fileID: 0}
   ragdoll: {fileID: 0}
+  rb: {fileID: 0}
 --- !u!114 &3374815457191334729
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -396,7 +397,7 @@ ConfigurableJoint:
   m_Anchor: {x: 0, y: 0, z: 0}
   m_Axis: {x: 1, y: 0, z: 0}
   m_AutoConfigureConnectedAnchor: 1
-  m_ConnectedAnchor: {x: 0.09124453, y: -0.066564, z: -0.00055377925}
+  m_ConnectedAnchor: {x: 0.0912447, y: -0.066564, z: -0.0005537844}
   serializedVersion: 2
   m_SecondaryAxis: {x: 0, y: 0, z: 1}
   m_XMotion: 0
@@ -509,6 +510,7 @@ MonoBehaviour:
   bone: 0
   boneCollider: {fileID: 0}
   ragdoll: {fileID: 0}
+  rb: {fileID: 0}
 --- !u!54 &1340311233049676954
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -536,7 +538,7 @@ ConfigurableJoint:
   m_Anchor: {x: 0, y: 0, z: 0}
   m_Axis: {x: 1, y: 0, z: 0}
   m_AutoConfigureConnectedAnchor: 1
-  m_ConnectedAnchor: {x: 0.0000012805019, y: 0.215689, z: -0.02649676}
+  m_ConnectedAnchor: {x: 0.0000011693729, y: 0.215689, z: -0.026496768}
   serializedVersion: 2
   m_SecondaryAxis: {x: 0, y: 0, z: 1}
   m_XMotion: 0
@@ -648,6 +650,7 @@ MonoBehaviour:
   bone: 0
   boneCollider: {fileID: 0}
   ragdoll: {fileID: 0}
+  rb: {fileID: 0}
 --- !u!54 &6879139528575979434
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -689,7 +692,7 @@ ConfigurableJoint:
   m_Anchor: {x: 0, y: 0, z: 0}
   m_Axis: {x: 1, y: 0, z: 0}
   m_AutoConfigureConnectedAnchor: 1
-  m_ConnectedAnchor: {x: -0.0024467986, y: -0.40595406, z: -0.005170411}
+  m_ConnectedAnchor: {x: -0.0024468359, y: -0.40595406, z: -0.005170414}
   serializedVersion: 2
   m_SecondaryAxis: {x: 0, y: 0, z: 1}
   m_XMotion: 0
@@ -788,6 +791,7 @@ MonoBehaviour:
   bone: 0
   boneCollider: {fileID: 0}
   ragdoll: {fileID: 0}
+  rb: {fileID: 0}
 --- !u!54 &9018572303570066415
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -829,7 +833,7 @@ ConfigurableJoint:
   m_Anchor: {x: 0, y: 0, z: 0}
   m_Axis: {x: 0, y: 0, z: 1}
   m_AutoConfigureConnectedAnchor: 1
-  m_ConnectedAnchor: {x: 0.18760645, y: 0.22204688, z: -0.03521792}
+  m_ConnectedAnchor: {x: 0.18760672, y: 0.22204688, z: -0.03521794}
   serializedVersion: 2
   m_SecondaryAxis: {x: 0, y: 1, z: 0}
   m_XMotion: 0
@@ -928,6 +932,7 @@ MonoBehaviour:
   bone: 0
   boneCollider: {fileID: 0}
   ragdoll: {fileID: 0}
+  rb: {fileID: 0}
 --- !u!54 &2074122042194958154
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -955,7 +960,7 @@ ConfigurableJoint:
   m_Anchor: {x: 0, y: 0, z: 0}
   m_Axis: {x: 0, y: 1, z: 0}
   m_AutoConfigureConnectedAnchor: 1
-  m_ConnectedAnchor: {x: 0.27404684, y: 0.00000033126352, z: 0.0000000540167}
+  m_ConnectedAnchor: {x: 0.2740472, y: 0.0000003312635, z: 0.0000000540167}
   serializedVersion: 2
   m_SecondaryAxis: {x: 0, y: 0, z: 1}
   m_XMotion: 0
@@ -1068,6 +1073,7 @@ MonoBehaviour:
   bone: 0
   boneCollider: {fileID: 0}
   ragdoll: {fileID: 0}
+  rb: {fileID: 0}
 --- !u!54 &7245779750905714426
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -1095,7 +1101,7 @@ ConfigurableJoint:
   m_Anchor: {x: 0, y: 0, z: 0}
   m_Axis: {x: 1, y: 0, z: 0}
   m_AutoConfigureConnectedAnchor: 1
-  m_ConnectedAnchor: {x: -0.091244526, y: -0.066563986, z: -0.00055377925}
+  m_ConnectedAnchor: {x: -0.09124471, y: -0.066563986, z: -0.000553782}
   serializedVersion: 2
   m_SecondaryAxis: {x: 0, y: 0, z: 1}
   m_XMotion: 0
@@ -1208,6 +1214,7 @@ MonoBehaviour:
   bone: 0
   boneCollider: {fileID: 0}
   ragdoll: {fileID: 0}
+  rb: {fileID: 0}
 --- !u!54 &8691004312787461207
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -1249,7 +1256,7 @@ ConfigurableJoint:
   m_Anchor: {x: 0, y: 0, z: 0}
   m_Axis: {x: 0, y: 1, z: 0}
   m_AutoConfigureConnectedAnchor: 1
-  m_ConnectedAnchor: {x: -0.27404684, y: 0.000000417287, z: 0.000000065192545}
+  m_ConnectedAnchor: {x: -0.2740472, y: 0.00000041728703, z: 0.000000054016674}
   serializedVersion: 2
   m_SecondaryAxis: {x: 0, y: 0, z: 1}
   m_XMotion: 0
@@ -1348,6 +1355,7 @@ MonoBehaviour:
   bone: 0
   boneCollider: {fileID: 0}
   ragdoll: {fileID: 0}
+  rb: {fileID: 0}
 --- !u!54 &5036444687447334605
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -1375,7 +1383,7 @@ ConfigurableJoint:
   m_Anchor: {x: 0, y: 0, z: 0}
   m_Axis: {x: 0, y: 0, z: 1}
   m_AutoConfigureConnectedAnchor: 1
-  m_ConnectedAnchor: {x: -0.18760951, y: 0.222047, z: -0.035218306}
+  m_ConnectedAnchor: {x: -0.18760934, y: 0.222047, z: -0.03521833}
   serializedVersion: 2
   m_SecondaryAxis: {x: 0, y: 1, z: 0}
   m_XMotion: 0
@@ -1488,6 +1496,7 @@ MonoBehaviour:
   bone: 0
   boneCollider: {fileID: 0}
   ragdoll: {fileID: 0}
+  rb: {fileID: 0}
 --- !u!54 &6631507619469766113
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -1532,6 +1541,7 @@ MonoBehaviour:
   bone: 0
   boneCollider: {fileID: 0}
   ragdoll: {fileID: 0}
+  rb: {fileID: 0}
 --- !u!54 &2854710834809210402
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -1572,7 +1582,7 @@ ConfigurableJoint:
   m_Anchor: {x: 0, y: -0.05, z: 0}
   m_Axis: {x: 1, y: 0, z: 0}
   m_AutoConfigureConnectedAnchor: 1
-  m_ConnectedAnchor: {x: -0.0000011901354, y: 0.33714524, z: 0.023088736}
+  m_ConnectedAnchor: {x: -0.000001061544, y: 0.33714524, z: 0.023088733}
   serializedVersion: 2
   m_SecondaryAxis: {x: 0, y: 0, z: 1}
   m_XMotion: 0
@@ -1671,6 +1681,7 @@ MonoBehaviour:
   bone: 0
   boneCollider: {fileID: 0}
   ragdoll: {fileID: 0}
+  rb: {fileID: 0}
 --- !u!1001 &3374815457249404770
 PrefabInstance:
   m_ObjectHideFlags: 0

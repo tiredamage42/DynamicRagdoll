@@ -15,9 +15,6 @@ namespace DynamicRagdoll {
 			if (profile == null)
 				return;
 			
-			// if (profile == null)
-			// 	profile = RagdollProfile.defaultProfile;
-			
 			Vector3 headOffset = profile.headOffset;
 
 			//clamp head offset (values too high or too low become unstable for some reason)
@@ -95,6 +92,14 @@ namespace DynamicRagdoll {
 		}
 
 		static void UpdateJointToProfile (HumanBodyBones bone, ConfigurableJoint joint, RagdollProfile.BoneProfile boneProfile, Vector3 headOffset) {
+
+			// joint.projectionMode = JointProjectionMode.PositionAndRotation;
+			
+			joint.connectedMassScale = boneProfile.connectedMassScale;
+			joint.massScale = boneProfile.massScale;
+
+			joint.xMotion = joint.yMotion = joint.zMotion = ConfigurableJointMotion.Limited;
+
 			//adjust anchor for head offset
 			if (bone == HumanBodyBones.Head) {
 				if (joint.anchor != headOffset) {
@@ -113,18 +118,22 @@ namespace DynamicRagdoll {
 			//adjust limits (0 if forceOff is enabled)
 			var l = joint.lowAngularXLimit;
 			l.limit = boneProfile.forceOff ? 0 : boneProfile.angularXLimit.x;
+			l.contactDistance = 45;
 			joint.lowAngularXLimit = l;
-			
+
 			l = joint.highAngularXLimit;
 			l.limit = boneProfile.forceOff ? 0 : boneProfile.angularXLimit.y;
+			l.contactDistance = 45;
 			joint.highAngularXLimit = l;
 			
 			l = joint.angularYLimit;
 			l.limit = boneProfile.forceOff ? 0 : boneProfile.angularYLimit;
+			l.contactDistance = 45;
 			joint.angularYLimit = l;
 			
 			l = joint.angularZLimit;
 			l.limit = boneProfile.forceOff ? 0 : boneProfile.angularZLimit;
+			l.contactDistance = 45;
 			joint.angularZLimit = l;
 		}
 		static void UpdateRigidbodyToProfile (Rigidbody rigidbody, RagdollProfile.BoneProfile boneProfile) {

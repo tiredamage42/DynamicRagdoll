@@ -145,8 +145,9 @@ namespace DynamicRagdoll {
 
             if (isCrushed) {
                 //Debug.LogWarning(bone + " / " + collision.transform.name + " CrUSHED");
-                ragdollController.SetBoneDecay(bone.bone, 1, ragdollController.profile.neighborDecayMultiplier);
+                ragdollController.AddBoneDecay(bone.bone, 1, ragdollController.profile.neighborDecayMultiplier);
             }
+            
             // if the magnitude is above the minimum threshold for adding decay
             else if (collisionMagnitude2 >= ragdollController.profile.decayMagnitudeRange.x * ragdollController.profile.decayMagnitudeRange.x) {
                 float magnitude = Mathf.Sqrt(collisionMagnitude2);
@@ -156,7 +157,7 @@ namespace DynamicRagdoll {
                 float linearDecay = (magnitude - ragdollController.profile.decayMagnitudeRange.x) / (ragdollController.profile.decayMagnitudeRange.y -  ragdollController.profile.decayMagnitudeRange.x);
                 
                 //Debug.Log(bone + " / " + collision.transform.name + " mag: " + magnitude + " decay " + linearDecay);
-                ragdollController.SetBoneDecay(bone.bone, linearDecay, ragdollController.profile.neighborDecayMultiplier);
+                ragdollController.AddBoneDecay(bone.bone, linearDecay, ragdollController.profile.neighborDecayMultiplier);
             }
         }
     }

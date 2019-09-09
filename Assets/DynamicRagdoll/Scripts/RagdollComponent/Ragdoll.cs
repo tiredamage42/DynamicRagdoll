@@ -35,8 +35,57 @@ namespace DynamicRagdoll {
 	[RequireComponent(typeof(Animator))]
 	public partial class Ragdoll : MonoBehaviour {
 
+		/*
+			if we're having too much trouble with joint stretching when grabbed,
+			keep the joints at their original local position
+		*/
+
+		void PerformJointFix () {
+			float jointFixMagnitude2 = ragdollProfile.jointFixMagnitude2;
+			if (RigidbodyGrabbed()) {
+				for (int i =0 ; i< bonesCount; i++) {
+					allElements[i].PerformJointFix(jointFixMagnitude2);
+				}
+			}
+		}
+		void LateUpdate () {
+			if (ragdollProfile.jointFixEnabled) {
+				PerformJointFix();
+			}
+		}
+		
+		public void ForceDetach () {
+			for (int i =0 ; i < bonesCount; i++) {
+				RagdollPhysics.DetachRigidbody(allElements[i].rigidbody, null, true);
+			}
+		}
+
+		public void SetVelocity (Vector3 velocity) {
+			for (int i =0 ; i < bonesCount; i++) {
+				allElements[i].rigidbody.velocity = velocity;
+			}
+		}
+		
+		void Start () {
+			for (int i =0 ; i< bonesCount; i++) {
+				allElements[i].OnStart();
+			}
+		}
+
+		public bool RigidbodyGrabbed () {
+			for (int i =0 ; i< bonesCount; i++) {
+				if (allElements[i].RigidbodyGrabbed()) {
+					return true;
+				}
+			}
+			return false;
+		}
+
 		public static int layer { get { return LayerMask.NameToLayer("Ragdoll"); } }
 
+		public static bool BoneIsPhysicsBone (HumanBodyBones bone) {
+			return Bone2Index(bone) != -1;
+		}
 		public static int Bone2Index (HumanBodyBones bone) {
 			switch (bone) {
 				case HumanBodyBones.Hips: return 0;

@@ -10,6 +10,24 @@ namespace DynamicRagdoll.Demo {
     public class DemoSceneController : MonoBehaviour
     {
 
+        public GameObject[] ammoScenes;
+
+        void InitializeScenes () {
+            for (int i =1 ; i < ammoScenes.Length; i++) {
+                ammoScenes[i].SetActive(false);
+            }
+        }
+        int activeScene;
+
+        public void SwitchActiveScene() {
+            ammoScenes[activeScene].SetActive(false);
+            activeScene++;
+            if (activeScene >= ammoScenes.Length) {
+                activeScene = 0;
+            }
+            ammoScenes[activeScene].SetActive(true);
+        }
+
 
         public float maxRainObjects = 10;
         public Vector2 rainSizeRange = new Vector2(1, 10);
@@ -24,6 +42,10 @@ namespace DynamicRagdoll.Demo {
         int currentSpawned;
         float lastSpawn, lastRain;
 
+
+        void Awake () {
+            InitializeScenes();
+        }
         void SpawnBot () {
             GameObject g = Instantiate(spawn, Vector3.zero, Quaternion.identity);
             g.GetComponentInChildren<AIControl>().playRadius = playRadius;
@@ -61,13 +83,13 @@ namespace DynamicRagdoll.Demo {
         {
             if (currentSpawned < maxSpawn) {
                 if (Time.time - lastSpawn >= spawnFrequency) {
-                    SpawnBot();
+                    // SpawnBot();
                     lastSpawn = Time.time;
                 }
             }
 
             if (Time.time - lastRain >= rainFrequency) {
-                Rain();
+                // Rain();
                 lastRain = Time.time;
             }
         }

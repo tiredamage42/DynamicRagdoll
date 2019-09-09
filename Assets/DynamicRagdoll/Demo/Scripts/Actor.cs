@@ -5,11 +5,26 @@ namespace Game.Combat {
 
     public class Actor : MonoBehaviour
     {
+        public Transform spawnPoint;
         public float debugReviveTime = 5;
         IEnumerator DebugRevival () {
             yield return new WaitForSeconds(debugReviveTime);
-            Revive();
+            Revive(spawnPoint);
         }
+
+
+
+        // void Awake () {
+        //     characterController = GetComponent<CharacterController>();
+        // }
+
+
+        // just needed to disable and enable (if enabled) during spawn point warping
+        // can be null...
+        // CharacterController characterController; 
+
+            
+
         public float health = 100;
 
         public event Action<Damageable, DamageMessage> onDeath, onTakeDamage;
@@ -30,8 +45,9 @@ namespace Game.Combat {
         public void OnDeath (Damageable subDamageable, DamageMessage damageMessage) {
             health = 0;
 
-
-            damageMessage.damager.DamageDeathCallback(this);
+            if (damageMessage.damager != null) {
+                damageMessage.damager.DamageDeathCallback(this);
+            }
                 
             if (onDeath != null) {
                 onDeath(subDamageable, damageMessage);
@@ -41,11 +57,34 @@ namespace Game.Combat {
             StartCoroutine(DebugRevival());
         }
 
-        public void Revive () {
+        void OnEnable () {
+            if (health <= 0) {
+                StartCoroutine(DebugRevival());
+            }
+        }
+
+        public void Revive (Transform spawnPoint) {
             health = 100;
+
             if (onRevive != null) {
                 onRevive();
             }
+
+            if (spawnPoint != null) {
+
+
+                DynamicRagdoll.RagdollPhysics.MovePossibleCharacterController(transform, spawnPoint.position);
+                // bool ccEnabled = false;
+                // if (characterController != null) {
+                //     ccEnabled = characterController.enabled;
+                //     characterController.enabled = false;
+                // }
+
+                // transform.position = spawnPoint.position;
+
+                // if (characterController != null) characterController.enabled = ccEnabled;
+            }
+
         }
 
         public void SendDamage (Damageable subDamageable, DamageMessage damageMessage) {
@@ -60,11 +99,10 @@ namespace Game.Combat {
                 // Debug.LogError(name + " DAMAGE +" + damage);
 
                 deadFromDamage = health <= 0;
-                
-                damageMessage.damager.DamageDealtCallback(this, damage, health);
+                if (damageMessage.damager != null) {
+                    damageMessage.damager.DamageDealtCallback(this, damage, health);
+                }
             }
-
-            
 
             if (onTakeDamage != null) {
                 onTakeDamage(subDamageable, damageMessage);

@@ -12,8 +12,16 @@ namespace DynamicRagdoll {
         and disable physics on the bone
     */
 
-    public class DismembermentModule //: MonoBehaviour
+    public class DismembermentModule 
     {
+        System.Func<bool> isDismembermentAvailable;
+
+        public void SetDismembermentAvailableCheck (System.Func<bool> isDismembermentAvailable) {
+            this.isDismembermentAvailable = isDismembermentAvailable;
+        }
+
+
+        bool dismembermentAvailable { get { return isDismembermentAvailable == null || isDismembermentAvailable(); } }
 
         const string ignorePhysicsLayer = "Ignore Raycast";
         const float dismemberScale = .01f;
@@ -35,6 +43,10 @@ namespace DynamicRagdoll {
             HumanBodyBones.RightLowerArm,
             HumanBodyBones.LeftLowerArm,
         };
+
+        public static bool BoneDismemberable (HumanBodyBones bone) {
+            return dismemberableBones.Contains(bone);
+        }
         
         void InitializeDismemberedBones () {
             if (dismemberedBones.Count != dismemberableBones.Count) {
@@ -104,50 +116,58 @@ namespace DynamicRagdoll {
             delay the dismemberment for a few frames in order for physics exerted on the bone
             to play out before we disable it
         */
-        IEnumerator DismemberBoneDelayed (Ragdoll ragdoll, RagdollTransform bone, int delay) {
-            for (int i = 0; i < delay; i++) yield return new WaitForFixedUpdate();
-            DismemberBone(ragdoll, bone, 0, false);
+
+        IEnumerator DismemberBoneDelayed (Ragdoll ragdoll, RagdollTransform bone) {
+            for (int i = 0; i < ragdoll.ragdollProfile.dismemberBoneFrameDelay; i++) yield return new WaitForFixedUpdate();
+            DismemberBone(ragdoll, bone, false);
         }
 
-        public void DismemberBone (Ragdoll ragdoll, RagdollTransform bone, int delay, bool isFollowBone=false) {
+        public void DismemberBone (string reason, Ragdoll ragdoll, RagdollTransform bone) {
             InitializeDismemberedBones();
+            if (!dismembermentAvailable) {
+                return;
+            }
+            if (!BoneDismemberable(bone.bone.bone)) {
+                return;
+            }
+            if (RagdollPhysics.RigidbodyGrabbed(bone.rigidbody)) {
+                return;
+            }
 
-            if (!isFollowBone) {
-                if (!dismemberableBones.Contains(bone.bone.bone)) {
-                    return;
-                }
+            // Debug.LogError("Dismembered " + reason);
 
-                if (delay > 0) {
-                    ragdoll.StartCoroutine(DismemberBoneDelayed(ragdoll, bone, delay));
-                    return;
-                }
+            dismemberedBones[bone.bone.bone] = bone;
 
-                dismemberedBones[bone.bone.bone] = bone;
+            // dismember the follow target, so it reflects our dismemberment
+            // (dismembers the animated model...)
+            if (bone.followTarget != null) {
+                DismemberBone(ragdoll, bone.followTarget, true);
+            }
+
+            // dismember and disable any child bones (helps physics from getting all jittery)
+            HumanBodyBones childBone = Ragdoll.GetChildBone(bone.bone.bone);
+            RagdollTransform childBoneTransform = ragdoll.GetBone(childBone);
+            if (!BoneDismembered(childBoneTransform)) {
+                DismemberBone(reason, ragdoll, childBoneTransform);
+            }
+            
+
+            ragdoll.StartCoroutine(DismemberBoneDelayed(ragdoll, bone));
+        }
+                    
+
                 
+
+        public void DismemberBone ( Ragdoll ragdoll, RagdollTransform bone, bool isFollowBone) {
+            if (!isFollowBone) {
+
                 bone.collider.gameObject.layer = LayerMask.NameToLayer(ignorePhysicsLayer);
                 
                 // bone.joint.connectedBody = null;
                 // bone.collider.isTrigger = true;
                 // bone.SetKinematic(true);
                 
-
-
-                // dismember the follow target, so it reflects our dismemberment
-                // (dismembers the animated model...)
-                if (bone.followTarget != null) {
-                    DismemberBone(ragdoll, bone.followTarget, 0, true);
-                }
-
-                // dismember and disable any child bones (helps physics from getting all jittery)
-                HumanBodyBones childBone = Ragdoll.GetChildBone(bone.bone.bone);
-                if (childBone != HumanBodyBones.Hips) {
-                    RagdollTransform childBoneTransform = ragdoll.GetBone(childBone);
-                    if (!BoneDismembered(childBoneTransform)) {
-                        DismemberBone(ragdoll, childBoneTransform, 0, false);
-                    }
-                }
             }
-            
             bone.transform.localScale = Vector3.one * dismemberScale;             
         }
     }
@@ -165,8 +185,16 @@ namespace DynamicRagdoll {
         public bool BoneDismembered (RagdollTransform bone) {
             return dismemberment.BoneDismembered(bone);
         }
-        public void DismemberBone (RagdollTransform bone, int delay) {
-            dismemberment.DismemberBone(this, bone, delay, false);       
+        public void DismemberBone (string reason, RagdollTransform bone) {
+            
+            dismemberment.DismemberBone(reason, this, bone);
+        }
+        public void DismemberBone (string reason, HumanBodyBones bone) {
+            dismemberment.DismemberBone(reason, this, GetBone(bone));
+        }
+
+        public void SetDismembermentAvailableCheck (System.Func<bool> dismembermentAvailable) {
+            dismemberment.SetDismembermentAvailableCheck(dismembermentAvailable);    
         }
     }
 }

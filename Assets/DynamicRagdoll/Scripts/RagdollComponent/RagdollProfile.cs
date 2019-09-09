@@ -29,6 +29,9 @@ namespace DynamicRagdoll {
             /*
                 JOINT OPTIONS
             */
+
+            public float massScale = 1;
+            public float connectedMassScale = 1;
             public Vector2 angularXLimit;
             public float angularYLimit;
             public float angularZLimit = 0;
@@ -84,46 +87,38 @@ namespace DynamicRagdoll {
             }
         }
 
+
+        [Header("Strech Joint Fix")]
+
+        [Tooltip("Enable if we're having trouble with joint stretching")]
+        public bool jointFixEnabled = true;
+
+        [Tooltip("Magnitude of distance from original joint local position to be considered 'stretched'")]
+        public float jointFixThreshold = .25f;
+        public float jointFixMagnitude2 { get { return jointFixThreshold * jointFixThreshold; } }
+        
+
+        [Tooltip("Delay the dismemberment for a few frames in order for physics to affect the bone before we disable it")]
+        public int dismemberBoneFrameDelay = 3;
         
         public Vector3 headOffset = new Vector3(0, -.05f, 0);
-        // [BoneData] public RagdollProfileBoneData boneData = defaultBoneData;
-
-        // static RagdollProfile _defaultProfile;
-        // public static RagdollProfile defaultProfile {
-        //     get {
-        //         if (_defaultProfile == null || !Application.isPlaying) {
-        //             _defaultProfile = ScriptableObject.CreateInstance<RagdollProfile>();
-        //             _defaultProfile.headOffset = defaultHeadOffset;
-        //             _defaultProfile.boneData = defaultBoneData;
-        //         }
-        //         return _defaultProfile;
-        //     }
-        // }
         
-        // static Vector3 defaultHeadOffset { get { return new Vector3(0, -.05f, 0); } }
 
-
-        [BoneData] public RagdollProfileBoneData boneData = //defaultBoneData;
-        // static RagdollProfileBoneData defaultBoneData {
-        //     get {
-        //         return 
-                new RagdollProfileBoneData(
-                    new Dictionary<HumanBodyBones, BoneProfile> () {
-                        { HumanBodyBones.Hips,          new BoneProfile(0,  new Vector2(0, 0), 0, 0, Vector3.right, Vector3.forward, 2.5f, 0, 0, .3f) },
-                        { HumanBodyBones.Chest,         new BoneProfile(1,  new Vector2(-45, 15), 15, 15, Vector3.right, Vector3.forward, 2.5f, 0, 0, .3f) },
-                        { HumanBodyBones.Head,          new BoneProfile(2,  new Vector2(-75, 75), 25, 25, Vector3.right, Vector3.forward, 1.0f, .15f, 0, .3f) },
-                        { HumanBodyBones.RightLowerLeg, new BoneProfile(3,  new Vector2(-90, 0), 10, 10, Vector3.right, Vector3.forward, 1.5f, .075f, 0, .2f) },
-                        { HumanBodyBones.LeftLowerLeg,  new BoneProfile(4,  new Vector2(-90, 0), 10, 10, Vector3.right, Vector3.forward, 1.5f, .075f, 0, .2f) },
-                        { HumanBodyBones.RightUpperLeg, new BoneProfile(5,  new Vector2(-75, 100), 25, 0, Vector3.right, Vector3.forward, 1.5f, .1f, 0, .2f) },
-                        { HumanBodyBones.LeftUpperLeg,  new BoneProfile(6,  new Vector2(-75, 100), 25, 0, Vector3.right, Vector3.forward, 1.5f, .1f, 0, .2f) },
-                        { HumanBodyBones.RightLowerArm, new BoneProfile(7,  new Vector2(0, 180 ), 15, 15, Vector3.up, Vector3.forward, 1.0f, .075f, 0, .2f ) },
-                        { HumanBodyBones.LeftLowerArm,  new BoneProfile(8,  new Vector2(-180, 0), 15, 15, Vector3.up, Vector3.forward, 1.0f, .075f, 0, .2f) },
-                        { HumanBodyBones.RightUpperArm, new BoneProfile(9,  new Vector2(-45, 90), 85, 25, Vector3.forward, Vector3.up, 1.0f, .075f, 0, .2f) },
-                        { HumanBodyBones.LeftUpperArm,  new BoneProfile(10, new Vector2(-90, 45), 85, 25, Vector3.forward, Vector3.up, 1.0f, .075f, 0, .2f) },
-                    }
-                );
-        //     }
-        // }
+        [BoneData] public RagdollProfileBoneData boneData = new RagdollProfileBoneData(
+            new Dictionary<HumanBodyBones, BoneProfile> () {
+                { HumanBodyBones.Hips,          new BoneProfile(0,  new Vector2(0, 0), 0, 0, Vector3.right, Vector3.forward, 2.5f, 0, 0, .3f) },
+                { HumanBodyBones.Chest,         new BoneProfile(1,  new Vector2(-45, 15), 15, 15, Vector3.right, Vector3.forward, 2.5f, 0, 0, .3f) },
+                { HumanBodyBones.Head,          new BoneProfile(2,  new Vector2(-75, 75), 25, 25, Vector3.right, Vector3.forward, 1.0f, .15f, 0, .3f) },
+                { HumanBodyBones.RightLowerLeg, new BoneProfile(3,  new Vector2(-90, 0), 10, 10, Vector3.right, Vector3.forward, 1.5f, .075f, 0, .2f) },
+                { HumanBodyBones.LeftLowerLeg,  new BoneProfile(4,  new Vector2(-90, 0), 10, 10, Vector3.right, Vector3.forward, 1.5f, .075f, 0, .2f) },
+                { HumanBodyBones.RightUpperLeg, new BoneProfile(5,  new Vector2(-75, 100), 25, 0, Vector3.right, Vector3.forward, 1.5f, .1f, 0, .2f) },
+                { HumanBodyBones.LeftUpperLeg,  new BoneProfile(6,  new Vector2(-75, 100), 25, 0, Vector3.right, Vector3.forward, 1.5f, .1f, 0, .2f) },
+                { HumanBodyBones.RightLowerArm, new BoneProfile(7,  new Vector2(0, 180 ), 15, 15, Vector3.up, Vector3.forward, 1.0f, .075f, 0, .2f ) },
+                { HumanBodyBones.LeftLowerArm,  new BoneProfile(8,  new Vector2(-180, 0), 15, 15, Vector3.up, Vector3.forward, 1.0f, .075f, 0, .2f) },
+                { HumanBodyBones.RightUpperArm, new BoneProfile(9,  new Vector2(-45, 90), 85, 25, Vector3.forward, Vector3.up, 1.0f, .075f, 0, .2f) },
+                { HumanBodyBones.LeftUpperArm,  new BoneProfile(10, new Vector2(-90, 45), 85, 25, Vector3.forward, Vector3.up, 1.0f, .075f, 0, .2f) },
+            }
+        );
     }
 
 
@@ -171,7 +166,7 @@ namespace DynamicRagdoll {
             }     
         }
 
-        static string[] jointsPropsNames = new string[] { "angularXLimit", "angularYLimit", "angularZLimit", "forceOff", "axis1", "axis2" };
+        static string[] jointsPropsNames = new string[] { "massScale", "connectedMassScale", "angularXLimit", "angularYLimit", "angularZLimit", "forceOff", "axis1", "axis2" };
         static string[] rigidbodyPropsNames = new string[] { "mass", "angularDrag", "drag", "maxAngularVelocity", "interpolation", "collisionDetection", "maxDepenetrationVelocity" };
         static string[] boxColliderPropsNames = new string[] { "boxZOffset", "boxZSize", "colliderMaterial" };
         static string[] capsuleColliderPropsNames = new string[] { "colliderRadius", "colliderMaterial" };

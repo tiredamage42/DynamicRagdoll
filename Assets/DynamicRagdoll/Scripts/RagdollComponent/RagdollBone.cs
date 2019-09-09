@@ -13,11 +13,13 @@ namespace DynamicRagdoll {
         [HideInInspector] public HumanBodyBones bone;
         [HideInInspector] public Collider boneCollider;
         [HideInInspector] public Ragdoll ragdoll;
+        [HideInInspector] public Rigidbody rb;
 
         public event Action<RagdollBone, Collision> onCollisionEnter, onCollisionStay, onCollisionExit;
 
         void Awake () {
             boneCollider = GetComponent<Collider>();
+            rb = GetComponent<Rigidbody>();
         }
 
         /*

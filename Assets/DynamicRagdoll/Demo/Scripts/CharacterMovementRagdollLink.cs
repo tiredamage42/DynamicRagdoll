@@ -113,8 +113,15 @@ namespace DynamicRagdoll.Demo {
 				}
 			}
 
-			//set the ragdolls fall speed based on our speed
-			ragdollController.SetFallSpeed(fallDecaySpeeds[(int)characterMovement.currentSpeed]);
+            int currentSpeed = (int)characterMovement.currentSpeed;
+
+            if (currentSpeed < 0 || currentSpeed >= fallDecaySpeeds.Length) {
+                Debug.LogError("current speed: " + currentSpeed + " :: out of range for fall decays");
+            }
+            else {
+                //set the ragdolls fall speed based on our speed
+                ragdollController.SetFallSpeed(fallDecaySpeeds[(int)characterMovement.currentSpeed]);
+            }
         }
 
         void OnRevive () {

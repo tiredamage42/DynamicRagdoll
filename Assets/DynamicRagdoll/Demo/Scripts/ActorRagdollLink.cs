@@ -30,6 +30,8 @@ namespace Game.Combat {
         [BoneData] public CombatBoneDataList boneData;
         Actor actor;
         RagdollController ragdollController;
+        public int minSeverityForDismember = 2;
+
         
 
         void Awake () {
@@ -39,6 +41,11 @@ namespace Game.Combat {
         void Start () {
             actor.SetDamageModifier(ModifyDamage);    
             actor.SetSubDamageables(ragdollController.ragdoll.AddComponentsToBones<Damageable>());
+            ragdollController.ragdoll.SetDismembermentAvailableCheck(DismembermentAvailable);
+        }
+
+        bool DismembermentAvailable () {
+            return actor.health <= 0;
         }
 
         void OnEnable () {
@@ -55,6 +62,8 @@ namespace Game.Combat {
         void OnRevive () {
             Debug.Log(name + " REVIVING");
             ragdollController.ragdoll.RepairBones();
+            ragdollController.ragdoll.ForceDetach();
+            
             ragdollController.disableGetUp = false;
             ragdollController.GetUpImmediate();
         }
@@ -73,42 +82,42 @@ namespace Game.Combat {
             
             // if we're dead and passed in a damageable that's part of our ragdoll
             // maybe dismember it
-            if (actor.health <= 0) {
-
-                if (damageable != null) {
-
-                    RagdollTransform damagedBone;
-                    if ( ragdollController.ragdoll.Transform2HumanBone (damageable.transform, out damagedBone) ) {
-
-                        float dismemberChance = boneData[damagedBone.bone.bone].chanceDismember;
-
-                        if (Random.value <= dismemberChance) {
-
-                            // dismember with a 2 frame delay in order for physics to affect bone and neighbors before we
-                            // dismember it
-                            ragdollController.ragdoll.DismemberBone(damagedBone, 2);
-                        }
-                    }  
-                }
-            }
-
-        }
-
-        void OnDeath (Damageable damageable, DamageMessage damageMessage) {
-
+            
             if (damageable != null) {
 
-                RagdollTransform damagedBone = null;
-                
+                RagdollTransform damagedBone;
                 if ( ragdollController.ragdoll.Transform2HumanBone (damageable.transform, out damagedBone) ) {
+                    if (damageMessage.severity >= minSeverityForDismember) {
+                        float dismemberChance = boneData[damagedBone.bone.bone].chanceDismember;
+                        if (Random.value <= dismemberChance) {
+                            ragdollController.ragdoll.DismemberBone("damage", damagedBone);
+                        }
+                    }
 
                     // set bone decay for the hit bone, so the physics will affect it
                     // (slightly lower for neighbor bones)
                     float mainDecay = 1;
                     float neighborMultiplier = .75f;
-                    ragdollController.SetBoneDecay(damagedBone.bone.bone, mainDecay, neighborMultiplier);
+                    ragdollController.AddBoneDecay(damagedBone.bone.bone, mainDecay, neighborMultiplier);
                 }  
             }
+        }
+
+        void OnDeath (Damageable damageable, DamageMessage damageMessage) {
+
+            // if (damageable != null) {
+
+            //     RagdollTransform damagedBone = null;
+                
+            //     if ( ragdollController.ragdoll.Transform2HumanBone (damageable.transform, out damagedBone) ) {
+
+            //         // set bone decay for the hit bone, so the physics will affect it
+            //         // (slightly lower for neighbor bones)
+            //         float mainDecay = 1;
+            //         float neighborMultiplier = .75f;
+            //         ragdollController.AddBoneDecay(damagedBone.bone.bone, mainDecay, neighborMultiplier);
+            //     }  
+            // }
                             
             //make it go ragdoll
             ragdollController.GoRagdoll("death");
